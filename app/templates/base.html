@@ -19,7 +19,7 @@
     </a>
 
     <div class="d-none d-xl-flex align-items-center gap-4 mx-4">
-      {% set menu = settings.get('menu_items', 'Všechny boty,Běžecké,Dámské,Pánské,Sandály') %}
+      {% set menu = settings.get('menu_items', 'Všechny boty,Běžecké,Dámské,Pánské,Zimní') %}
       {% for item in menu.split(',') if item.strip() %}
         <a class="text-dark text-decoration-none{% if loop.first %} fw-semibold{% endif %}" href="{{ url_for('shop.products') }}">{{ item.strip() }}</a>
       {% endfor %}
