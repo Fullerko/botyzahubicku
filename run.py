@@ -8,28 +8,27 @@ def create_admin_route():
     from app.models import User
     from werkzeug.security import generate_password_hash
 
-    with app.app_context():
-        email = "admin@admin.cz"
-        password = "123456"
+    email = "admin@admin.cz"
+    password = "123456"
 
-        existing = User.query.filter_by(email=email).first()
-        if existing:
-            return "Admin už existuje"
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        return "Admin už existuje"
 
-        user = User(
-            email=email,
-            password_hash=generate_password_hash(password),
-            full_name="Admin",
-            address="",
-            city="",
-            postal_code="",
-            is_admin=True
-        )
+    user = User(
+        email=email,
+        password_hash=generate_password_hash(password),
+        full_name="Admin",
+        address="",
+        city="",
+        postal_code="",
+        is_admin=True
+    )
 
-        db.session.add(user)
-        db.session.commit()
+    db.session.add(user)
+    db.session.commit()
 
-        return "Admin vytvořen: admin@admin.cz / 123456"
+    return "Admin vytvořen: admin@admin.cz / 123456"
 
 if __name__ == '__main__':
     app.run(debug=True)
