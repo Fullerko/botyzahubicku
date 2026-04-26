@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Produkty | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row g-4">
+    <div class="col-lg-3">
+      <div class="filter-card sticky-filters">
+        <h4>Filtry</h4>
+        <form method="get" class="vstack gap-3 mt-3">
+          <input class="form-control" type="text" name="search" placeholder="Hledat" value="{{ request.args.get('search', '') }}">
+          <select class="form-select" name="brand"><option value="">Všechny značky</option>{% for brand in brands %}<option value="{{ brand }}" {% if request.args.get('brand')==brand %}selected{% endif %}>{{ brand }}</option>{% endfor %}</select>
+          <select class="form-select" name="size"><option value="">Všechny velikosti</option>{% for size in sizes %}<option value="{{ size }}" {% if request.args.get('size')==size %}selected{% endif %}>{{ size }}</option>{% endfor %}</select>
+          <select class="form-select" name="sort">
+            <option value="newest">Nejnovější</option>
+            <option value="price_asc" {% if request.args.get('sort')=='price_asc' %}selected{% endif %}>Cena od nejnižší</option>
+            <option value="price_desc" {% if request.args.get('sort')=='price_desc' %}selected{% endif %}>Cena od nejvyšší</option>
+          </select>
+          <button class="btn btn-dark rounded-pill">Použít filtry</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-9">
+      <div class="section-header mb-3"><div><h1 class="h2 mb-1">Všechny boty</h1><p class="text-secondary mb-0">Doprava zdarma vždy a platba jen QR kódem / převodem.</p></div></div>
+      <div class="row g-4">
+        {% for product in products %}{% include 'components/product_card.html' %}{% else %}<div class="col-12"><div class="info-card">Žádné produkty neodpovídají filtru.</div></div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

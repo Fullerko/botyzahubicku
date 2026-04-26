@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }} | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row g-5">
+    <div class="col-lg-6">
+	  {% set gallery_images = [product.image] + product.gallery_list %}
+
+	  <div class="product-gallery">
+        <div class="detail-image-card">
+		  <img
+			id="mainProductImage"
+			class="detail-image"
+			src="{{ image_url(gallery_images[0]) }}"
+			alt="{{ product.name }}"
+		  >
+		</div>
+
+		<div class="product-thumbnails">
+		  {% for img in gallery_images[:5] %}
+			<button
+			  type="button"
+			  class="product-thumb {% if loop.first %}active{% endif %}"
+			  onmouseenter="changeProductImage(this, '{{ image_url(img) }}')"
+			  onclick="changeProductImage(this, '{{ image_url(img) }}')"
+			>
+			  <img src="{{ image_url(img) }}" alt="{{ product.name }} fotka {{ loop.index }}">
+			</button>
+		  {% endfor %}
+		</div>
+	  </div>
+	</div>
+    <div class="col-lg-6">
+      <div class="text-secondary mb-2">{{ product.brand }} • {{ product.category.name }}</div>
+      <h1 class="display-6 fw-bold">{{ product.name }}</h1>
+      <p class="lead text-secondary">{{ product.short_description }}</p>
+      <div class="price-line mb-4"><strong class="display-6">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</strong>{% if product.original_price %}<span class="old-price ms-3">{{ '{:,.0f}'.format(product.original_price).replace(',', ' ') }} Kč</span>{% endif %}</div>
+      <div class="info-pills mb-4">
+        <span><i class="bi bi-truck"></i> Doprava zdarma</span>
+        <span><i class="bi bi-house-door"></i> Kurýr až ke dveřím</span>
+        <span><i class="bi bi-calendar-event"></i> 8–12 dní doručení</span>
+      </div>
+      <form method="post" class="buy-box">
+        <div class="mb-3"><label class="form-label">Velikost</label><select class="form-select" name="size" required>{% for size_row in product.sizes %}<option value="{{ size_row.size }}">{{ size_row.size }} {% if size_row.stock <= 0 %}- vyprodáno{% endif %}</option>{% endfor %}</select></div>
+		{% if product.colors %}
+		  <div class="mb-3">
+			<label class="form-label">Barva</label>
+			<select class="form-select" name="color" required>
+			  {% for color in product.colors.split(',') %}
+				{% if color.strip() %}
+				  <option value="{{ color.strip() }}">{{ color.strip() }}</option>
+				{% endif %}
+			  {% endfor %}
+			</select>
+	   	  </div>
+		{% endif %}
+        <div class="mb-3"><label class="form-label">Počet</label><input class="form-control" type="number" name="quantity" min="1" max="10" value="1"></div>
+        <div class="d-grid gap-2 d-md-flex"><button class="btn btn-dark btn-lg rounded-pill px-4"><i class="bi bi-bag-plus"></i> Přidat do košíku</button><a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.checkout') }}">Přejít na objednávku</a></div>
+      </form>
+      <div class="description-box mt-4 w-100" style="max-width: 100%;">
+        <h4>Detail produktu</h4>
+        <p>{{ product.description }}</p>
+      </div>
+    </div>
+  </div>
+
+  {% if product.specifications %}
+    <div class="description-box mt-4 w-100" style="max-width: 100%;">
+      <h3 class="h4 mb-3">Atributy produktu</h3>
+
+      {% set lines = product.specifications.splitlines() %}
+      {% set mid = (lines|length // 2) + (lines|length % 2) %}
+      {% set left = lines[:mid] %}
+      {% set right = lines[mid:] %}
+
+      <div class="row w-100 gx-4">
+        <div class="col-12 col-lg-6">
+          <table class="table table-bordered align-middle mb-0 w-100">
+            <tbody>
+              {% for line in left %}
+                {% if line.strip() %}
+                  {% set parts = line.split(':', 1) %}
+                  <tr>
+                    <th style="width: 45%;">{{ parts[0].strip() }}</th>
+                    <td>{% if parts|length > 1 %}{{ parts[1].strip() }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <table class="table table-bordered align-middle mb-0 w-100">
+            <tbody>
+              {% for line in right %}
+                {% if line.strip() %}
+                  {% set parts = line.split(':', 1) %}
+                  <tr>
+                    <th style="width: 45%;">{{ parts[0].strip() }}</th>
+                    <td>{% if parts|length > 1 %}{{ parts[1].strip() }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</section>
+<section class="container pb-5"><div class="section-header mb-3"><h2>Podobné produkty</h2></div><div class="row g-4">{% for product in related %}{% include 'components/product_card.html' %}{% endfor %}</div></section>
+{% endblock %}

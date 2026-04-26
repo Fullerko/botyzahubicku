@@ -1,0 +1,22 @@
+<div class="col-md-6 col-xl-3">
+  <div class="product-card h-100">
+    <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">
+      <div class="product-image-wrap">
+        {% if product.discount_percent %}<span class="discount-badge">-{{ product.discount_percent }} %</span>{% endif %}
+        <img class="product-image" src="{{ image_url(product.image) }}" alt="{{ product.name }}">
+      </div>
+      <div class="p-3">
+        <div class="text-secondary small mb-1">{{ product.brand }}</div>
+        <h5 class="product-title">{{ product.name }}</h5>
+        <p class="text-secondary small mb-2">{{ product.short_description }}</p>
+        <div class="d-flex align-items-center justify-content-between mt-3">
+          <div>
+            <strong class="fs-5">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</strong>
+            {% if product.original_price %}<div class="old-price">{{ '{:,.0f}'.format(product.original_price).replace(',', ' ') }} Kč</div>{% endif %}
+          </div>
+          <span class="btn btn-dark rounded-pill">Detail</span>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>

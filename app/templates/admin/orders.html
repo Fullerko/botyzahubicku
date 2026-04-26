@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Objednávky | Admin{% endblock %}
+{% block content %}
+<section class="container py-5">
+<div class="info-card">
+<h1 class="h2 mb-4">Objednávky</h1>
+<div class="table-responsive">
+<table class="table align-middle mb-0">
+<thead>
+<tr>
+<th>Číslo</th>
+<th>Zákazník</th>
+<th>Platba</th>
+<th>Kód</th>
+<th>Provize</th>
+<th>Stav</th>
+<th>Datum platby</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+{% for order in orders %}
+<tr>
+<td>{{ order.order_number }}</td>
+<td>{{ order.customer_name }}</td>
+<td>{{ order.payment_method }}</td>
+<td>{{ order.coupon_code or '—' }}</td>
+<td>{{ ((order._commission_amount if order._commission_amount is defined and order._commission_amount is not none else 0)|int)|string|replace(',', ' ') }} Kč</td>
+<td>{{ order.status }}</td>
+<td>{% if order.paid_at %}{{ order.paid_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</td>
+<td><a href="{{ url_for('admin.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Detail</a></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+</section>
+{% endblock %}

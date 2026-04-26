@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Objednávka {{ order.order_number }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="success-box mx-auto text-center">
+    <h1 class="display-6 fw-bold mb-3">Objednávka {{ order.order_number }} byla vytvořena</h1>
+    <p class="lead text-secondary">Platba probíhá výhradně přes QR kód nebo bankovní převod.</p>
+    <div class="row g-4 mt-2 align-items-center">
+      <div class="col-lg-6 text-start">
+        <div class="summary-row"><span>Celkem k úhradě</span><strong>{{ '{:,.0f}'.format(order.total_price).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row"><span>Bankovní účet</span><strong>{{ bank_account }}</strong></div>
+        <div class="summary-row"><span>IBAN</span><strong>{{ bank_iban }}</strong></div>
+        <div class="summary-row"><span>Doručení</span><strong>8–12 dní, kurýr až domů</strong></div>
+      </div>
+      <div class="col-lg-6">
+        {% if order.qr_image %}<img src="{{ url_for('static', filename='uploads/' + order.qr_image) }}" class="qr-image rounded-4 shadow-sm" alt="QR">{% endif %}
+      </div>
+	  <div class="mt-4">
+		<button
+		  type="button"
+		  class="btn btn-dark rounded-pill"
+		  id="checkPaymentBtn"
+		  data-order-number="{{ order.order_number }}"
+		>
+		  Zkontrolovat stav platby
+		</button>
+
+		<div id="paymentStatusMessage" class="mt-3 fw-semibold"></div>
+	  </div>
+    </div>
+  </div>
+</section>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const btn = document.getElementById("checkPaymentBtn");
+  const messageBox = document.getElementById("paymentStatusMessage");
+
+  if (!btn || !messageBox) return;
+
+  btn.addEventListener("click", async function () {
+    const orderNumber = btn.dataset.orderNumber;
+
+    btn.disabled = true;
+    btn.innerText = "Kontroluji platbu...";
+    messageBox.innerText = "";
+
+    try {
+      const response = await fetch(`/api/order-status/${encodeURIComponent(orderNumber)}`);
+      const data = await response.json();
+
+      if (data.paid === true) {
+        messageBox.className = "mt-3 fw-semibold text-success";
+        messageBox.innerText = "Děkujeme za Vaši objednávku, podrobnosti jsme Vám zaslali emailem.";
+      } else {
+        messageBox.className = "mt-3 fw-semibold text-warning";
+        messageBox.innerText = "Platba neexistuje, nebo stále nedorazila, vyčkejte prosím 30 vteřin a zkuste zkontrolovat stav znovu.";
+      }
+    } catch (error) {
+      messageBox.className = "mt-3 fw-semibold text-danger";
+      messageBox.innerText = "Nepodařilo se ověřit stav platby. Zkuste to prosím znovu.";
+    }
+
+    btn.disabled = false;
+    btn.innerText = "Zkontrolovat stav platby";
+  });
+});
+</script>
+{% endblock %}

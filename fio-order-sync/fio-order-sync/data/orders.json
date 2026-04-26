@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1001,
+    "variableSymbol": "1001",
+    "status": "pending",
+    "totalPrice": 499,
+    "customerEmail": "zakaznik@example.com"
+  },
+  {
+    "id": 1002,
+    "variableSymbol": "1002",
+    "status": "pending",
+    "totalPrice": 1290,
+    "customerEmail": "zakaznik2@example.com"
+  }
+]

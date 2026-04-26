@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Nastavení | Admin{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="section-header mb-4">
+    <div>
+      <h1 class="h2 mb-1">Nastavení e-shopu</h1>
+      <p class="text-secondary mb-0">Uprav si texty, menu, homepage bloky i kontaktní údaje bez zásahu do kódu.</p>
+    </div>
+  </div>
+
+  <form method="post" class="row g-4">
+    {% for section_name, fields in sections.items() %}
+      <div class="col-12">
+        <div class="info-card">
+          <h4 class="mb-3">{{ section_name }}</h4>
+          <div class="row g-3">
+            {% for key, label in fields %}
+              <div class="col-md-6">
+                <label class="form-label">{{ label }}</label>
+                {% set value = settings.get(key, '') %}
+                {% if key in ['meta_description', 'hero_subtitle', 'categories_subtitle', 'featured_subtitle', 'newest_subtitle', 'delivery_text', 'menu_items'] %}
+                  <textarea class="form-control" name="{{ key }}" rows="3">{{ value }}</textarea>
+                {% else %}
+                  <input class="form-control" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+                <small class="text-secondary">Klíč: {{ key }}</small>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="col-12">
+      <button class="btn btn-dark rounded-pill px-4">Uložit nastavení</button>
+    </div>
+  </form>
+
+  <div class="info-card mt-4">
+    <h5 class="mb-2">Poznámka</h5>
+    <p class="text-secondary mb-0">Menu nahoře zadávej oddělené čárkou. Logo může být buď externí URL, nebo název souboru ze složky <code>app/static/uploads</code>. Bez SMTP se resetovací e-maily ukládají do <code>instance/outbox/emails.log</code>.</p>
+  </div>
+</section>
+{% endblock %}

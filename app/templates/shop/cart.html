@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Košík | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row g-5">
+    <div class="col-lg-8">
+      <h1 class="h2 mb-4">Košík</h1>
+      {% for item in items %}
+      <div class="cart-item mb-3">
+        <div class="row align-items-center g-3">
+          <div class="col-md-2"><img class="img-fluid rounded-4" src="{{ image_url(item.product.image) }}"></div>
+          <div class="col-md-4"><h5 class="mb-1">{{ item.product.name }}</h5><div class="text-secondary">Velikost {{ item.size }}</div></div>
+          <div class="col-md-3"><form method="post" action="{{ url_for('shop.cart_update') }}"><input type="hidden" name="key" value="{{ item.key }}"><input class="form-control" type="number" name="quantity" min="1" value="{{ item.quantity }}"><button class="btn btn-sm btn-outline-dark rounded-pill mt-2">Uložit</button></form></div>
+          <div class="col-md-2 fw-semibold">{{ '{:,.0f}'.format(item.line_total).replace(',', ' ') }} Kč</div>
+          <div class="col-md-1 text-end"><a href="{{ url_for('shop.cart_remove', key=item.key) }}" class="btn btn-sm btn-outline-danger rounded-pill">×</a></div>
+        </div>
+      </div>
+      {% else %}<div class="info-card">Košík je prázdný.</div>{% endfor %}
+    </div>
+    <div class="col-lg-4">
+      <div class="summary-card mb-3">
+        <h4>Slevový /  kód</h4>
+        <form method="post" action="{{ url_for('shop.apply_coupon') }}" class="d-flex gap-2 mt-3">
+          <input class="form-control" name="coupon_code" placeholder="PEPA5 / VIP10">
+          <button class="btn btn-dark rounded-pill">Použít</button>
+        </form>
+        {% if session.get('coupon') %}
+        <div class="alert alert-success mt-3 mb-0 rounded-4">Aktivní kód: <strong>{{ session['coupon']['code'] }}</strong><br>SLEVA {{ session['coupon']['discount_percent_client']|int }} %<br><a href="{{ url_for('shop.remove_coupon') }}">Odebrat kód</a></div>
+        {% endif %}
+      </div>
+      <div class="summary-card">
+        <h4>Rekapitulace</h4>
+        <div class="summary-row"><span>Mezisoučet</span><strong>{{ '{:,.0f}'.format(subtotal).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row"><span>Doprava</span><strong>Zdarma</strong></div>
+        <div class="summary-row"><span>Sleva</span><strong>-{{ '{:,.0f}'.format(discount_amount).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row total"><span>Celkem</span><strong>{{ '{:,.0f}'.format(total).replace(',', ' ') }} Kč</strong></div>
+        <a class="btn btn-dark btn-lg w-100 rounded-pill mt-3" href="{{ url_for('shop.checkout') }}">Pokračovat k objednávce</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

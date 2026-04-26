@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Můj účet{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="section-header mb-3"><div><h1 class="h2 mb-1">Můj účet</h1><p class="text-secondary mb-0">Přehled objednávek.</p></div></div>
+  <div class="table-responsive info-card">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Objednávka</th><th>Datum</th><th>Stav</th><th>Kód</th><th>Celkem</th></tr></thead>
+      <tbody>{% for order in orders %}<tr><td>{{ order.order_number }}</td><td>{{ order.created_at.strftime('%d.%m.%Y') }}</td><td>{{ order.status }}</td><td>{{ order.coupon_code or '—' }}</td><td>{{ '{:,.0f}'.format(order.total_price).replace(',', ' ') }} Kč</td></tr>{% else %}<tr><td colspan="5">Zatím tu nejsou žádné objednávky.</td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

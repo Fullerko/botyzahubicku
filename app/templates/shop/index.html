@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ settings.get('site_name', 'BotyZaHubicku.cz') }} | stylové boty{% endblock %}
+{% block content %}
+<section class="hero-section">
+  <div class="container">
+    <div class="hero-shell">
+      <div class="row g-4 align-items-center">
+        <div class="col-lg-6">
+          <span class="badge rounded-pill text-bg-warning mb-3">{{ settings.get('hero_badge', 'Doprava zdarma') }}</span>
+          <h1>{{ settings.get('hero_title', 'Běžecké, sportovní i elegantní boty') }}</h1>
+          <p>{{ settings.get('hero_subtitle', 'Lehké, stylové a pohodlné modely pro každý den.') }}</p>
+          <div class="d-flex gap-3 flex-wrap mt-4">
+            <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat boty') }}</a>
+            <a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_secondary_text', 'Produkty') }}</a>
+          </div>
+          <div class="hero-points mt-4">
+            <div><i class="bi bi-truck"></i> {{ settings.get('hero_feature_1', 'Kurýrem až domů') }}</div>
+            <div><i class="bi bi-calendar-check"></i> {{ settings.get('hero_feature_2', '8–12 dní doručení') }}</div>
+            <div><i class="bi bi-shield-lock"></i> {{ settings.get('hero_feature_3', 'Zabezpečená platba') }}</div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="hero-card shadow-lg">
+            <img class="hero-photo" src="{{ settings.get('hero_image_url', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80') }}" alt="hero shoe">
+            <div class="row g-3 mt-1">
+              <div class="col-6"><div class="mini-stat"><strong>{{ settings.get('hero_stat_1_title', 'Doprava zdarma') }}</strong><span>{{ settings.get('hero_stat_1_text', 'na každou objednávku') }}</span></div></div>
+              <div class="col-6"><div class="mini-stat"><strong>{{ settings.get('hero_stat_2_title', 'Nové modely') }}</strong><span>{{ settings.get('hero_stat_2_text', 'pravidelně skladem') }}</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="container py-5">
+  <div class="section-header">
+    <div>
+      <h2>{{ settings.get('categories_title', 'Nakupujte podle kategorií') }}</h2>
+      <p class="text-secondary mb-0">{{ settings.get('categories_subtitle', 'Každá kategorie má vlastní fotku a vlastní styl.') }}</p>
+    </div>
+  </div>
+  <div class="row g-4 mt-1">
+    {% for cat in categories %}
+    <div class="col-md-6 col-xl-4">
+      <a class="category-photo-card text-decoration-none" href="{{ url_for('shop.products', category=cat.slug) }}">
+        <img src="{{ cat.image_url }}" alt="{{ cat.name }}">
+        <div class="category-photo-overlay">
+          <h5>{{ cat.name }}</h5>
+          <p>{{ cat.description }}</p>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="container py-4" id="featured">
+  <div class="section-header mb-3"><div><h2>{{ settings.get('featured_title', 'Top produkty') }}</h2><p class="text-secondary mb-0">{{ settings.get('featured_subtitle', 'Výběr hlavních modelů pro homepage.') }}</p></div></div>
+  <div class="row g-4">
+    {% for product in featured %}{% include 'components/product_card.html' %}{% endfor %}
+  </div>
+</section>
+
+<section class="container py-5">
+  <div class="section-header mb-3"><div><h2>{{ settings.get('newest_title', 'Novinky') }}</h2><p class="text-secondary mb-0">{{ settings.get('newest_subtitle', 'Nově přidané modely a čerstvé kusy.') }}</p></div></div>
+  <div class="row g-4">
+    {% for product in newest %}{% include 'components/product_card.html' %}{% endfor %}
+  </div>
+</section>
+{% endblock %}

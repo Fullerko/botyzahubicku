@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}{{ order.order_number }} | Admin{% endblock %}
+
+{% block content %}
+<section class="container py-5">
+  <div class="row g-4">
+
+    <!-- LEVÁ ČÁST -->
+    <div class="col-lg-8">
+      <div class="info-card">
+        <h1 class="h2 mb-3">{{ order.order_number }}</h1>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            
+            <thead>
+              <tr>
+                <th>Produkt</th>
+                <th>Vel.</th>
+				<th>Barva</th>
+                <th>Ks</th>
+                <th>Cena</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for item in order.items %}
+              <tr>
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.size }}</td>
+				<td>{{ item.color or '—' }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ '{:,.0f}'.format(item.unit_price or 0).replace(',', ' ') }} Kč</td>
+
+                <td>
+                  {% set product = Product.query.get(item.product_id) if item.product_id else none %}
+
+                  {% if product and product.source_url %}
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-dark copy-url-btn"
+                      data-url="{{ product.source_url }}"
+                      title="Kopírovat URL"
+                    >
+                      📋
+                    </button>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRAVÁ ČÁST -->
+    <div class="col-lg-4">
+      <div class="info-card">
+
+        <h4>Stav a finance</h4>
+
+        <form method="post" class="vstack gap-3 mt-3">
+          <select class="form-select" name="status">
+            <option {% if order.status=='Nová' %}selected{% endif %}>Nová</option>
+            <option {% if order.status=='Zaplaceno' %}selected{% endif %}>Zaplaceno</option>
+            <option {% if order.status=='Odeslána' %}selected{% endif %}>Odeslána</option>
+            <option {% if order.status=='Dokončena' %}selected{% endif %}>Dokončena</option>
+          </select>
+          <button class="btn btn-dark rounded-pill">Uložit stav</button>
+        </form>
+
+        <div class="summary-row mt-4">
+          <span>Celkem</span>
+          <strong>{{ '{:,.0f}'.format(order.total_price or 0).replace(',', ' ') }} Kč</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Kód</span>
+          <strong>{{ order.coupon_code or '—' }}</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Partner</span>
+          <strong>{{ order.affiliate_partner_name or '—' }}</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Provize</span>
+          <strong>{{ '{:,.0f}'.format(order.affiliate_commission_amount or 0).replace(',', ' ') }} Kč</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Datum platby</span>
+          <strong>
+            {% if order.paid_at %}
+              {{ order.paid_at.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              —
+            {% endif %}
+          </strong>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

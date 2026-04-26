@@ -1,0 +1,9 @@
+<svg width="340" height="90" viewBox="0 0 340 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="340" height="90" rx="20" fill="#111827"/>
+<path d="M44 57C54 57 59 52 63 45C66 39 73 34 85 33C87 33 89 31 89 28C89 25 87 23 84 23C69 23 60 29 54 38C50 44 47 48 40 48C35 48 31 45 31 40C31 34 36 31 44 31H48V23H44C31 23 22 30 22 40C22 50 31 57 44 57Z" fill="#F59E0B"/>
+<path d="M96 23H111L122 49L133 23H148V67H136V42L126 61H117L107 42V67H96V23Z" fill="white"/>
+<path d="M156 23H193V33H168V40H191V49H168V57H194V67H156V23Z" fill="white"/>
+<path d="M200 23H214V43L232 23H248L229 43L249 67H232L219 51L214 56V67H200V23Z" fill="white"/>
+<path d="M254 23H268V40H286V23H300V67H286V50H268V67H254V23Z" fill="white"/>
+<text x="162" y="82" fill="#FCD34D" font-size="14" font-family="Arial, sans-serif" text-anchor="middle">botyzahubicku.cz</text>
+</svg>

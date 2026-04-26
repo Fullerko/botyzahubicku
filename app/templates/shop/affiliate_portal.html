@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Affiliate portál{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="hero-shell -hero mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+      <div>
+        <span class="badge rounded-pill text-bg-warning mb-2">Affiliate portál</span>
+        <h1 class="display-6 fw-bold mb-1">Vítejte, {{ partner.name }}</h1>
+        <p class="text-secondary mb-0">Správa kódů, rozdělení 10 %, objednávky a provize.</p>
+      </div>
+      <div class="small text-secondary">K vyplacení</div>
+	  <div class="h3">{{ '%.0f'|format(stats.commission_earned) }} Kč</div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="info-card"><div class="small text-secondary">Objednávky</div><div class="h3">{{ stats.orders_count }}</div></div></div>
+    <div class="col-md-3"><div class="info-card"><div class="small text-secondary">Zaplacené</div><div class="h3">{{ stats.paid_orders_count }}</div></div></div>
+    <div class="col-md-3"><div class="info-card"><div class="small text-secondary">Obrat</div><div class="h3">{{ '%.0f'|format(stats.revenue) }} Kč</div></div></div>
+    <div class="col-md-3"><div class="info-card"><div class="small text-secondary">Provize celkem</div><div class="h3">{{ '%.0f'|format(stats.commission_earned) }} Kč</div></div></div>
+  </div>
+  
+  <div class="info-card mb-4">
+    <h2 class="h4 mb-3">Žádost o výběr</h2>
+
+    <form method="post" class="row g-2 align-items-end">
+      <input type="hidden" name="action" value="payout_request">
+
+      <div class="col-md-4">
+        <label class="form-label small">Částka k výběru</label>
+        <input class="form-control" type="number" min="1" max="{{ '%.0f'|format(stats.commission_earned - partner.paid_total) }}" name="amount"
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label small">Poznámka / účet</label>
+        <input class="form-control" type="text" name="note" placeholder="Např. číslo účtu">
+      </div>
+
+      <div class="col-md-2">
+        <button class="btn btn-dark rounded-pill w-100">Požádat</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-5">
+      <div class="info-card h-100">
+        <h2 class="h4 mb-3">Moje kódy a rozdělení</h2>
+        <div class="border rounded-4 p-3 mb-4 bg-light">
+          <h3 class="h5 mb-3">Přidat nový kód</h3>
+
+          <form method="post" class="row g-2 align-items-end">
+            <input type="hidden" name="action" value="create_code">
+
+            <div class="col-12">
+              <label class="form-label small">Kód</label>
+              <input class="form-control" type="text" name="code" placeholder="NAPŘ. ONDRA10" required>
+            </div>
+
+            <div class="col-6">
+              <label class="form-label small">Sleva zákazník</label>
+              <input class="form-control" type="number" min="0" max="10" name="discount_percent_client" value="5">
+            </div>
+
+            <div class="col-6">
+              <label class="form-label small">Provize partner</label>
+              <input class="form-control" type="number" min="0" max="10" name="commission_percent_partner" value="5">
+            </div>
+
+            <div class="col-12">
+              <button class="btn btn-outline-dark rounded-pill w-100">Vytvořit nový kód</button>
+            </div>
+          </form>
+        </div>
+        {% for code in coupons %}
+        <div class="border rounded-4 p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+            <div><div class="h4 mb-0">{{ code.code }}</div><div class="text-secondary small">{{ code.uses_count }} použití · {{ code.display_split }}</div></div>
+            <span class="badge {{ 'text-bg-success' if code.active else 'text-bg-secondary' }}">{{ 'Aktivní' if code.active else 'Vypnuto' }}</span>
+          </div>
+          <form method="post" class="row g-2 align-items-end">
+            <input type="hidden" name="coupon_id" value="{{ code.id }}">
+            <div class="col-6"><label class="form-label small">Sleva zákazník</label><input class="form-control" type="number" min="0" max="10" name="discount_percent_client" value="{{ code.discount_percent_client|int }}"></div>
+            <div class="col-6"><label class="form-label small">Provize partner</label><input class="form-control" type="number" min="0" max="10" name="commission_percent_partner" value="{{ code.commission_percent_partner|int }}"></div>
+            <div class="col-12"><button class="btn btn-dark rounded-pill w-100">Uložit split 10 %</button></div>
+          </form>
+        </div>
+        {% endfor %}
+        <p class="text-secondary small mb-0">Součet slevy zákazník + provize partner musí být přesně 10 %.</p>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="info-card h-100">
+        <h2 class="h4 mb-3">Objednávky přes moje kódy</h2>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>Objednávka</th><th>Kód</th><th>Stav</th><th>Celkem</th><th>Provize</th></tr></thead>
+            <tbody>
+              {% for o in orders %}
+              <tr><td>{{ o.order_number }}<br><span class="text-secondary small">{{ o.created_at.strftime('%d.%m.%Y') }}</span></td><td>{{ o.coupon_code }}</td><td>{{ o.payment_status }}</td><td>{{ '%.0f'|format(o.total_price or 0) }} Kč</td><td>{{ '%.0f'|format(o.affiliate_commission_amount or 0) }} Kč</td></tr>
+              {% else %}
+              <tr><td colspan="5" class="text-secondary">Zatím tu nejsou žádné objednávky.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

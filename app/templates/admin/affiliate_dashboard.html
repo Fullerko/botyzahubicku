@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Affiliate administrace{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1">Affiliate administrace</h1>
+      <p class="text-secondary mb-0">Schvalování přihlášek, správa kódů, provizí a výkonu partnerů.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.affiliate_partner_new') }}">Nový partner</a>
+      <a class="btn btn-dark rounded-pill" href="{{ url_for('admin.coupon_new') }}">Nový kód</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><div class="info-card"><div class="text-secondary small">Vydělané provize</div><div class="h3 mb-0">{{ '%.0f'|format(total_commission_earned) }} Kč</div></div></div>
+    <div class="col-md-4"><div class="info-card"><div class="text-secondary small">K vyplacení</div><div class="h3 mb-0">{{ '%.0f'|format(total_commission_balance) }} Kč</div></div></div>
+    <div class="col-md-4"><div class="info-card"><div class="text-secondary small">Vyplaceno</div><div class="h3 mb-0">{{ '%.0f'|format(total_commission_paid) }} Kč</div></div></div>
+  </div>
+
+  <div class="info-card mb-4">
+    <h2 class="h4 mb-3">Přihlášky a partneři</h2>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Partner</th><th>Status</th><th>Kódy</th><th>Objednávky</th><th>Provize</th><th></th></tr></thead>
+        <tbody>
+          {% for p in partners %}
+          {% set partner_orders = p.codes | map(attribute='orders') | list %}
+          <tr>
+            <td><strong>{{ p.name }}</strong><br><span class="text-secondary small">{{ p.email }}{% if p.instagram %} · {{ p.instagram }}{% endif %}</span></td>
+            <td><span class="badge {% if p.status == 'Aktivní' %}text-bg-success{% elif p.status == 'Odmítnuto' %}text-bg-secondary{% else %}text-bg-warning{% endif %}">{{ p.status }}</span></td>
+            <td>{% for c in p.codes %}<div><strong>{{ c.code }}</strong> <span class="text-secondary small">{{ c.display_split }}</span></div>{% else %}<span class="text-secondary">bez kódu</span>{% endfor %}</td>
+            <td>{{ p.codes | map(attribute='uses_count') | sum }}</td>
+            <td>{{ '%.0f'|format(p.commission_balance or 0) }} Kč</td>
+            <td class="text-end">
+              {% if p.status != 'Aktivní' %}
+              <form method="post" action="{{ url_for('admin.affiliate_partner_approve', partner_id=p.id) }}" class="d-inline"><button class="btn btn-sm btn-success rounded-pill">Schválit</button></form>
+              {% endif %}
+              {% if p.status != 'Odmítnuto' %}
+              <form method="post" action="{{ url_for('admin.affiliate_partner_reject', partner_id=p.id) }}" class="d-inline"><button class="btn btn-sm btn-outline-secondary rounded-pill">Odmítnout</button></form>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('admin.affiliate_partner_edit', partner_id=p.id) }}">Upravit</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <h2 class="h4 mb-3">Všechny slevové / affiliate kódy</h2>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Kód</th><th>Partner</th><th>Rozdělení</th><th>Použití</th><th>Stav</th><th></th></tr></thead>
+        <tbody>
+          {% for c in coupons %}
+          <tr>
+            <td><strong>{{ c.code }}</strong><br><span class="text-secondary small">{{ c.label }}</span></td>
+            <td>{{ c.affiliate_partner.name if c.affiliate_partner else 'Bez partnera' }}</td>
+            <td>{{ c.display_split }}</td>
+            <td>{{ c.uses_count }}{% if c.max_uses %}/{{ c.max_uses }}{% endif %}</td>
+            <td>{{ 'Aktivní' if c.active else 'Vypnuto' }}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('admin.coupon_edit', coupon_id=c.id) }}">Upravit</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

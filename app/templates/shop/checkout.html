@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Objednávka | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row g-5">
+    <div class="col-lg-7">
+      <h1 class="h2 mb-4">Dokončení objednávky</h1>
+      <form method="post" class="checkout-form">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Jméno a příjmení</label><input class="form-control" name="customer_name" value="{{ current_user.full_name if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" type="email" name="email" value="{{ current_user.email if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">Telefon</label><input class="form-control" name="phone" required></div>
+          <div class="col-md-6"><label class="form-label">PSČ</label><input class="form-control" name="postal_code" value="{{ current_user.postal_code if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-12"><label class="form-label">Ulice a číslo</label><input class="form-control" name="street" value="{{ current_user.address if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">Město</label><input class="form-control" name="city" value="{{ current_user.city if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">Doprava</label><input class="form-control" value="Kurýr až domů zdarma" readonly></div>
+          <div class="col-md-6"><label class="form-label">Platba</label><input class="form-control" value="Zabezpečená platba" readonly></div>
+          <div class="col-12"><label class="form-label">Poznámka</label><textarea class="form-control" name="note" rows="4" placeholder="Poznámka k objednávce"></textarea></div>
+        </div>
+        <button class="btn btn-dark btn-lg rounded-pill mt-4">Vytvořit objednávku</button>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="summary-card mb-3">
+        <h4>Doprava a platba</h4>
+        <div class="summary-row"><span>Doručení</span><strong>8–12 dní</strong></div>
+        <div class="summary-row"><span>Dopravce</span><strong>Kurýr až domů</strong></div>
+        <div class="summary-row"><span>Doprava</span><strong>Zdarma</strong></div>
+        <div class="summary-row"><span>Platba</span><strong>Zabezpečená platba</strong></div>
+        <div class="small text-secondary mt-3">Bankovní účet: {{ bank_account }}<br>IBAN: {{ bank_iban }}</div>
+      </div>
+      <div class="summary-card">
+        <h4>Rekapitulace</h4>
+        {% for item in items %}<div class="mini-cart-line"><span>{{ item.product.name }} / {{ item.size }} × {{ item.quantity }}</span><strong>{{ '{:,.0f}'.format(item.line_total).replace(',', ' ') }} Kč</strong></div>{% endfor %}
+        <hr>
+        <div class="summary-row"><span>Mezisoučet</span><strong>{{ '{:,.0f}'.format(subtotal).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row"><span>Doprava</span><strong>Zdarma</strong></div>
+        <div class="summary-row"><span>Sleva</span><strong>-{{ '{:,.0f}'.format(discount_amount).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row total"><span>Celkem</span><strong>{{ '{:,.0f}'.format(total).replace(',', ' ') }} Kč</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
