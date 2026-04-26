@@ -19,6 +19,10 @@ def create_admin_route():
         user = User(
             email=email,
             password_hash=generate_password_hash(password),
+            full_name="Admin",
+            address="",
+            city="",
+            postal_code="",
             is_admin=True
         )
 
