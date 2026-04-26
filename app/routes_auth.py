@@ -38,11 +38,12 @@ def register():
             return redirect(url_for('auth.register'))
         user = User(
             email=email,
-            full_name=request.form.get('full_name', '').strip(),
+            full_name=request.form.get('full_name', '').strip() or 'Admin',
             password_hash=generate_password_hash(request.form.get('password', '')),
             address=request.form.get('address', '').strip(),
             city=request.form.get('city', '').strip(),
             postal_code=request.form.get('postal_code', '').strip(),
+            is_admin=True if email == 'admin@botyzahubicku.cz' else False,
         )
         db.session.add(user)
         db.session.commit()
