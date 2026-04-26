@@ -32,7 +32,7 @@
 
     <div class="d-flex align-items-center gap-3">
       {% if current_user.is_authenticated %}
-        <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('shop.account') }}"><i class="bi bi-person"></i></a>
+        <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('auth.login') }}"><i class="bi bi-person"></i></a>
         {% if current_user.is_admin %}<a class="text-dark text-decoration-none" href="{{ url_for('admin.dashboard') }}">Admin</a>{% endif %}
         <a class="text-dark text-decoration-none" href="{{ url_for('auth.logout') }}">Odhlásit</a>
       {% else %}
