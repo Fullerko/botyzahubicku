@@ -19,10 +19,11 @@
     </a>
 
     <div class="d-none d-xl-flex align-items-center gap-4 mx-4">
-      {% set menu = settings.get('menu_items', 'Všechny boty,Běžecké,Dámské,Pánské,Zimní') %}
-      {% for item in menu.split(',') if item.strip() %}
-        <a class="text-dark text-decoration-none{% if loop.first %} fw-semibold{% endif %}" href="{{ url_for('shop.products') }}">{{ item.strip() }}</a>
-      {% endfor %}
+      <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('shop.products') }}">Všechny boty</a>
+      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='bezecke-boty') }}">Běžecké</a>
+      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='damske') }}">Dámské</a>
+      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='panske') }}">Pánské</a>
+      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='zimni') }}">Zimní</a>
     </div>
 
     <form class="d-none d-xl-flex align-items-center position-relative mx-4" action="{{ url_for('shop.products') }}" style="width: 320px;">
