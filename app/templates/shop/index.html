@@ -63,6 +63,7 @@
         
         {% elif cat.slug == 'damske' %}
           <img src="{{ url_for('static', filename='images/damske.jpg') }}" alt="{{ cat.name }}">
+		{% endif %}
         
         <div class="category-photo-overlay">
           <h5>{{ cat.name }}</h5>
