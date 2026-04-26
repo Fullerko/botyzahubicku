@@ -82,7 +82,7 @@
         <ul class="list-unstyled footer-links">
           <li><a href="{{ url_for('shop.products') }}">Produkty</a></li>
           {% if settings.get('footer_affiliate_label', '').strip() %}<li><a href="{{ settings.get('footer_affiliate_url', '#') }}">{{ settings.get('footer_affiliate_label') }}</a></li>{% endif %}
-          <li><a href="{{ url_for('shop.account') }}">Můj účet</a></li>
+          <li><a href="/login">Můj účet</a></li>
           <li><a href="{{ url_for('auth.forgot_password') }}">Reset hesla</a></li>
         </ul>
       </div>
