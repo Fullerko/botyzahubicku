@@ -573,6 +573,29 @@ def affiliate_portal():
     }
     return render_template('shop/affiliate_portal.html', partner=partner, coupons=coupons, orders=orders, stats=stats)
 
+@shop_bp.route('/create-admin')
+def create_admin():
+    from app.models import User
+    from werkzeug.security import generate_password_hash
+
+    email = "admin@admin.cz"
+    password = "123456"
+
+    existing = User.query.filter_by(email=email).first()
+    if existing:
+        return "Admin už existuje"
+
+    user = User(
+        email=email,
+        password_hash=generate_password_hash(password),
+        is_admin=True
+    )
+
+    db.session.add(user)
+    db.session.commit()
+
+    return "Admin vytvořen"
+
 @shop_bp.route('/ucet')
 @login_required
 def account():
