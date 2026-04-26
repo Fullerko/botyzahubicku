@@ -40,11 +40,30 @@
       <p class="text-secondary mb-0">{{ settings.get('categories_subtitle', 'Každá kategorie má vlastní fotku a vlastní styl.') }}</p>
     </div>
   </div>
+
   <div class="row g-4 mt-1">
     {% for cat in categories %}
     <div class="col-md-6 col-xl-4">
       <a class="category-photo-card text-decoration-none" href="{{ url_for('shop.products', category=cat.slug) }}">
-        <img src="{{ cat.image_url }}" alt="{{ cat.name }}">
+        
+        {% if cat.slug == 'tenisky' %}
+          <img src="{{ url_for('static', filename='images/tenisky.jpg') }}" alt="{{ cat.name }}">
+        
+        {% elif cat.slug == 'bezecke' %}
+          <img src="{{ url_for('static', filename='images/bezecke.jpg') }}" alt="{{ cat.name }}">
+        
+        {% elif cat.slug == 'kotnikove' %}
+          <img src="{{ url_for('static', filename='images/kotnikove.jpg') }}" alt="{{ cat.name }}">
+        
+        {% elif cat.slug == 'zimni' %}
+          <img src="{{ url_for('static', filename='images/zimni.jpg') }}" alt="{{ cat.name }}">
+        
+        {% elif cat.slug == 'panske' %}
+          <img src="{{ url_for('static', filename='images/panske.jpg') }}" alt="{{ cat.name }}">
+        
+        {% elif cat.slug == 'damske' %}
+          <img src="{{ url_for('static', filename='images/damske.jpg') }}" alt="{{ cat.name }}">
+        
         <div class="category-photo-overlay">
           <h5>{{ cat.name }}</h5>
           <p>{{ cat.description }}</p>
