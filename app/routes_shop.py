@@ -90,6 +90,20 @@ def mark_paid_api():
             """
             for item in order.items
           ])}
+
+          {f"""
+          <tr>
+            <td style="padding: 8px 0; color: #e53935;"><strong>SLEVA</strong></td>
+            <td></td>
+            <td align="right" style="color: #e53935;">-{int(order.discount_amount or 0)} Kč</td>
+          </tr>
+          """ if (order.discount_amount and order.discount_amount > 0) else ""}
+
+          <tr>
+            <td colspan="3" style="padding-top: 10px;">
+              <hr style="border: none; border-top: 1px solid #ddd;">
+            </td>
+          </tr>
         </tbody>
       </table>
 
