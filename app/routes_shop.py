@@ -12,6 +12,7 @@ from .utils import get_cart, setting
 from datetime import datetime
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
+from app import db
 
 shop_bp = Blueprint('shop', __name__)
 
@@ -211,7 +212,13 @@ def products():
     if category_slug:
         category = Category.query.filter_by(slug=category_slug).first()
         if category:
-            q = q.filter_by(category_id=category.id)
+            q = q.filter(
+                db.or_(
+                    Product.category_id == category.id,
+                    Product.categories.any(Category.id == category.id)
+                )
+            )
+            
     if brand:
         q = q.filter(Product.brand == brand)
     if search:
