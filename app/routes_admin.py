@@ -179,9 +179,11 @@ def product_edit(product_id):
 @admin_required
 def product_delete(product_id):
     product = Product.query.get_or_404(product_id)
-    db.session.delete(product)
+
+    product.active = False
     db.session.commit()
-    flash('Produkt byl smazán.', 'info')
+
+    flash('Produkt byl skrytý.', 'info')
     return redirect(url_for('admin.products'))
 
 
