@@ -208,6 +208,7 @@ def products():
     size = request.args.get('size', '')
     sort = request.args.get('sort', 'newest')
     search = request.args.get('search', '').strip()
+    gender = request.args.get('gender', '')
 
     page_title = 'Všechny boty'
 
@@ -222,6 +223,8 @@ def products():
                 )
             )
             
+    if gender:
+        q = q.filter(Product.gender == gender)           
     if brand:
         q = q.filter(Product.brand == brand)
     if search:
@@ -245,8 +248,7 @@ def products():
         products=products,
         brands=brands,
         sizes=sizes,
-        page_title=page_title,
-        active_category=category_slug
+        categories=Category.query.order_by(Category.name.asc()).all()
     )
 
 

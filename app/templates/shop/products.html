@@ -7,15 +7,52 @@
       <div class="filter-card sticky-filters">
         <h4>Filtry</h4>
         <form method="get" class="vstack gap-3 mt-3">
-          <input class="form-control" type="text" name="search" placeholder="Hledat" value="{{ request.args.get('search', '') }}">
-          <select class="form-select" name="brand"><option value="">Všechny značky</option>{% for brand in brands %}<option value="{{ brand }}" {% if request.args.get('brand')==brand %}selected{% endif %}>{{ brand }}</option>{% endfor %}</select>
-          <select class="form-select" name="size"><option value="">Všechny velikosti</option>{% for size in sizes %}<option value="{{ size }}" {% if request.args.get('size')==size %}selected{% endif %}>{{ size }}</option>{% endfor %}</select>
-          <select class="form-select" name="sort">
-            <option value="newest">Nejnovější</option>
-            <option value="price_asc" {% if request.args.get('sort')=='price_asc' %}selected{% endif %}>Cena od nejnižší</option>
-            <option value="price_desc" {% if request.args.get('sort')=='price_desc' %}selected{% endif %}>Cena od nejvyšší</option>
-          </select>
-          <button class="btn btn-dark rounded-pill">Použít filtry</button>
+
+                <input class="form-control" type="text" name="search" placeholder="Hledat" value="{{ request.args.get('search', '') }}">
+
+                <!-- Kategorie -->
+                <select class="form-select" name="category">
+                        <option value="">Všechny kategorie</option>
+                        {% for cat in categories %}
+                                <option value="{{ cat.slug }}" {% if request.args.get('category') == cat.slug %}selected{% endif %}>
+                                        {{ cat.name.replace(' boty', '').replace(' Boty', '') }}
+                                </option>
+                        {% endfor %}
+                </select>
+
+                <!-- Pohlaví -->
+                <select class="form-select" name="gender">
+                        <option value="">Pohlaví</option>
+                        <option value="unisex" {% if request.args.get('gender') == 'unisex' %}selected{% endif %}>Unisex</option>
+                        <option value="panske" {% if request.args.get('gender') == 'panske' %}selected{% endif %}>Pánské</option>
+                        <option value="damske" {% if request.args.get('gender') == 'damske' %}selected{% endif %}>Dámské</option>
+                </select>
+
+                <select class="form-select" name="brand">
+                        <option value="">Všechny značky</option>
+                        {% for brand in brands %}
+                                <option value="{{ brand }}" {% if request.args.get('brand')==brand %}selected{% endif %}>
+                                        {{ brand }}
+                                </option>
+                        {% endfor %}
+                </select>
+
+                <select class="form-select" name="size">
+                        <option value="">Všechny velikosti</option>
+                        {% for size in sizes %}
+                                <option value="{{ size }}" {% if request.args.get('size')==size %}selected{% endif %}>
+                                        {{ size }}
+                                </option>
+                        {% endfor %}
+                </select>
+
+                <select class="form-select" name="sort">
+                        <option value="newest">Nejnovější</option>
+                        <option value="price_asc" {% if request.args.get('sort')=='price_asc' %}selected{% endif %}>Cena od nejnižší</option>
+                        <option value="price_desc" {% if request.args.get('sort')=='price_desc' %}selected{% endif %}>Cena od nejvyšší</option>
+                </select>
+
+                <button class="btn btn-dark rounded-pill">Použít filtry</button>
         </form>
       </div>
     </div>

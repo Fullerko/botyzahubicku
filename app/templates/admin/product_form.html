@@ -17,6 +17,15 @@
 </div>
 
 <div class="col-md-6">
+  <label class="form-label">Pohlaví</label>
+  <select class="form-select" name="gender">
+    <option value="unisex" {% if product and product.gender == 'unisex' %}selected{% endif %}>Unisex</option>
+    <option value="panske" {% if product and product.gender == 'panske' %}selected{% endif %}>Pánské</option>
+    <option value="damske" {% if product and product.gender == 'damske' %}selected{% endif %}>Dámské</option>
+  </select>
+</div>
+
+<div class="col-md-6">
   <label class="form-label">Další kategorie</label>
   <div class="border rounded p-3 bg-light">
     {% for cat in categories %}

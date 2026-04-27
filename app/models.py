@@ -50,6 +50,7 @@ class Product(db.Model):
     name = db.Column(db.String(150), nullable=False)
     slug = db.Column(db.String(160), unique=True, nullable=False)
     brand = db.Column(db.String(80), nullable=False)
+    gender = db.Column(db.String(20), default='unisex')
     short_description = db.Column(db.String(255), default='')
     description = db.Column(db.Text, default='')
     price = db.Column(db.Float, nullable=False)
