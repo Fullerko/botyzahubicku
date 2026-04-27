@@ -18,6 +18,12 @@ PRODUCT_IMAGES = [
 
 
 def ensure_schema_columns():
+    try:
+        db.session.execute(db.text("ALTER TABLE product ADD COLUMN gender VARCHAR(20) DEFAULT 'unisex'"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        
     engine = db.engine
     inspector = inspect(engine)
     desired = {
