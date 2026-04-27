@@ -3,6 +3,12 @@ from flask_login import UserMixin
 from sqlalchemy.orm import validates
 from . import db
 
+product_categories = db.Table(
+    'product_categories',
+    db.Column('product_id', db.Integer, db.ForeignKey('product.id'), primary_key=True),
+    db.Column('category_id', db.Integer, db.ForeignKey('category.id'), primary_key=True)
+)
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -53,7 +59,15 @@ class Product(db.Model):
     stock = db.Column(db.Integer, default=0)
     featured = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)
+
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+
+    categories = db.relationship(
+        'Category',
+        secondary=product_categories,
+        backref=db.backref('products_multi', lazy='dynamic')
+    )
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     sizes = db.relationship('ProductSize', backref='product', lazy=True, cascade='all, delete-orphan')
     order_items = db.relationship('OrderItem', backref='product', lazy=True)
