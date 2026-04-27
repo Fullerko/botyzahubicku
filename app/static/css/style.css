@@ -35,8 +35,8 @@ body { background: var(--bg); color: var(--dark); font-family: Inter, system-ui,
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 70%;
-  transform: scale(0.8) translateY(10px);
+  object-position: center 60%;
+  transform: scale(1.0) translateY(10px);
 }
 .category-photo-overlay { position: absolute; inset: auto 0 0 0; padding: 1.4rem; color: #fff; background: linear-gradient(180deg, transparent, rgba(17,24,39,.88)); }
 .product-card { overflow: hidden; transition: .2s ease; }
