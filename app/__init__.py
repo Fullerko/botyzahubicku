@@ -19,7 +19,7 @@ def create_app():
     os.makedirs(qr_folder, exist_ok=True)
 
     app.config['SECRET_KEY'] = 'change-this-in-production'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'eshop.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/eshop.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = upload_folder
     app.config['QR_FOLDER'] = qr_folder
