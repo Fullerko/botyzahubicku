@@ -73,7 +73,7 @@ def mark_paid_api():
 
       <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
         <thead>
-          <tr style="border-bottom: 2px solid #ddd;">
+          <tr>
             <th align="left">Produkt</th>
             <th align="center">Ks</th>
             <th align="right">Cena</th>
