@@ -209,9 +209,12 @@ def products():
     sort = request.args.get('sort', 'newest')
     search = request.args.get('search', '').strip()
 
+    page_title = 'Všechny boty'
+
     if category_slug:
         category = Category.query.filter_by(slug=category_slug).first()
         if category:
+            page_title = category.name
             q = q.filter(
                 db.or_(
                     Product.category_id == category.id,
@@ -236,7 +239,15 @@ def products():
     products = q.all()
     brands = [x[0] for x in db.session.query(Product.brand).distinct().order_by(Product.brand.asc()).all()]
     sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
-    return render_template('shop/products.html', products=products, brands=brands, sizes=sizes)
+
+    return render_template(
+        'shop/products.html',
+        products=products,
+        brands=brands,
+        sizes=sizes,
+        page_title=page_title,
+        active_category=category_slug
+    )
 
 
 @shop_bp.route('/produkt/<slug>', methods=['GET', 'POST'])
