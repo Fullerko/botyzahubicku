@@ -43,6 +43,9 @@ def dashboard():
         'affiliate_balance': sum((p.commission_balance or 0) for p in AffiliatePartner.query.all()),
     }
 
+    latest_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
+
+    return render_template('admin/dashboard.html', stats=stats, latest_orders=latest_orders)
 
 @admin_bp.route('/products')
 @admin_required
