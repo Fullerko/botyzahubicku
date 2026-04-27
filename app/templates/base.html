@@ -19,12 +19,17 @@
     </a>
 
     <div class="d-none d-xl-flex align-items-center gap-4 mx-4">
-      <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('shop.products') }}">Všechny boty</a>
-      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='bezecke-boty') }}">Běžecké</a>
-      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='damske') }}">Dámské</a>
-      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='panske') }}">Pánské</a>
-      <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category='zimni') }}">Zimní</a>
-    </div>
+      {% set menu_items = settings.get('menu_items', '').split(',') %}
+
+	  {% for item in menu_items %}
+	  {% set name = item.strip() %}
+	  {% set slug = name|lower|replace(' ', '-')|replace('ě','e')|replace('š','s')|replace('č','c')|replace('ř','r')|replace('ž','z')|replace('ý','y')|replace('á','a')|replace('í','i')|replace('é','e')|replace('ů','u')|replace('ú','u') %}
+
+	  <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category=slug) }}">
+		{{ name }}
+	  </a>
+	{% endfor %}
+	</div>
 
     <form class="d-none d-xl-flex align-items-center position-relative mx-4" action="{{ url_for('shop.products') }}" style="width: 320px;">
       <i class="bi bi-search position-absolute ms-3 text-muted"></i>
