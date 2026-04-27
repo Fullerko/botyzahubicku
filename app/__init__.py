@@ -64,4 +64,16 @@ def create_app():
         ensure_schema_columns()
         seed_data()
 
+        zimni = Category.query.filter_by(slug='zimni').first()
+        if not zimni:
+            zimni = Category(
+                name='Zimní',
+                slug='zimni',
+                image_url='zimni.jpg',
+                description='Teplé modely do zimy a chladného počasí.',
+                show_in_menu=True
+            )
+            db.session.add(zimni)
+            db.session.commit()
+
     return app

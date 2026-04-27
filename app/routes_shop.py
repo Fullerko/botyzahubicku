@@ -195,7 +195,7 @@ def create_qr_for_order(order):
 def index():
     featured = Product.query.filter_by(active=True, featured=True).limit(8).all()
     newest = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).limit(12).all()
-    categories = Category.query.order_by(Category.name.asc()).limit(6).all()
+    categories = Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all()
     coupons = Coupon.query.filter_by(active=True).order_by(Coupon.created_at.desc()).limit(3).all()
     return render_template('shop/index.html', featured=featured, newest=newest, categories=categories, coupons=coupons)
 
