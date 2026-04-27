@@ -46,18 +46,14 @@
     <div class="col-md-6 col-xl-4">
       <a class="category-photo-card text-decoration-none" href="{{ url_for('shop.products', category=cat.slug) }}">
 
-        {% if cat.image_url %}
-          <img src="{{ image_url(cat.image_url) }}" alt="{{ cat.name }}">
-        {% else %}
-          <img src="{{ url_for('static', filename='images/tenisky.jpg') }}" alt="{{ cat.name }}">
-        {% endif %}
+		<img src="{{ url_for('static', filename='images/' + cat.slug + '.jpg') }}" alt="{{ cat.name }}">
 
-        <div class="category-photo-overlay">
-          <h5>{{ cat.name.replace(' boty', '').replace(' Boty', '') }}</h5>
-          <p>{{ cat.description }}</p>
-        </div>
+		<div class="category-photo-overlay">
+		  <h5>{{ cat.name.replace(' boty', '').replace(' Boty', '') }}</h5>
+		  <p>{{ cat.description }}</p>
+		</div>
 
-      </a>
+	  </a>
     </div>
     {% endfor %}
   </div>
