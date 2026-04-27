@@ -2,19 +2,24 @@ import os
 from flask import Flask, url_for
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
-
+from flask import send_from_directory
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Pro pokračování se přihlaste.'
 
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
-    upload_folder = os.path.join(app.root_path, 'static', 'uploads')
+    upload_folder = '/data/uploads'
     qr_folder = os.path.join(upload_folder, 'qr')
+
     os.makedirs(upload_folder, exist_ok=True)
     os.makedirs(qr_folder, exist_ok=True)
 
@@ -46,7 +51,8 @@ def create_app():
             'settings': settings_rows,
             'nav_categories': nav_categories,
             'cart_count': cart_count,
-            'image_url': lambda value: value if (value and value.startswith(('http://', 'https://'))) else url_for('static', filename='uploads/' + (value or 'default-product.svg')),
+            'image_url': lambda value: value if (value and value.startswith(('http://', 'https://')))
+            else url_for('uploaded_file', filename=(value or 'default-product.svg')),
         }
 
     from .routes_shop import shop_bp
