@@ -51,7 +51,7 @@ def dashboard():
 @admin_bp.route('/products')
 @admin_required
 def products():
-    products = Product.query.order_by(Product.created_at.desc()).all()
+    products = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).all()
     return render_template('admin/products.html', products=products)
 
 
