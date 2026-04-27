@@ -14,9 +14,11 @@
                 <select class="form-select" name="category">
                         <option value="">Všechny kategorie</option>
                         {% for cat in categories %}
+							{% if cat.slug not in ['panske', 'damske'] %}
                                 <option value="{{ cat.slug }}" {% if request.args.get('category') == cat.slug %}selected{% endif %}>
                                         {{ cat.name.replace(' boty', '').replace(' Boty', '') }}
                                 </option>
+							{% endif %}
                         {% endfor %}
                 </select>
 
