@@ -19,16 +19,23 @@
     </a>
 
     <div class="d-none d-xl-flex align-items-center gap-4 mx-4">
-      {% set menu_items = settings.get('menu_items', '').split(',') %}
+	  {% set menu_items = settings.get('menu_items', 'Všechny boty:all,Běžecké:bezecke-boty,Dámské:damske,Pánské:panske,Tenisky:tenisky').split(',') %}
 
 	  {% for item in menu_items %}
-	  {% set name = item.strip() %}
-	  {% set slug = name|lower|replace(' ', '-')|replace('ě','e')|replace('š','s')|replace('č','c')|replace('ř','r')|replace('ž','z')|replace('ý','y')|replace('á','a')|replace('í','i')|replace('é','e')|replace('ů','u')|replace('ú','u') %}
+		{% set parts = item.strip().split(':') %}
+		{% set label = parts[0].strip() %}
+		{% set slug = parts[1].strip() if parts|length > 1 else '' %}
 
-	  <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category=slug) }}">
-		{{ name }}
-	  </a>
-	{% endfor %}
+		{% if slug == 'all' or slug == '' %}
+		  <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('shop.products') }}">
+			{{ label }}
+		  </a>
+		{% else %}
+		  <a class="text-dark text-decoration-none" href="{{ url_for('shop.products', category=slug) }}">
+			{{ label }}
+		  </a>
+		{% endif %}
+	  {% endfor %}
 	</div>
 
     <form class="d-none d-xl-flex align-items-center position-relative mx-4" action="{{ url_for('shop.products') }}" style="width: 320px;">
