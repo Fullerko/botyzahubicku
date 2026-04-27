@@ -20,7 +20,7 @@
       </div>
     </div>
     <div class="col-lg-9">
-      <div class="section-header mb-3"><div><h1 class="h2 mb-1">{{ page_title }}</h1><p class="text-secondary mb-0">Doprava zdarma vždy a platba jen QR kódem / převodem.</p></div></div>
+      <div class="section-header mb-3"><div><h1 class="h2 mb-1">{{ page_title.replace(' boty', '').replace(' Boty', '') }}</h1><p class="text-secondary mb-0">Doprava zdarma vždy a platba jen QR kódem / převodem.</p></div></div>
       <div class="row g-4">
         {% for product in products %}{% include 'components/product_card.html' %}{% else %}<div class="col-12"><div class="info-card">Žádné produkty neodpovídají filtru.</div></div>{% endfor %}
       </div>
