@@ -43,6 +43,7 @@
 
   <div class="row g-4 mt-1">
     {% for cat in categories %}
+	{% if cat.slug != 'sandaly' %}
     <div class="col-md-6 col-xl-4">
       <a class="category-photo-card text-decoration-none" href="{{ url_for('shop.products', category=cat.slug) }}">
 
@@ -55,6 +56,7 @@
 
 	  </a>
     </div>
+	{% endif %}
     {% endfor %}
   </div>
 </section>
