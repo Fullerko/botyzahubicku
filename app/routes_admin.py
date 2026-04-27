@@ -93,6 +93,18 @@ def product_new():
             product.image = image
         db.session.add(product)
         db.session.flush()
+
+        selected_categories = request.form.getlist('categories')
+
+        if selected_categories:
+            product.categories = []
+            for cat_id in selected_categories:
+                cat = Category.query.get(int(cat_id))
+                if cat:
+                    product.categories.append(cat)
+        else:
+            if product.category:
+                product.categories.append(product.category)
         sizes = [s.strip() for s in request.form.get('sizes', '').split(',') if s.strip()]
         default_size_stock = max(1, product.stock // max(1, len(sizes) or 1))
         for size in sizes:
@@ -120,6 +132,18 @@ def product_edit(product_id):
         product.featured = bool(request.form.get('featured'))
         product.active = bool(request.form.get('active'))
         product.category_id = int(request.form.get('category_id'))
+        selected_categories = request.form.getlist('categories')
+
+        product.categories = []
+
+        if selected_categories:
+            for cat_id in selected_categories:
+                cat = Category.query.get(int(cat_id))
+                if cat:
+                    product.categories.append(cat)
+        else:
+            if product.category:
+                product.categories.append(product.category)
         product.image = request.form.get('image_url', '').strip() or product.image
         product.gallery = request.form.get('gallery', '').strip()
         image = save_image(request.files.get('image'))
