@@ -44,7 +44,7 @@
   <div class="row g-4 mt-1">
     {% for cat in categories %}
     <div class="col-md-6 col-xl-4">
-      <a class="category-photo-card text-decoration-none" href="{{ url_for('shop.products', category=cat.slug) }}">
+      <a class="category-photo-card text-decoration-none" href="{% if cat.slug == 'sandaly' %}{{ url_for('shop.products', category='zimni') }}{% else %}{{ url_for('shop.products', category=cat.slug) }}{% endif %}">
         
         {% if cat.slug == 'tenisky' %}
           <img src="{{ url_for('static', filename='images/tenisky.jpg') }}" alt="{{ cat.name }}">
@@ -66,8 +66,8 @@
 		{% endif %}
         
         <div class="category-photo-overlay">
-          <h5>{{ cat.name }}</h5>
-          <p>{{ cat.description }}</p>
+          <h5>{% if cat.slug == 'sandaly' %}Zimní boty{% else %}{{ cat.name }}{% endif %}</h5>
+          <p>{% if cat.slug == 'sandaly' %}Teplé modely do zimy a chladného počasí.{% else %}{{ cat.description }}{% endif %}</p>
         </div>
       </a>
     </div>
