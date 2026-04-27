@@ -56,18 +56,35 @@
           <img src="{{ url_for('static', filename='images/kotnikove.jpg') }}" alt="{{ cat.name }}">
         
         {% elif cat.slug in ['zimni', 'sandaly'] %}
-		  <img src="{{ url_for('static', filename='images/zimni.jpg') }}" alt="{{ cat.name }}">
+          <img src="{{ url_for('static', filename='images/zimni.jpg') }}" alt="{{ cat.name }}">
         
         {% elif cat.slug == 'panske' %}
           <img src="{{ url_for('static', filename='images/panske.jpg') }}" alt="{{ cat.name }}">
         
         {% elif cat.slug == 'damske' %}
           <img src="{{ url_for('static', filename='images/damske.jpg') }}" alt="{{ cat.name }}">
-		{% endif %}
+        {% endif %}
         
         <div class="category-photo-overlay">
-          <h5>{% if cat.slug == 'sandaly' %}Zimní boty{% else %}{{ cat.name }}{% endif %}</h5>
-          <p>{% if cat.slug == 'sandaly' %}Teplé modely do zimy a chladného počasí.{% else %}{{ cat.description }}{% endif %}</p>
+          <h5>
+            {% if cat.slug in ['zimni', 'sandaly'] %}
+              Zimní
+            {% elif cat.slug == 'bezecke-boty' %}
+              Běžecké
+            {% elif cat.slug == 'kotnikove-boty' %}
+              Kotníkové
+            {% else %}
+              {{ cat.name.replace(' boty', '') }}
+            {% endif %}
+          </h5>
+
+          <p>
+            {% if cat.slug == 'sandaly' %}
+              Teplé modely do zimy a chladného počasí.
+            {% else %}
+              {{ cat.description }}
+            {% endif %}
+          </p>
         </div>
       </a>
     </div>
