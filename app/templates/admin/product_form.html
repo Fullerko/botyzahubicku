@@ -18,11 +18,28 @@
 
 <div class="col-md-6">
   <label class="form-label">Pohlaví</label>
-  <select class="form-select" name="gender">
-    <option value="unisex" {% if product and product.gender == 'unisex' %}selected{% endif %}>Unisex</option>
-    <option value="panske" {% if product and product.gender == 'panske' %}selected{% endif %}>Pánské</option>
-    <option value="damske" {% if product and product.gender == 'damske' %}selected{% endif %}>Dámské</option>
-  </select>
+
+  {% set selected_genders = product.gender.split(',') if product and product.gender else [] %}
+
+  <div class="border rounded p-3 bg-light">
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="gender" value="panske" id="gender_panske"
+        {% if 'panske' in selected_genders %}checked{% endif %}>
+      <label class="form-check-label" for="gender_panske">Pánské</label>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="gender" value="damske" id="gender_damske"
+        {% if 'damske' in selected_genders %}checked{% endif %}>
+      <label class="form-check-label" for="gender_damske">Dámské</label>
+    </div>
+
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="gender" value="unisex" id="gender_unisex"
+        {% if 'unisex' in selected_genders %}checked{% endif %}>
+      <label class="form-check-label" for="gender_unisex">Unisex</label>
+    </div>
+  </div>
 </div>
 
 <div class="col-md-6">

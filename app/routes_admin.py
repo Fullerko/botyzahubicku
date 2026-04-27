@@ -77,7 +77,7 @@ def product_new():
             source_url=request.form.get('source_url', '').strip(),
             specifications=request.form.get('specifications', '').strip(),
             colors=request.form.get('colors', '').strip(),
-            gender=request.form.get('gender', 'unisex'),
+            gender=','.join(request.form.getlist('gender')) or 'unisex',
         )
         image = save_image(request.files.get('image'))
         gallery_files = request.files.getlist('gallery_images')
@@ -134,7 +134,7 @@ def product_edit(product_id):
         product.active = bool(request.form.get('active'))
         product.category_id = int(request.form.get('category_id'))
         selected_categories = request.form.getlist('categories')
-        product.gender = request.form.get('gender', 'unisex')
+        product.gender = ','.join(request.form.getlist('gender')) or 'unisex'
 
         product.categories = []
 

@@ -225,7 +225,7 @@ def products():
             )
 
     if gender:
-        q = q.filter(Product.gender == gender)
+        q = q.filter(Product.gender.like(f'%{gender}%'))
 
     if brand:
         q = q.filter(Product.brand == brand)
