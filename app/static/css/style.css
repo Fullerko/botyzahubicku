@@ -28,7 +28,7 @@ body { background: var(--bg); color: var(--dark); font-family: Inter, system-ui,
   display: block;
   overflow: hidden;
   position: relative;
-  height: 390px;
+  height: 340px;
 }
 
 .category-photo-card img {
@@ -37,6 +37,7 @@ body { background: var(--bg); color: var(--dark); font-family: Inter, system-ui,
   object-fit: cover;
   object-position: center;
   display: block;
+  transform: scale(0.9);
 }
 .category-photo-overlay { position: absolute; inset: auto 0 0 0; padding: 1.4rem; color: #fff; background: linear-gradient(180deg, transparent, rgba(17,24,39,.88)); }
 .product-card { overflow: hidden; transition: .2s ease; }
