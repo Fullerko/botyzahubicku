@@ -125,6 +125,13 @@ def mark_paid_api():
         )
     except Exception as e:
         print("EMAIL ERROR:", e)
+        
+    return jsonify({
+        "ok": True,
+        "reason": "marked paid",
+        "order_id": order.id,
+        "order_number": order.order_number
+    }), 200
 
 @shop_bp.route('/api/order-status/<order_number>')
 def order_status(order_number):
@@ -392,8 +399,10 @@ def checkout():
     coupon_info = session.get('coupon', {})
 
     if request.method == 'POST':
+        order_number = 'BZH' + ''.join(random.choices(string.digits, k=8))
         order = Order(
-            order_number='BZH' + ''.join(random.choices(string.digits, k=8)),
+            order_number=order_number,
+            variable_symbol=order_number[-8:],
             customer_name=request.form.get('customer_name', '').strip(),
             email=request.form.get('email', '').strip(),
             phone=request.form.get('phone', '').strip(),
