@@ -35,17 +35,22 @@ def _parse_split_from_note(note):
 @admin_required
 def dashboard():
     stats = {
-        'products': Product.query.count(),
-        'orders': Order.query.count(),
-        'revenue': sum(o.total_price for o in Order.query.all() if o.payment_status == 'paid'),
+        # ✅ jen aktivní produkty
+        'products': Product.query.filter_by(active=True).count(),
+    
+        # ✅ jen zaplacené objednávky
+        'orders': Order.query.filter_by(payment_status='paid').count(),
+
+        # ✅ obrat už máš dobře (jen paid)
+        'revenue': sum(o.total_price for o in Order.query.filter_by(payment_status='paid').all()),
+
+        # 🔹 tyhle nech klidně jak jsou
         'partners': AffiliatePartner.query.count(),
         'coupon_codes': Coupon.query.count(),
+
+        # 💰 affiliate balance (to je OK)
         'affiliate_balance': sum(p.commission_balance for p in AffiliatePartner.query.all()),
     }
-
-    latest_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
-
-    return render_template('admin/dashboard.html', stats=stats, latest_orders=latest_orders)
 
 
 @admin_bp.route('/products')
