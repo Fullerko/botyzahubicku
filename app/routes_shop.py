@@ -203,6 +203,7 @@ def index():
 @shop_bp.route('/produkty')
 def products():
     q = Product.query.filter_by(active=True)
+
     category_slug = request.args.get('category', '')
     brand = request.args.get('brand', '')
     size = request.args.get('size', '')
@@ -222,13 +223,16 @@ def products():
                     Product.categories.any(Category.id == category.id)
                 )
             )
-            
+
     if gender:
-        q = q.filter(Product.gender == gender)           
+        q = q.filter(Product.gender == gender)
+
     if brand:
         q = q.filter(Product.brand == brand)
+
     if search:
         q = q.filter(Product.name.ilike(f'%{search}%'))
+
     if size:
         q = q.join(ProductSize).filter(ProductSize.size == size, ProductSize.stock > 0)
 
@@ -242,13 +246,16 @@ def products():
     products = q.all()
     brands = [x[0] for x in db.session.query(Product.brand).distinct().order_by(Product.brand.asc()).all()]
     sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45']
+    categories = Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all()
 
     return render_template(
         'shop/products.html',
         products=products,
         brands=brands,
         sizes=sizes,
-        categories=Category.query.order_by(Category.name.asc()).all()
+        categories=categories,
+        page_title=page_title,
+        active_category=category_slug
     )
 
 
