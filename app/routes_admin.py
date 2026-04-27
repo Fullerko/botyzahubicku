@@ -35,21 +35,12 @@ def _parse_split_from_note(note):
 @admin_required
 def dashboard():
     stats = {
-        # ✅ jen aktivní produkty
         'products': Product.query.filter_by(active=True).count(),
-    
-        # ✅ jen zaplacené objednávky
         'orders': Order.query.filter_by(payment_status='paid').count(),
-
-        # ✅ obrat už máš dobře (jen paid)
-        'revenue': sum(o.total_price for o in Order.query.filter_by(payment_status='paid').all()),
-
-        # 🔹 tyhle nech klidně jak jsou
+        'revenue': sum((o.total_price or 0) for o in Order.query.filter_by(payment_status='paid').all()),
         'partners': AffiliatePartner.query.count(),
         'coupon_codes': Coupon.query.count(),
-
-        # 💰 affiliate balance (to je OK)
-        'affiliate_balance': sum(p.commission_balance for p in AffiliatePartner.query.all()),
+        'affiliate_balance': sum((p.commission_balance or 0) for p in AffiliatePartner.query.all()),
     }
 
 
