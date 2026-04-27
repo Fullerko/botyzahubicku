@@ -28,7 +28,7 @@ body { background: var(--bg); color: var(--dark); font-family: Inter, system-ui,
   display: block;
   overflow: hidden;
   position: relative;
-  height: 340px;
+  height: 390px;
 }
 
 .category-photo-card img {
