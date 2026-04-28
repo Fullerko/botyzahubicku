@@ -146,7 +146,9 @@ def product_edit(product_id):
             if product.category:
                 product.categories.append(product.category)
         product.image = request.form.get('image_url', '').strip() or product.image
-        product.gallery = request.form.get('gallery', '').strip()
+        new_gallery_text = request.form.get('gallery', '').strip()
+            if new_gallery_text:
+                product.gallery = new_gallery_text
         image = save_image(request.files.get('image'))
         gallery_files = request.files.getlist('gallery_images')
         gallery_images = []
