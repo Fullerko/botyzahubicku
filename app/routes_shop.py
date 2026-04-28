@@ -161,6 +161,13 @@ def order_status(order_number):
         "paid": is_paid
     }
 
+@shop_bp.route('/blog')
+def blog():
+    return render_template('blog.html')
+    
+@shop_bp.route('/blog/jak-vybrat-tenisky')
+def blog_jak_vybrat():
+    return render_template('blog/jak-vybrat-tenisky.html')
 
 def cart_detail():
     items = []
