@@ -20,6 +20,15 @@ def create_app():
 
     os.makedirs(upload_folder, exist_ok=True)
     os.makedirs(qr_folder, exist_ok=True)
+        # Jednorázově zkopíruje obrázky z projektu do Render disku
+    local_uploads = os.path.join(os.getcwd(), 'uploads')
+    if os.path.exists(local_uploads):
+        for filename in os.listdir(local_uploads):
+            src = os.path.join(local_uploads, filename)
+            dst = os.path.join(upload_folder, filename)
+            if os.path.isfile(src) and not os.path.exists(dst):
+                import shutil
+                shutil.copy2(src, dst)
 
     app.config['SECRET_KEY'] = 'change-this-in-production'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/eshop.db'
