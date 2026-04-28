@@ -7,8 +7,8 @@
   {% set default_description = settings.get('meta_description', 'BotyZaHubicku.cz – stylová, pohodlná a dostupná obuv pro každý den. Doprava zdarma, výběr dámských, pánských, sportovních i zimních bot.') %}
   {% set page_title = self.title()|striptags|trim if self.title() is defined else default_site_name %}
   {% set page_description = self.meta_description()|striptags|trim if self.meta_description() is defined else default_description %}
-  {% set canonical = self.canonical_url()|striptags|trim if self.canonical_url() is defined else request.url %}
-  {% set og_image_url = self.og_image()|striptags|trim if self.og_image() is defined else image_url(settings.get('logo_url', 'logo-bzh.svg')) %}
+  {% set canonical = request.url %}
+  {% set og_image_url = image_url(settings.get('logo_url', 'logo-bzh.svg')) %}
 
   <title>{% block title %}{{ default_site_name }} | boty za hubičku{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}{{ default_description }}{% endblock %}">
