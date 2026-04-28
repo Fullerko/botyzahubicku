@@ -1,5 +1,5 @@
 import os
-from flask import Flask, url_for
+from flask import Flask, url_for, Response
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask import send_from_directory
@@ -42,6 +42,60 @@ def create_app():
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+
+    @app.route('/robots.txt')
+    def robots_txt():
+        body = """User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /api/
+
+Sitemap: {sitemap}
+""".format(sitemap=url_for('sitemap_xml', _external=True))
+        return Response(body, mimetype='text/plain; charset=utf-8')
+
+    @app.route('/sitemap.xml')
+    def sitemap_xml():
+        from datetime import datetime
+        from xml.sax.saxutils import escape
+        from .models import Category, Product
+
+        def xml_url(loc, priority='0.7', changefreq='weekly'):
+            return (
+                '  <url>\n'
+                f'    <loc>{escape(loc)}</loc>\n'
+                f'    <lastmod>{datetime.utcnow().strftime("%Y-%m-%d")}</lastmod>\n'
+                f'    <changefreq>{changefreq}</changefreq>\n'
+                f'    <priority>{priority}</priority>\n'
+                '  </url>'
+            )
+
+        urls = [
+            xml_url(url_for('shop.index', _external=True), '1.0', 'daily'),
+            xml_url(url_for('shop.products', _external=True), '0.9', 'daily'),
+        ]
+
+        try:
+            for category in Category.query.order_by(Category.name.asc()).all():
+                if getattr(category, 'slug', None):
+                    urls.append(xml_url(url_for('shop.products', category=category.slug, _external=True), '0.8', 'weekly'))
+
+            for product in Product.query.filter_by(active=True).order_by(Product.id.desc()).all():
+                if getattr(product, 'slug', None):
+                    urls.append(xml_url(url_for('shop.product_detail', slug=product.slug, _external=True), '0.9', 'weekly'))
+        except Exception:
+            pass
+
+        xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(urls) + '\n</urlset>\n'
+        return Response(xml, mimetype='application/xml; charset=utf-8')
 
     db.init_app(app)
     login_manager.init_app(app)
