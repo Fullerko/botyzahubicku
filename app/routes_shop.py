@@ -3,7 +3,7 @@ import random
 import string
 import qrcode
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify, Response
 from flask_login import current_user, login_required
 
 from . import db
@@ -15,6 +15,85 @@ from .invoice_utils import generate_invoice_pdf
 from app import db
 
 shop_bp = Blueprint('shop', __name__)
+
+def _xml_escape(value):
+    value = str(value or '')
+    return (
+        value.replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;')
+        .replace("'", '&apos;')
+    )
+
+
+def _lastmod(value=None):
+    if not value:
+        value = datetime.utcnow()
+    return value.strftime('%Y-%m-%d')
+
+
+@shop_bp.route('/robots.txt')
+def robots_txt():
+    sitemap_url = url_for('shop.sitemap_xml', _external=True)
+    body = f"""User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /api/
+
+Sitemap: {sitemap_url}
+"""
+    return Response(body, mimetype='text/plain; charset=utf-8')
+
+
+@shop_bp.route('/sitemap.xml')
+def sitemap_xml():
+    urls = []
+
+    def add_url(location, priority='0.7', changefreq='weekly', lastmod=None):
+        urls.append({
+            'loc': location,
+            'priority': priority,
+            'changefreq': changefreq,
+            'lastmod': _lastmod(lastmod),
+        })
+
+    add_url(url_for('shop.index', _external=True), '1.0', 'daily')
+    add_url(url_for('shop.products', _external=True), '0.9', 'daily')
+
+    for category in Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all():
+        add_url(url_for('shop.products', category=category.slug, _external=True), '0.8', 'weekly')
+
+    for product in Product.query.filter_by(active=True).order_by(Product.created_at.desc()).all():
+        add_url(
+            url_for('shop.product_detail', slug=product.slug, _external=True),
+            '0.9',
+            'weekly',
+            product.created_at
+        )
+
+    xml_items = []
+    for item in urls:
+        xml_items.append(
+            '  <url>\n'
+            f'    <loc>{_xml_escape(item["loc"])}</loc>\n'
+            f'    <lastmod>{item["lastmod"]}</lastmod>\n'
+            f'    <changefreq>{item["changefreq"]}</changefreq>\n'
+            f'    <priority>{item["priority"]}</priority>\n'
+            '  </url>'
+        )
+
+    body = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    body += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    body += '\n'.join(xml_items)
+    body += '\n</urlset>\n'
+    return Response(body, mimetype='application/xml; charset=utf-8')
 
 
 @shop_bp.route("/api/mark-paid", methods=["POST"])
