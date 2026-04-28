@@ -1,31 +1,5 @@
 {% extends 'base.html' %}
 {% block title %}{{ product.name }} | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
-{% block meta_description %}{{ (product.short_description or product.description or (product.name ~ ' – ' ~ product.brand ~ ' za výhodnou cenu na BotyZaHubicku.cz. Doprava zdarma.'))|striptags|truncate(155, True, '') }}{% endblock %}
-{% block canonical_url %}{{ url_for('shop.product_detail', slug=product.slug, _external=True) }}{% endblock %}
-{% block og_type %}product{% endblock %}
-{% block og_image %}{{ image_url(product.image) }}{% endblock %}
-{% block structured_data %}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Product",
-  "name": {{ product.name|tojson }},
-  "image": [{{ image_url(product.image)|tojson }}{% for img in product.gallery_list %}, {{ image_url(img)|tojson }}{% endfor %}],
-  "description": {{ (product.description or product.short_description or product.name)|striptags|tojson }},
-  "brand": {"@type": "Brand", "name": {{ product.brand|tojson }}},
-  "sku": {{ product.slug|tojson }},
-  "category": {{ product.category.name|tojson }},
-  "offers": {
-    "@type": "Offer",
-    "url": {{ url_for('shop.product_detail', slug=product.slug, _external=True)|tojson }},
-    "priceCurrency": "CZK",
-    "price": {{ '%.2f'|format(product.price) }},
-    "availability": "https://schema.org/{% if product.stock and product.stock > 0 %}InStock{% else %}OutOfStock{% endif %}",
-    "itemCondition": "https://schema.org/NewCondition"
-  }
-}
-</script>
-{% endblock %}
 {% block content %}
 <section class="container py-5">
   <div class="row g-5">

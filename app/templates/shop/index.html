@@ -1,22 +1,5 @@
 {% extends 'base.html' %}
 {% block title %}{{ settings.get('site_name', 'BotyZaHubicku.cz') }} | stylové boty{% endblock %}
-{% block meta_description %}BotyZaHubicku.cz – stylové a pohodlné boty za dostupné ceny. Dámské, pánské, sportovní, běžecké, kotníkové i zimní modely s dopravou zdarma.{% endblock %}
-{% block canonical_url %}{{ url_for('shop.index', _external=True) }}{% endblock %}
-{% block structured_data %}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": {{ settings.get('site_name', 'BotyZaHubicku.cz')|tojson }},
-  "url": {{ url_for('shop.index', _external=True)|tojson }},
-  "potentialAction": {
-    "@type": "SearchAction",
-    "target": {{ (url_for('shop.products', _external=True) + '?search={search_term_string}')|tojson }},
-    "query-input": "required name=search_term_string"
-  }
-}
-</script>
-{% endblock %}
 {% block content %}
 <section class="hero-section">
   <div class="container">

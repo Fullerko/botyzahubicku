@@ -1,7 +1,5 @@
 {% extends 'base.html' %}
 {% block title %}Produkty | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
-{% block meta_description %}Prohlédněte si nabídku bot na BotyZaHubicku.cz. Vyberte si podle kategorie, velikosti, značky i ceny. Dámské, pánské, sportovní a zimní boty s dopravou zdarma.{% endblock %}
-{% block canonical_url %}{% if active_category %}{{ url_for('shop.products', category=active_category, _external=True) }}{% else %}{{ url_for('shop.products', _external=True) }}{% endif %}{% endblock %}
 {% block content %}
 <section class="container py-5">
   <div class="row g-4">
