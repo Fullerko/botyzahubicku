@@ -1,6 +1,35 @@
-<h1>Blog o teniskách</h1>
+{% extends "base.html" %}
 
-<ul>
-  <li><a href="/blog/jak-vybrat-tenisky">Jak vybrat tenisky</a></li>
-  <li><a href="/blog/nejlepsi-tenisky-leto">Nejlepší tenisky na léto</a></li>
-</ul>
+{% block title %}Blog o teniskách | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="mb-4">
+      <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Blog</span>
+      <h1 class="display-6 fw-bold mt-3">Blog o teniskách a botách</h1>
+      <p class="text-muted">Tipy, jak vybrat pohodlné tenisky, jak je nosit a na co si dát pozor při výběru.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h5 fw-bold">Jak vybrat tenisky na každodenní nošení</h2>
+            <p class="text-muted">Praktický návod, podle čeho vybírat pohodlné pánské i dámské tenisky.</p>
+            <a href="{{ url_for('shop.blog_jak_vybrat_tenisky') }}" class="btn btn-dark rounded-pill">
+              Číst článek
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-5">
+      <a href="{{ url_for('shop.products') }}" class="btn btn-outline-dark rounded-pill">
+        Zpět na produkty
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,3 +1,57 @@
-<h1>Jak vybrat tenisky</h1>
+{% extends "base.html" %}
 
-<p>Výběr správných tenisek je důležitý pro pohodlí i styl...</p>
+{% block title %}Jak vybrat tenisky na každodenní nošení | BotyZaHubicku.cz{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 900px;">
+    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Průvodce výběrem</span>
+
+    <h1 class="display-6 fw-bold mt-3 mb-3">Jak vybrat tenisky na každodenní nošení</h1>
+
+    <p class="lead text-muted">
+      Výběr správných tenisek je důležitý pro pohodlí, styl i každodenní nošení.
+      Dobře zvolené boty ti ušetří nepohodlí a zároveň doplní outfit.
+    </p>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 my-4">
+      <h2 class="h4 fw-bold">1. Zaměř se na pohodlí</h2>
+      <p>
+        Tenisky na každý den by měly být lehké, pohodlné a dobře sedět na noze.
+        Pokud boty nosíš do školy, práce nebo města, vybírej modely s měkkou podrážkou
+        a příjemným vnitřním materiálem.
+      </p>
+
+      <h2 class="h4 fw-bold mt-4">2. Vyber správný typ</h2>
+      <p>
+        Pánské tenisky se často hodí k jednoduchému sportovnímu nebo městskému stylu.
+        Dámské tenisky mohou být jemnější, barevnější nebo na platformě.
+        Univerzální volbou jsou bílé tenisky, které se snadno kombinují.
+      </p>
+
+      <h2 class="h4 fw-bold mt-4">3. Mysli na využití</h2>
+      <p>
+        Na běžné nošení stačí lehké volnočasové tenisky. Pokud chceš boty i na aktivnější pohyb,
+        vybírej sportovní modely s pevnější podrážkou a lepší stabilitou.
+      </p>
+
+      <h2 class="h4 fw-bold mt-4">4. Cena nemusí znamenat horší kvalitu</h2>
+      <p>
+        I levnější tenisky mohou nabídnout dobré pohodlí a stylový vzhled.
+        Důležité je vybírat podle materiálu, střihu a účelu nošení.
+      </p>
+    </div>
+
+    <div class="bg-light rounded-4 p-4">
+      <h2 class="h4 fw-bold">Doporučení</h2>
+      <p>
+        Pokud hledáš pohodlné a cenově dostupné tenisky, podívej se na naši nabídku
+        pánských i dámských modelů.
+      </p>
+      <a href="{{ url_for('shop.products') }}" class="btn btn-dark rounded-pill">
+        Zobrazit tenisky
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}
