@@ -14,14 +14,15 @@ login_manager.login_message = 'Pro pokračování se přihlaste.'
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
-    upload_folder = '/data/uploads'
+
+    upload_folder = '/var/data/uploads'
     qr_folder = os.path.join(upload_folder, 'qr')
 
     os.makedirs(upload_folder, exist_ok=True)
     os.makedirs(qr_folder, exist_ok=True)
 
     app.config['SECRET_KEY'] = 'change-this-in-production'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/eshop.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////var/data/eshop.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = upload_folder
     app.config['QR_FOLDER'] = qr_folder
