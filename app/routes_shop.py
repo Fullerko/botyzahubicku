@@ -168,6 +168,60 @@ def blog():
 @shop_bp.route('/blog/jak-vybrat-tenisky')
 def blog_jak_vybrat():
     return render_template('blog/jak-vybrat-tenisky.html')
+    
+@shop_bp.route('/blog')
+def blog():
+    return render_template('blog.html')
+
+
+@shop_bp.route('/blog/nejlepsi-tenisky-kazdodenni')
+def blog1():
+    return render_template('blog/nejlepsi-tenisky-kazdodenni.html')
+
+
+@shop_bp.route('/blog/jak-vybrat-panske-tenisky')
+def blog2():
+    return render_template('blog/jak-vybrat-panske-tenisky.html')
+
+
+@shop_bp.route('/blog/jak-vybrat-damske-tenisky')
+def blog3():
+    return render_template('blog/jak-vybrat-damske-tenisky.html')
+
+
+@shop_bp.route('/blog/bile-tenisky-jak-nosit')
+def blog4():
+    return render_template('blog/bile-tenisky-jak-nosit.html')
+
+
+@shop_bp.route('/blog/levne-tenisky-do-500')
+def blog5():
+    return render_template('blog/levne-tenisky-do-500.html')
+
+
+@shop_bp.route('/blog/trendy-tenisky-2026')
+def blog6():
+    return render_template('blog/trendy-tenisky-2026.html')
+
+
+@shop_bp.route('/blog/sportovni-vs-volnocasove')
+def blog7():
+    return render_template('blog/sportovni-vs-volnocasove.html')
+
+
+@shop_bp.route('/blog/jak-se-starat-o-tenisky')
+def blog8():
+    return render_template('blog/jak-se-starat-o-tenisky.html')
+
+
+@shop_bp.route('/blog/nejlepsi-tenisky-leto')
+def blog9():
+    return render_template('blog/nejlepsi-tenisky-leto.html')
+
+
+@shop_bp.route('/blog/jak-vybrat-velikost-tenisek')
+def blog10():
+    return render_template('blog/jak-vybrat-velikost-tenisek.html')
 
 def cart_detail():
     items = []
