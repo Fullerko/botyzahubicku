@@ -50,9 +50,9 @@ class AnalyticsVisit(db.Model):
     content = db.Column(db.String(200))
 
     affiliate_code = db.Column(db.String(120), index=True)
-    affiliate_partner_id = db.Column(db.Integer, db.ForeignKey('affiliate_partners.id'), nullable=True, index=True)
+    affiliate_partner_id = db.Column(db.Integer, nullable=True, index=True)
 
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True, index=True)
+    product_id = db.Column(db.Integer, nullable=True, index=True)
     user_agent = db.Column(db.String(500))
     device = db.Column(db.String(40), index=True)
     browser = db.Column(db.String(60), index=True)
@@ -68,13 +68,13 @@ class AnalyticsEvent(db.Model):
     session_id = db.Column(db.String(64), index=True)
     event_name = db.Column(db.String(120), index=True)
     path = db.Column(db.String(500), index=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True, index=True)
+    product_id = db.Column(db.Integer, nullable=True, index=True)
     value = db.Column(db.Float, default=0)
     source = db.Column(db.String(120), index=True)
     medium = db.Column(db.String(120), index=True)
     campaign = db.Column(db.String(200), index=True)
     affiliate_code = db.Column(db.String(120), index=True)
-    affiliate_partner_id = db.Column(db.Integer, db.ForeignKey('affiliate_partners.id'), nullable=True, index=True)
+    affiliate_partner_id = db.Column(db.Integer, nullable=True, index=True)
 
 
 def _utcnow():
