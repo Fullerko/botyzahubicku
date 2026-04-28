@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Statistiky webu | Admin{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div>
+        <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Admin only</span>
+        <h1 class="display-6 fw-bold mt-3 mb-1">Statistiky webu</h1>
+        <p class="text-muted mb-0">Návštěvy, zdroje, affiliate prokliky, kampaně, produkty a objednávky.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn{% if period != 'today' %}-outline{% endif %}-dark rounded-pill" href="?period=today">Dnes</a>
+        <a class="btn btn{% if period != '7d' %}-outline{% endif %}-dark rounded-pill" href="?period=7d">7 dní</a>
+        <a class="btn btn{% if period != '30d' %}-outline{% endif %}-dark rounded-pill" href="?period=30d">30 dní</a>
+        <a class="btn btn{% if period != 'month' %}-outline{% endif %}-dark rounded-pill" href="?period=month">Měsíc</a>
+        <a class="btn btn{% if period != 'all' %}-outline{% endif %}-dark rounded-pill" href="?period=all">Celkem</a>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      {% for label, key in [('Dnes','today'),('Tento týden','week'),('Tento měsíc','month'),('Celkem','total')] %}
+      <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <p class="text-muted mb-1">{{ label }}</p>
+            <h2 class="fw-bold mb-1">{{ cards[key].pageviews }}</h2>
+            <div class="small text-muted">{{ cards[key].visitors }} unikátních • {{ cards[key].sessions }} sessions</div>
+            <hr>
+            <div class="small">Affiliate prokliky: <strong>{{ cards[key].affiliate_clicks }}</strong></div>
+            <div class="small">Instagram: <strong>{{ cards[key].ig_visits }}</strong></div>
+            <div class="small">Google: <strong>{{ cards[key].google_visits }}</strong></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="row g-4 mb-4">
+      {% for label, key in [('Dnes','today'),('Tento týden','week'),('Tento měsíc','month'),('Celkem','total')] %}
+      <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <p class="text-muted mb-1">Objednávky – {{ label }}</p>
+            <h2 class="fw-bold mb-1">{{ order_cards[key].orders }}</h2>
+            <div class="small text-muted">Tržby: <strong>{{ '%.0f'|format(order_cards[key].revenue) }} Kč</strong></div>
+            <hr>
+            <div class="small">Affiliate objednávky: <strong>{{ order_cards[key].affiliate_orders }}</strong></div>
+            <div class="small">Affiliate tržby: <strong>{{ '%.0f'|format(order_cards[key].affiliate_revenue) }} Kč</strong></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Denní vývoj</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead><tr><th>Datum</th><th>Pageviews</th><th>Unikátní</th><th>Sessions</th></tr></thead>
+                <tbody>
+                  {% for date, views, visitors, sessions in daily %}
+                  <tr><td>{{ date.strftime('%d.%m.%Y') }}</td><td>{{ views }}</td><td>{{ visitors }}</td><td>{{ sessions }}</td></tr>
+                  {% else %}<tr><td colspan="4" class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Zdroje návštěv</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead><tr><th>Zdroj</th><th>Medium</th><th>Návštěvy</th></tr></thead>
+                <tbody>
+                  {% for source, medium, cnt in top_sources %}
+                  <tr><td>{{ source or 'unknown' }}</td><td>{{ medium or '-' }}</td><td>{{ cnt }}</td></tr>
+                  {% else %}<tr><td colspan="3" class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="small text-muted mb-0">IG reklamy měř přes URL s UTM: <code>?utm_source=instagram&utm_medium=paid_social&utm_campaign=nazev</code></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Affiliate prokliky</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead><tr><th>Kód</th><th>Partner</th><th>Prokliky</th><th>Unikátní</th></tr></thead>
+                <tbody>
+                  {% for code, partner, clicks, visitors in affiliate_rows %}
+                  <tr><td><code>{{ code }}</code></td><td>{{ partner or '-' }}</td><td>{{ clicks }}</td><td>{{ visitors }}</td></tr>
+                  {% else %}<tr><td colspan="4" class="text-muted">Zatím žádné affiliate prokliky.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="small text-muted mb-0">Affiliate odkaz: <code>https://botyzahubicku.cz/?aff=KOD</code> nebo <code>/produkty?aff=KOD</code></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">UTM kampaně</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead><tr><th>Source</th><th>Medium</th><th>Kampaň</th><th>Návštěvy</th></tr></thead>
+                <tbody>
+                  {% for source, medium, campaign, cnt in campaign_rows %}
+                  <tr><td>{{ source }}</td><td>{{ medium }}</td><td>{{ campaign }}</td><td>{{ cnt }}</td></tr>
+                  {% else %}<tr><td colspan="4" class="text-muted">Zatím žádné kampaně.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Nejnavštěvovanější stránky</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead><tr><th>Stránka</th><th>Návštěvy</th><th>Unikátní</th></tr></thead>
+                <tbody>
+                  {% for path, cnt, vis in top_pages %}
+                  <tr><td><code>{{ path }}</code></td><td>{{ cnt }}</td><td>{{ vis }}</td></tr>
+                  {% else %}<tr><td colspan="3" class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Nejnavštěvovanější produkty</h2>
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead><tr><th>Produkt</th><th>URL</th><th>Návštěvy</th></tr></thead>
+                <tbody>
+                  {% for name, slug, cnt in top_products %}
+                  <tr><td>{{ name }}</td><td><a href="/produkt/{{ slug }}">/produkt/{{ slug }}</a></td><td>{{ cnt }}</td></tr>
+                  {% else %}<tr><td colspan="3" class="text-muted">Zatím žádné produktové návštěvy.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Zařízení</h2>
+            <div class="table-responsive"><table class="table align-middle"><tbody>
+              {% for device, cnt in device_rows %}<tr><td>{{ device }}</td><td>{{ cnt }}</td></tr>{% else %}<tr><td class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+            </tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+          <div class="card-body p-4">
+            <h2 class="h4 fw-bold">Prohlížeče</h2>
+            <div class="table-responsive"><table class="table align-middle"><tbody>
+              {% for browser, cnt in browser_rows %}<tr><td>{{ browser }}</td><td>{{ cnt }}</td></tr>{% else %}<tr><td class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+            </tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

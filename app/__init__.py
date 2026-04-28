@@ -123,13 +123,16 @@ Sitemap: {sitemap}
     from .routes_shop import shop_bp
     from .routes_auth import auth_bp
     from .routes_admin import admin_bp
+    from .analytics import analytics_bp
 
     app.register_blueprint(shop_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(analytics_bp)
 
     with app.app_context():
         from . import models
+        from . import analytics
         db.create_all()
         from .seed import seed_data, ensure_schema_columns
         ensure_schema_columns()
