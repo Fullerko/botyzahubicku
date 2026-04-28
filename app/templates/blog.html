@@ -1,35 +1,122 @@
 {% extends "base.html" %}
 
-{% block title %}Blog o teniskách | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block title %}Blog o teniskách | BotyZaHubicku.cz{% endblock %}
 
 {% block content %}
 <section class="py-5">
   <div class="container">
-    <div class="mb-4">
+
+    <!-- HEADER -->
+    <div class="mb-5 text-center">
       <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Blog</span>
-      <h1 class="display-6 fw-bold mt-3">Blog o teniskách a botách</h1>
-      <p class="text-muted">Tipy, jak vybrat pohodlné tenisky, jak je nosit a na co si dát pozor při výběru.</p>
+      <h1 class="display-6 fw-bold mt-3">Blog o teniskách</h1>
+      <p class="text-muted">
+        Tipy, návody a inspirace – jak vybrat správné tenisky, jak je nosit a jak se o ně starat.
+      </p>
     </div>
 
+    <!-- GRID -->
     <div class="row g-4">
+
+      <!-- 1 -->
       <div class="col-md-6 col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h5 fw-bold">Jak vybrat tenisky na každodenní nošení</h2>
-            <p class="text-muted">Praktický návod, podle čeho vybírat pohodlné pánské i dámské tenisky.</p>
-            <a href="{{ url_for('shop.blog_jak_vybrat_tenisky') }}" class="btn btn-dark rounded-pill">
-              Číst článek
-            </a>
-          </div>
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Nejlepší tenisky na každodenní nošení</h2>
+          <p class="text-muted">Jak vybrat pohodlné a stylové tenisky na každý den.</p>
+          <a href="/blog/nejlepsi-tenisky-kazdodenni" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
         </div>
       </div>
+
+      <!-- 2 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Jak vybrat pánské tenisky</h2>
+          <p class="text-muted">Kompletní průvodce výběrem pohodlných pánských bot.</p>
+          <a href="/blog/jak-vybrat-panske-tenisky" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 3 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Jak vybrat dámské tenisky</h2>
+          <p class="text-muted">Tipy na stylové a pohodlné dámské tenisky.</p>
+          <a href="/blog/jak-vybrat-damske-tenisky" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Bílé tenisky – jak je nosit</h2>
+          <p class="text-muted">Stylové kombinace a inspirace pro každý outfit.</p>
+          <a href="/blog/bile-tenisky-jak-nosit" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 5 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Levné tenisky do 500 Kč</h2>
+          <p class="text-muted">Jak najít kvalitní boty za nízkou cenu.</p>
+          <a href="/blog/levne-tenisky-do-500" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 6 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Trendy tenisky 2026</h2>
+          <p class="text-muted">Jaké boty budou letos nejvíc v kurzu.</p>
+          <a href="/blog/trendy-tenisky-2026" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 7 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Sportovní vs volnočasové tenisky</h2>
+          <p class="text-muted">Jaký typ bot zvolit a proč.</p>
+          <a href="/blog/sportovni-vs-volnocasove" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 8 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Jak se starat o tenisky</h2>
+          <p class="text-muted">Návod na čištění a údržbu bot.</p>
+          <a href="/blog/jak-se-starat-o-tenisky" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 9 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Nejlepší tenisky na léto</h2>
+          <p class="text-muted">Lehké a prodyšné boty do horka.</p>
+          <a href="/blog/nejlepsi-tenisky-leto" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
+      <!-- 10 -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+          <h2 class="h5 fw-bold">Jak vybrat velikost tenisek</h2>
+          <p class="text-muted">Praktický návod pro správný výběr velikosti.</p>
+          <a href="/blog/jak-vybrat-velikost-tenisek" class="btn btn-dark rounded-pill mt-auto">Číst článek</a>
+        </div>
+      </div>
+
     </div>
 
-    <div class="mt-5">
-      <a href="{{ url_for('shop.products') }}" class="btn btn-outline-dark rounded-pill">
+    <!-- CTA -->
+    <div class="text-center mt-5">
+      <a href="/produkty" class="btn btn-outline-dark rounded-pill">
         Zpět na produkty
       </a>
     </div>
+
   </div>
 </section>
 {% endblock %}

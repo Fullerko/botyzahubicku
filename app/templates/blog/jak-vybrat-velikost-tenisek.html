@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Jak vybrat správnou velikost tenisek – praktický návod | BotyZaHubicku.cz{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 900px;">
+
+    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Velikosti</span>
+
+    <h1 class="display-6 fw-bold mt-3 mb-3">
+      Jak vybrat správnou velikost tenisek – praktický návod
+    </h1>
+
+    <p class="lead text-muted">
+      Správná velikost tenisek je základ pohodlí. I krásné a kvalitní boty budou špatné,
+      pokud tlačí, kloužou nebo nesedí na noze.
+    </p>
+
+    <p>
+      Při online nákupu je výběr velikosti ještě důležitější. Proto je dobré vědět, jak si změřit nohu,
+      na co si dát pozor a kdy zvolit větší velikost.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Proč je velikost tak důležitá</h2>
+    <p>
+      Špatná velikost může způsobit otlaky, bolest nohou i rychlejší opotřebení bot.
+      Příliš malé tenisky tlačí prsty, příliš velké zase neposkytují stabilitu při chůzi.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Jak si změřit nohu doma</h2>
+    <p>
+      Nejjednodušší způsob je postavit se na papír, obkreslit chodidlo a změřit vzdálenost od paty
+      k nejdelšímu prstu. Měř vždy obě nohy, protože jedna může být o něco větší.
+    </p>
+
+    <ul>
+      <li>měř nohu večer, kdy je lehce nateklá</li>
+      <li>měř obě chodidla</li>
+      <li>počítej s malou rezervou pro prsty</li>
+      <li>u sportovních tenisek raději nech více prostoru</li>
+    </ul>
+
+    <h2 class="h4 fw-bold mt-4">Kolik místa má být v tenisce</h2>
+    <p>
+      Ideálně by měl být před prsty malý prostor. U běžných tenisek stačí přibližně půl centimetru,
+      u sportovních nebo letních bot může být pohodlnější o něco větší rezerva.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Kdy zvolit větší velikost</h2>
+    <p>
+      Větší velikost zvaž hlavně tehdy, pokud jsi mezi dvěma čísly, máš širší chodidlo nebo plánuješ nosit
+      silnější ponožky. Pánské i dámské tenisky by měly být pohodlné hned při prvním obutí.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Nejčastější chyby při výběru velikosti</h2>
+    <ul>
+      <li>výběr podle starých bot bez měření</li>
+      <li>ignorování šířky chodidla</li>
+      <li>nákup příliš těsných bot</li>
+      <li>zkoušení jen jedné boty</li>
+    </ul>
+
+    <p>
+      Pokud si nejsi jistý, pohodlí by mělo být důležitější než přesné číslo na štítku.
+      Různé modely mohou sedět trochu jinak.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Shrnutí</h2>
+    <p>
+      Správná velikost tenisek rozhoduje o tom, jestli se v nich budeš cítit dobře celý den.
+      Změř si nohu, nech malou rezervu a vybírej model, který netlačí ani neklouže.
+    </p>
+
+    <div class="bg-light rounded-4 p-4 mt-4">
+      <h2 class="h5 fw-bold">Doporučení</h2>
+      <p class="mb-0">
+        Vyber si pohodlné tenisky ve správné velikosti a dopřej nohám komfort při každodenním nošení.
+      </p>
+    </div>
+
+    <div class="mt-5">
+      <a href="{{ url_for('shop.products') }}" class="btn btn-dark rounded-pill">
+        Zobrazit tenisky
+      </a>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

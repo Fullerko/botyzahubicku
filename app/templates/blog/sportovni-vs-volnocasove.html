@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Sportovní vs volnočasové tenisky – jaký je rozdíl a které vybrat | BotyZaHubicku.cz{% endblock %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 900px;">
+
+    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Porovnání</span>
+
+    <h1 class="display-6 fw-bold mt-3 mb-3">
+      Sportovní vs volnočasové tenisky – jaký je rozdíl a které vybrat
+    </h1>
+
+    <p class="lead text-muted">
+      Při výběru tenisek je důležité vědět, jestli hledáš sportovní boty, nebo volnočasové tenisky na každý den.
+      Na první pohled mohou vypadat podobně, ale rozdíl v pohodlí, podrážce a využití může být zásadní.
+    </p>
+
+    <p>
+      Správný výběr ti pomůže vyhnout se nepohodlí a zbytečnému opotřebení bot. V tomto článku si jednoduše ukážeme,
+      kdy zvolit sportovní tenisky a kdy jsou lepší volnočasové boty.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Co jsou sportovní tenisky</h2>
+    <p>
+      Sportovní tenisky jsou určené hlavně pro pohyb. Často mají pevnější podrážku, lepší stabilitu a konstrukci,
+      která podporuje nohu při aktivitě. Hodí se na procházky, lehké cvičení, běžné sportovní aktivity nebo aktivnější den.
+    </p>
+
+    <ul>
+      <li>lepší stabilita při pohybu</li>
+      <li>pevnější konstrukce</li>
+      <li>často prodyšný materiál</li>
+      <li>vhodné pro aktivní životní styl</li>
+    </ul>
+
+    <h2 class="h4 fw-bold mt-4">Co jsou volnočasové tenisky</h2>
+    <p>
+      Volnočasové tenisky jsou navržené hlavně pro každodenní nošení. Důležitý je vzhled, pohodlí a univerzálnost.
+      Hodí se do města, školy, práce i na běžné nošení s džínami nebo kraťasy.
+    </p>
+
+    <ul>
+      <li>stylový vzhled</li>
+      <li>snadné kombinování s oblečením</li>
+      <li>pohodlí při běžné chůzi</li>
+      <li>ideální na každý den</li>
+    </ul>
+
+    <h2 class="h4 fw-bold mt-4">Které tenisky vybrat</h2>
+    <p>
+      Pokud chceš boty hlavně na chůzi po městě, do školy nebo do práce, sáhni po volnočasových teniskách.
+      Pokud plánuješ aktivnější pohyb, delší trasy nebo lehký sport, lepší volbou budou sportovní tenisky.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Nejlepší kompromis</h2>
+    <p>
+      Pro většinu lidí je nejlepší kompromis moderní sportovně-volnočasová teniska. Takový model vypadá dobře,
+      je pohodlný a zvládne běžné denní nošení i aktivnější pohyb.
+    </p>
+
+    <h2 class="h4 fw-bold mt-4">Nejčastější chyba</h2>
+    <p>
+      Největší chybou je vybírat boty jen podle vzhledu. Tenisky musí sedět na noze, netlačit a být vhodné pro to,
+      jak je chceš používat. Hezké boty bez pohodlí tě rychle přestanou bavit.
+    </p>
+
+    <div class="bg-light rounded-4 p-4 mt-4">
+      <h2 class="h5 fw-bold">Doporučení</h2>
+      <p class="mb-0">
+        Pokud chceš univerzální boty na každý den, vybírej pohodlné tenisky se sportovním vzhledem.
+        Získáš styl i komfort v jednom páru.
+      </p>
+    </div>
+
+    <div class="mt-5">
+      <a href="{{ url_for('shop.products') }}" class="btn btn-dark rounded-pill">
+        Zobrazit nabídku tenisek
+      </a>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
