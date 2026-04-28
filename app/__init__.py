@@ -9,9 +9,6 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Pro pokračování se přihlaste.'
 
-@app.route('/uploads/<path:filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 def create_app():
@@ -31,6 +28,10 @@ def create_app():
     app.config['FREE_SHIPPING_THRESHOLD'] = 0
     app.config['SHIPPING_PRICE'] = 0
     app.config['DELIVERY_TEXT'] = 'Doručení 8–12 dní až ke dveřím zdarma.'
+
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     db.init_app(app)
     login_manager.init_app(app)
