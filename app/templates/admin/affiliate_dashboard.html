@@ -30,7 +30,7 @@
           <tr>
             <td><strong>{{ p.name }}</strong><br><span class="text-secondary small">{{ p.email }}{% if p.instagram %} · {{ p.instagram }}{% endif %}</span></td>
             <td><span class="badge {% if p.status == 'Aktivní' %}text-bg-success{% elif p.status == 'Odmítnuto' %}text-bg-secondary{% else %}text-bg-warning{% endif %}">{{ p.status }}</span></td>
-            <td>{% for c in p.codes %}<div><strong>{{ c.code }}</strong> <span class="text-secondary small">{{ c.display_split }}</span></div>{% else %}<span class="text-secondary">bez kódu</span>{% endfor %}</td>
+            <td>{% for c in p.codes %}<div><strong>{{ c.code }}</strong> <span class="text-secondary small">{{ c.display_split }}</span><br><code class="small">{{ url_for('shop.affiliate_click', code=c.code, _external=True) }}</code></div>{% else %}<span class="text-secondary">bez kódu</span>{% endfor %}</td>
             <td>{{ p.codes | map(attribute='uses_count') | sum }}</td>
             <td>{{ '%.0f'|format(p.commission_balance or 0) }} Kč</td>
             <td class="text-end">
@@ -57,7 +57,7 @@
         <tbody>
           {% for c in coupons %}
           <tr>
-            <td><strong>{{ c.code }}</strong><br><span class="text-secondary small">{{ c.label }}</span></td>
+            <td><strong>{{ c.code }}</strong><br><span class="text-secondary small">{{ c.label }}</span><br><code class="small">{{ url_for('shop.affiliate_click', code=c.code, _external=True) }}</code></td>
             <td>{{ c.affiliate_partner.name if c.affiliate_partner else 'Bez partnera' }}</td>
             <td>{{ c.display_split }}</td>
             <td>{{ c.uses_count }}{% if c.max_uses %}/{{ c.max_uses }}{% endif %}</td>

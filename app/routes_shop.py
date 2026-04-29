@@ -16,6 +16,49 @@ from app import db
 
 shop_bp = Blueprint('shop', __name__)
 
+AFF_COOKIE = 'bzh_affiliate_code'
+AFF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90
+
+
+def _coupon_by_code(code):
+    code = (code or '').strip()
+    if not code:
+        return None
+    return Coupon.query.filter(db.func.lower(Coupon.code) == code.lower()).first()
+
+
+def _affiliate_from_cookie():
+    cookie_code = (request.cookies.get(AFF_COOKIE) or '').strip()
+    coupon = _coupon_by_code(cookie_code)
+    if coupon and coupon.active and coupon.affiliate_partner:
+        return coupon
+    return None
+
+
+def _resolve_affiliate_for_order(coupon_info):
+    manual_coupon = _coupon_by_code(coupon_info.get('code')) if coupon_info.get('code') else None
+    if manual_coupon and manual_coupon.active and manual_coupon.affiliate_partner:
+        return manual_coupon, manual_coupon.code
+
+    cookie_coupon = _affiliate_from_cookie()
+    if cookie_coupon:
+        return cookie_coupon, ''
+
+    return None, coupon_info.get('code', '')
+
+
+@shop_bp.route('/a/<code>')
+def affiliate_click(code):
+    coupon = _coupon_by_code(code)
+    target = (request.args.get('to') or url_for('shop.index')).strip()
+    if not target.startswith('/') or target.startswith('//'):
+        target = url_for('shop.index')
+
+    response = redirect(target)
+    if coupon and coupon.active and coupon.affiliate_partner:
+        response.set_cookie(AFF_COOKIE, coupon.code, max_age=AFF_COOKIE_MAX_AGE, httponly=True, samesite='Lax')
+    return response
+
 
 @shop_bp.route("/api/mark-paid", methods=["POST"])
 def mark_paid_api():
@@ -470,6 +513,9 @@ def checkout():
     coupon_info = session.get('coupon', {})
 
     if request.method == 'POST':
+        affiliate_coupon, stored_coupon_code = _resolve_affiliate_for_order(coupon_info)
+        affiliate_partner_name = affiliate_coupon.affiliate_partner.name if affiliate_coupon and affiliate_coupon.affiliate_partner else ''
+        affiliate_commission_percent = float(affiliate_coupon.commission_percent_partner or 0) if affiliate_coupon else 0
         order_number = 'BZH' + ''.join(random.choices(string.digits, k=8))
         order = Order(
             order_number=order_number,
@@ -488,17 +534,15 @@ def checkout():
             total_price=total,
             note=request.form.get('note', '').strip(),
             user_id=current_user.id if current_user.is_authenticated else None,
-            coupon_code=coupon_info.get('code', ''),
-            affiliate_partner_name=coupon_info.get('affiliate_partner_name', '') if coupon_info.get('type') != 'fixed_final_price' else '',
-            affiliate_commission_amount=round(total * (float(coupon_info.get('commission_percent_partner', 0)) / 100), 2) if coupon_info.get('type') != 'fixed_final_price' else 0,
+            coupon_code=stored_coupon_code,
+            affiliate_partner_name=affiliate_partner_name,
+            affiliate_commission_amount=round(total * (affiliate_commission_percent / 100), 2),
         )
         if coupon_info.get('code'):
             coupon = Coupon.query.filter_by(code=coupon_info['code']).first()
             if coupon:
                 order.coupon_id = coupon.id
                 coupon.uses_count += 1
-                if coupon.affiliate_partner:
-                    coupon.affiliate_partner.commission_balance += order.affiliate_commission_amount
         db.session.add(order)
         db.session.flush()
         create_qr_for_order(order)

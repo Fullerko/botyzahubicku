@@ -76,7 +76,7 @@
         {% for code in coupons %}
         <div class="border rounded-4 p-3 mb-3">
           <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-            <div><div class="h4 mb-0">{{ code.code }}</div><div class="text-secondary small">{{ code.uses_count }} použití · {{ code.display_split }}</div></div>
+            <div><div class="h4 mb-0">{{ code.code }}</div><div class="text-secondary small">{{ code.uses_count }} použití · {{ code.display_split }}</div><div class="small mt-1"><span class="text-secondary">Affiliate odkaz:</span> <code>{{ url_for('shop.affiliate_click', code=code.code, _external=True) }}</code></div></div>
             <span class="badge {{ 'text-bg-success' if code.active else 'text-bg-secondary' }}">{{ 'Aktivní' if code.active else 'Vypnuto' }}</span>
           </div>
           <form method="post" class="row g-2 align-items-end">
