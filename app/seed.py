@@ -32,6 +32,9 @@ def ensure_schema_columns():
             'description': "ALTER TABLE category ADD COLUMN description VARCHAR(255) DEFAULT ''",
             'show_in_menu': "ALTER TABLE category ADD COLUMN show_in_menu BOOLEAN DEFAULT 1",
         },
+        'product': {
+            'supplier_sku': "ALTER TABLE product ADD COLUMN supplier_sku VARCHAR(120) DEFAULT ''",
+        },
         'coupon': None,
         'affiliate_partner': None,
         'password_reset_token': None,
@@ -43,6 +46,10 @@ def ensure_schema_columns():
             'affiliate_commission_amount': "ALTER TABLE 'order' ADD COLUMN affiliate_commission_amount FLOAT DEFAULT 0",
             'qr_payload': "ALTER TABLE 'order' ADD COLUMN qr_payload TEXT DEFAULT ''",
             'qr_image': "ALTER TABLE 'order' ADD COLUMN qr_image VARCHAR(255) DEFAULT ''",
+            'sumool_status': "ALTER TABLE 'order' ADD COLUMN sumool_status VARCHAR(30) DEFAULT ''",
+            'sumool_message': "ALTER TABLE 'order' ADD COLUMN sumool_message TEXT DEFAULT ''",
+            'sumool_response': "ALTER TABLE 'order' ADD COLUMN sumool_response TEXT DEFAULT ''",
+            'sumool_submitted_at': "ALTER TABLE 'order' ADD COLUMN sumool_submitted_at DATETIME",
         },
     }
     with engine.begin() as conn:
@@ -149,6 +156,16 @@ def seed_data():
         'smtp_password': '',
         'smtp_sender': 'info@botyzahubicku.cz',
         'smtp_use_tls': '1',
+        'sumool_enabled': '0',
+        'sumool_base_url': '',
+        'sumool_tokenkeys': '',
+        'sumool_tokens': '',
+        'sumool_user_id': '',
+        'sumool_currency': 'CZK',
+        'sumool_default_country': 'CZ',
+        'sumool_store_no': '',
+        'sumool_logistic_name': '',
+        'sumool_logistic_mode_code': '',
     }
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():

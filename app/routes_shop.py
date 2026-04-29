@@ -12,6 +12,7 @@ from .utils import get_cart, setting
 from datetime import datetime
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
+from .sumool_api import submit_order_to_sumool
 from app import db
 
 shop_bp = Blueprint('shop', __name__)
@@ -96,6 +97,15 @@ def mark_paid_api():
             partner.commission_balance = (partner.commission_balance or 0) + (order.affiliate_commission_amount or 0)
 
     db.session.commit()
+
+    # Po zaplacení se objednávka automaticky pošle dodavateli přes Sumool API.
+    if not order.sumool_status:
+        result = submit_order_to_sumool(order)
+        order.sumool_status = 'odeslano' if result.get('ok') else 'chyba'
+        order.sumool_message = result.get('message', '')
+        order.sumool_response = result.get('raw') or ''
+        order.sumool_submitted_at = datetime.now()
+        db.session.commit()
 
     invoice_pdf = generate_invoice_pdf(order)
 

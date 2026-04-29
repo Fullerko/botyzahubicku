@@ -5,6 +5,8 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from . import db
 from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, unique_slug, send_email
+from .sumool_api import submit_order_to_sumool
+from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
@@ -74,6 +76,7 @@ def product_new():
             image=request.form.get('image_url', '').strip() or 'default-product.svg',
             gallery=request.form.get('gallery', '').strip(),
             source_url=request.form.get('source_url', '').strip(),
+            supplier_sku=request.form.get('supplier_sku', '').strip(),
             specifications=request.form.get('specifications', '').strip(),
             colors=request.form.get('colors', '').strip(),
             gender=','.join(request.form.getlist('gender')) or 'unisex',
@@ -165,6 +168,7 @@ def product_edit(product_id):
         if gallery_images:
             product.gallery = ",".join(gallery_images)
         product.source_url = request.form.get('source_url', '').strip()
+        product.supplier_sku = request.form.get('supplier_sku', '').strip()
         if image:
             product.image = image
         ProductSize.query.filter_by(product_id=product.id).delete()
@@ -203,9 +207,26 @@ def order_detail(order_id):
     order = Order.query.get_or_404(order_id)
     if request.method == 'POST':
         order.status = request.form.get('status', 'Nová')
+        if order.status == 'Zaplaceno' and order.payment_status != 'paid':
+            order.payment_status = 'paid'
+            order.paid_at = datetime.now()
         db.session.commit()
         flash('Stav objednávky byl změněn.', 'success')
     return render_template('admin/order_detail.html', order=order, Product=Product)
+
+
+@admin_bp.route('/orders/<int:order_id>/sumool/send', methods=['POST'])
+@admin_required
+def order_sumool_send(order_id):
+    order = Order.query.get_or_404(order_id)
+    result = submit_order_to_sumool(order)
+    order.sumool_status = 'odeslano' if result.get('ok') else 'chyba'
+    order.sumool_message = result.get('message', '')
+    order.sumool_response = result.get('raw') or ''
+    order.sumool_submitted_at = datetime.now()
+    db.session.commit()
+    flash('Objednávka byla odeslána do Sumool API.' if result.get('ok') else f'Sumool chyba: {result.get("message", "neznámá chyba")}', 'success' if result.get('ok') else 'danger')
+    return redirect(url_for('admin.order_detail', order_id=order.id))
 
 
 @admin_bp.route('/affiliate')
@@ -417,6 +438,18 @@ def settings():
             ('smtp_password', 'SMTP heslo'),
             ('smtp_sender', 'SMTP odesílatel'),
             ('smtp_use_tls', 'SMTP TLS (1 nebo 0)'),
+        ],
+        'Sumool / dodavatel API': [
+            ('sumool_enabled', 'Zapnout automatické odesílání objednávek do Sumool (1 nebo 0)'),
+            ('sumool_base_url', 'Sumool API URL, např. https://hzmhkj.sumool.com'),
+            ('sumool_tokenkeys', 'Tokenkeys'),
+            ('sumool_tokens', 'Tokens / API key'),
+            ('sumool_user_id', 'UserId obchodu u dodavatele'),
+            ('sumool_currency', 'Měna objednávky, např. CZK'),
+            ('sumool_default_country', 'Výchozí země zákazníka, např. CZ'),
+            ('sumool_store_no', 'StoreNo / sklad, volitelné'),
+            ('sumool_logistic_name', 'LogisticName, volitelné'),
+            ('sumool_logistic_mode_code', 'LogisticModeCode, volitelné'),
         ],
     }
 

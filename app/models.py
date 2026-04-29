@@ -75,6 +75,7 @@ class Product(db.Model):
     source_url = db.Column(db.String(500))
     specifications = db.Column(db.Text)
     colors = db.Column(db.Text)
+    supplier_sku = db.Column(db.String(120), default='')
 
     @property
     def discount_percent(self):
@@ -159,6 +160,10 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     qr_payload = db.Column(db.Text, default='')
     qr_image = db.Column(db.String(255), default='')
+    sumool_status = db.Column(db.String(30), default='')
+    sumool_message = db.Column(db.Text, default='')
+    sumool_response = db.Column(db.Text, default='')
+    sumool_submitted_at = db.Column(db.DateTime, nullable=True)
     items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
 
 
