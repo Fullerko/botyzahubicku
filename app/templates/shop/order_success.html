@@ -13,20 +13,30 @@
         <div class="summary-row"><span>Doručení</span><strong>8–12 dní, kurýr až domů</strong></div>
       </div>
       <div class="col-lg-6">
-        {% if order.qr_image %}<img src="{{ url_for('static', filename='uploads/' + order.qr_image) }}" class="qr-image rounded-4 shadow-sm" alt="QR">{% endif %}
+        {% if order.qr_image %}
+          <img src="{{ url_for('uploaded_file', filename=order.qr_image) }}" class="qr-image rounded-4 shadow-sm" alt="QR kód">
+        {% endif %}
       </div>
-	  <div class="mt-4">
-		<button
-		  type="button"
-		  class="btn btn-dark rounded-pill"
-		  id="checkPaymentBtn"
-		  data-order-number="{{ order.order_number }}"
-		>
-		  Zkontrolovat stav platby
-		</button>
 
-		<div id="paymentStatusMessage" class="mt-3 fw-semibold"></div>
-	  </div>
+      <div class="mt-4">
+        <button
+          type="button"
+          class="btn btn-dark rounded-pill"
+          id="checkPaymentBtn"
+          data-order-number="{{ order.order_number }}"
+        >
+          Zkontrolovat stav platby
+        </button>
+
+        <div id="paymentStatusMessage" class="mt-3 fw-semibold"></div>
+
+        <p class="text-muted small mt-3">
+          Zaplacením objednávky potvrzujete souhlas s
+          <a href="/obchodni-podminky" target="_blank">obchodními podmínkami</a>
+          a berete na vědomí
+          <a href="/ochrana-udaju" target="_blank">zpracování osobních údajů</a>.
+        </p>
+      </div>
     </div>
   </div>
 </section>
