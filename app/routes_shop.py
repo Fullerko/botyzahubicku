@@ -271,6 +271,25 @@ def blog9():
 @shop_bp.route('/blog/jak-vybrat-velikost-tenisek')
 def blog10():
     return render_template('blog/jak-vybrat-velikost-tenisek.html')
+    
+@shop_bp.route('/obchodni-podminky')
+def terms():
+    return render_template('legal/terms.html')
+
+
+@shop_bp.route('/ochrana-udaju')
+def privacy():
+    return render_template('legal/privacy.html')
+
+
+@shop_bp.route('/reklamace')
+def complaints():
+    return render_template('legal/complaints.html')
+
+
+@shop_bp.route('/cookies')
+def cookies():
+    return render_template('legal/cookies.html')
 
 def cart_detail():
     items = []
