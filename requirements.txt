@@ -6,3 +6,4 @@ Pillow==10.4.0
 qrcode==7.4.2
 gunicorn
 reportlab
+openpyxl==3.1.5

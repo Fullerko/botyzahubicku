@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Import SKU dodavatele | Admin{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="info-card">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-4 flex-wrap">
+      <div>
+        <h1 class="h2 mb-1">Import SKU dodavatele</h1>
+        <p class="text-muted mb-0">Nahraj CSV/XLSX od dodavatele a systém automaticky doplní dodavatelské SKU k variantám.</p>
+      </div>
+      <a href="{{ url_for('admin.products') }}" class="btn btn-outline-dark rounded-pill">Zpět na produkty</a>
+    </div>
+
+    <div class="alert alert-light border rounded-4">
+      <strong>Doporučené sloupce v tabulce:</strong>
+      <div class="mt-2 small">
+        <code>product_name</code>, <code>size</code>, <code>color</code>, <code>supplier_sku</code>, <code>supplier_color</code>
+      </div>
+      <div class="mt-2 small text-muted">
+        Volitelné: <code>internal_sku</code>, <code>supplier_product_code</code>, <code>ean</code>.
+        Když tabulka obsahuje <code>internal_sku</code>, párování je nejpřesnější.
+      </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="row g-3 mb-4">
+      <div class="col-md-8">
+        <label class="form-label">Soubor CSV nebo XLSX</label>
+        <input type="file" name="supplier_file" class="form-control" accept=".csv,.txt,.xlsx" required>
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="update_woocommerce" id="update_woocommerce" value="1" checked>
+          <label class="form-check-label" for="update_woocommerce">Rovnou aktualizovat SKU ve WooCommerce</label>
+        </div>
+      </div>
+      <div class="col-12">
+        <button class="btn btn-dark rounded-pill px-4">Importovat SKU dodavatele</button>
+      </div>
+    </form>
+
+    <div class="border rounded-4 p-3 bg-light mb-4">
+      <div class="fw-bold mb-2">Příklad CSV:</div>
+      <pre class="mb-0 small">product_name;size;color;supplier_sku;supplier_color
+Nike Air;40;Black;CN-NIKE-BLK-40;Black
+Nike Air;41;Black;CN-NIKE-BLK-41;Black
+Nike Air;40;White;CN-NIKE-WHT-40;White</pre>
+    </div>
+
+    {% if result %}
+      <hr>
+      <h2 class="h5 mb-3">Výsledek importu</h2>
+      <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="border rounded-4 p-3"><div class="text-muted small">Řádků celkem</div><div class="h4 mb-0">{{ result.total }}</div></div></div>
+        <div class="col-md-3"><div class="border rounded-4 p-3"><div class="text-muted small">Spárováno</div><div class="h4 mb-0">{{ result.matched }}</div></div></div>
+        <div class="col-md-3"><div class="border rounded-4 p-3"><div class="text-muted small">WC aktualizováno</div><div class="h4 mb-0">{{ result.updated_wc }}</div></div></div>
+        <div class="col-md-3"><div class="border rounded-4 p-3"><div class="text-muted small">Nespárováno</div><div class="h4 mb-0">{{ result.unmatched|length }}</div></div></div>
+      </div>
+
+      {% if result.updated %}
+        <h3 class="h6">Ukázka aktualizovaných variant</h3>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Produkt</th><th>Velikost</th><th>Barva webu</th><th>Interní SKU</th><th>SKU dodavatele</th><th>Barva dodavatele</th></tr></thead>
+            <tbody>
+              {% for row in result.updated[:30] %}
+                <tr>
+                  <td>{{ row.product }}</td>
+                  <td>{{ row.size }}</td>
+                  <td>{{ row.color or '—' }}</td>
+                  <td><code>{{ row.internal_sku }}</code></td>
+                  <td><code>{{ row.supplier_sku }}</code></td>
+                  <td>{{ row.supplier_color or '—' }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if result.unmatched %}
+        <h3 class="h6 text-danger">Nespárované řádky</h3>
+        <p class="text-muted small">Tyhle řádky systém nenašel podle názvu produktu + velikosti + barvy. Nejlepší je doplnit do tabulky sloupec <code>internal_sku</code>.</p>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Řádek</th><th>Data</th></tr></thead>
+            <tbody>
+              {% for item in result.unmatched[:50] %}
+                <tr><td>{{ item.row }}</td><td><code>{{ item.row_data }}</code></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if result.missing_supplier_sku %}
+        <h3 class="h6 text-warning">Řádky bez supplier_sku</h3>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Řádek</th><th>Data</th></tr></thead>
+            <tbody>
+              {% for item in result.missing_supplier_sku[:50] %}
+                <tr><td>{{ item.row }}</td><td><code>{{ item.row_data }}</code></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -7,6 +7,7 @@ from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductS
 from .utils import admin_required, save_image, set_setting, unique_slug, send_email
 from .sumool_api import submit_order_to_sumool
 from .woocommerce_api import ensure_product_skus_and_variants, submit_order_to_woocommerce, sync_product_to_woocommerce
+from .supplier_import import import_supplier_sku_file
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -425,6 +426,32 @@ def coupon_edit(coupon_id):
         flash('Kód byl upraven.', 'success')
         return redirect(url_for('admin.affiliate_dashboard'))
     return render_template('admin/coupon_form.html', coupon=coupon, partners=partners)
+
+
+@admin_bp.route('/supplier-sku-import', methods=['GET', 'POST'])
+@admin_required
+def supplier_sku_import():
+    result = None
+    if request.method == 'POST':
+        uploaded = request.files.get('supplier_file')
+        update_woocommerce = bool(request.form.get('update_woocommerce'))
+        if not uploaded or not uploaded.filename:
+            flash('Nahraj prosím CSV nebo XLSX soubor od dodavatele.', 'warning')
+        else:
+            try:
+                result = import_supplier_sku_file(uploaded, update_woocommerce=update_woocommerce)
+                db.session.commit()
+                message = f"Import hotový: spárováno {result['matched']} z {result['total']} řádků."
+                if update_woocommerce:
+                    message += f" WooCommerce aktualizováno: {result['updated_wc']}, chyby: {result['wc_errors']}."
+                if result['unmatched'] or result['missing_supplier_sku']:
+                    flash(message + ' Některé řádky je potřeba zkontrolovat dole v přehledu.', 'warning')
+                else:
+                    flash(message, 'success')
+            except Exception as exc:
+                db.session.rollback()
+                flash(f'Import se nepovedl: {exc}', 'danger')
+    return render_template('admin/supplier_sku_import.html', result=result)
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])

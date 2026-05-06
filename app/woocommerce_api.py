@@ -123,6 +123,18 @@ def variant_sku(product, size, color=''):
     return '-'.join(parts)[:120]
 
 
+def effective_variant_sku(variant):
+    """SKU, které má vidět dodavatel ve WooCommerce.
+
+    Když je doplněné dodavatelské SKU, použije se ono. Když ne, zůstane interní BZH SKU.
+    """
+    return (getattr(variant, 'supplier_sku', '') or '').strip() or (variant.sku or '').strip()
+
+
+def effective_supplier_color(variant):
+    return (getattr(variant, 'supplier_color', '') or '').strip() or (variant.color or '').strip()
+
+
 def ensure_product_skus_and_variants(product):
     """Vytvoří lokální SKU a řádky variant pro všechny kombinace velikost × barva."""
     if not (product.supplier_sku or '').strip():
@@ -270,7 +282,7 @@ def build_woocommerce_product(product):
 
 def build_woocommerce_variation(product, variant):
     return {
-        'sku': variant.sku or variant_sku(product, variant.size, variant.color),
+        'sku': effective_variant_sku(variant) or variant_sku(product, variant.size, variant.color),
         'regular_price': f'{float(product.price or 0):.2f}',
         'sale_price': f'{float(product.price or 0):.2f}' if product.original_price and product.original_price > product.price else '',
         'manage_stock': True,
@@ -280,10 +292,51 @@ def build_woocommerce_variation(product, variant):
         'meta_data': [
             {'key': 'BZH produkt ID', 'value': str(product.id)},
             {'key': 'BZH varianta ID', 'value': str(variant.id)},
+            {'key': 'Interní BZH SKU', 'value': variant.sku or ''},
+            {'key': 'SKU dodavatele', 'value': (variant.supplier_sku or '')},
             {'key': 'Velikost', 'value': variant.size},
-            {'key': 'Barva', 'value': variant.color or ''},
+            {'key': 'Barva webu', 'value': variant.color or ''},
+            {'key': 'Barva dodavatele', 'value': (variant.supplier_color or '')},
+            {'key': 'Kód produktu dodavatele', 'value': (variant.supplier_product_code or '')},
+            {'key': 'EAN dodavatele', 'value': (variant.supplier_ean or '')},
         ],
     }
+
+
+def update_supplier_variant_in_woocommerce(variant):
+    """Aktualizuje ve WooCommerce jen dodavatelské údaje varianty.
+
+    Používá se po importu CSV/XLSX. Nemění české atributy varianty, aby se nerozbily
+    existující velikosti/barvy v produktu. Přepíše SKU varianty na supplier_sku, pokud existuje,
+    a dodavatelskou barvu uloží do meta dat.
+    """
+    product = variant.product
+    if not woocommerce_enabled():
+        return {'ok': False, 'message': 'WooCommerce odesílání je vypnuté.'}
+    if not woocommerce_config_ready():
+        return {'ok': False, 'message': 'WooCommerce není nakonfigurovaný.'}
+    if not (product.woocommerce_product_id or '').strip():
+        return {'ok': False, 'message': 'Produkt nemá WooCommerce product ID.'}
+    if not (variant.woocommerce_variation_id or '').strip():
+        return {'ok': False, 'message': 'Varianta nemá WooCommerce variation ID.'}
+
+    payload = {
+        'sku': effective_variant_sku(variant),
+        'meta_data': [
+            {'key': 'Interní BZH SKU', 'value': variant.sku or ''},
+            {'key': 'SKU dodavatele', 'value': variant.supplier_sku or ''},
+            {'key': 'Barva webu', 'value': variant.color or ''},
+            {'key': 'Barva dodavatele', 'value': variant.supplier_color or ''},
+            {'key': 'Kód produktu dodavatele', 'value': variant.supplier_product_code or ''},
+            {'key': 'EAN dodavatele', 'value': variant.supplier_ean or ''},
+        ],
+    }
+    return _request(
+        'PUT',
+        f'/wp-json/wc/v3/products/{product.woocommerce_product_id}/variations/{variant.woocommerce_variation_id}',
+        payload,
+        timeout=120,
+    )
 
 
 def sync_product_to_woocommerce(product):
@@ -381,11 +434,15 @@ def build_woocommerce_order(order):
                 size=item.size or '',
                 color=item.color or '',
             ).first()
-        supplier_sku = (getattr(variant, 'sku', '') or getattr(product, 'supplier_sku', '') or '').strip() if product else ''
+        internal_sku = (getattr(variant, 'sku', '') or '').strip() if variant else ''
+        supplier_sku = (getattr(variant, 'supplier_sku', '') or internal_sku or getattr(product, 'supplier_sku', '') or '').strip() if product else ''
+        supplier_color = (getattr(variant, 'supplier_color', '') or '').strip() if variant else ''
         meta_data = [
             {'key': SIZE_ATTR, 'value': item.size or ''},
             {'key': COLOR_ATTR, 'value': item.color or ''},
+            {'key': 'Barva dodavatele', 'value': supplier_color},
             {'key': 'BZH produkt ID', 'value': str(item.product_id)},
+            {'key': 'Interní BZH SKU', 'value': internal_sku},
         ]
         if supplier_sku:
             meta_data.append({'key': 'SKU dodavatele', 'value': supplier_sku})

@@ -149,13 +149,15 @@
   <h2 class="h5">Automatické varianty pro WooCommerce</h2>
   <div class="table-responsive">
     <table class="table table-sm align-middle">
-      <thead><tr><th>Velikost</th><th>Barva</th><th>SKU</th><th>Sklad</th><th>WC variation ID</th><th>Stav</th></tr></thead>
+      <thead><tr><th>Velikost</th><th>Barva</th><th>Interní SKU</th><th>SKU dodavatele</th><th>Barva dodavatele</th><th>Sklad</th><th>WC variation ID</th><th>Stav</th></tr></thead>
       <tbody>
       {% for variant in product.variants|sort(attribute='sku') %}
         <tr>
           <td>{{ variant.size }}</td>
           <td>{{ variant.color or '—' }}</td>
           <td><code>{{ variant.sku }}</code></td>
+          <td>{% if variant.supplier_sku %}<code>{{ variant.supplier_sku }}</code>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{{ variant.supplier_color or '—' }}</td>
           <td>{{ variant.stock }}</td>
           <td>{{ variant.woocommerce_variation_id or '—' }}</td>
           <td>{{ variant.woocommerce_sync_status or '—' }}</td>
