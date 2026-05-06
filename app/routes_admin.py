@@ -3,9 +3,10 @@ import string
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, SiteSetting, User
+from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, ProductVariant, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, unique_slug, send_email
 from .sumool_api import submit_order_to_sumool
+from .woocommerce_api import ensure_product_skus_and_variants, submit_order_to_woocommerce, sync_product_to_woocommerce
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -31,6 +32,21 @@ def _parse_split_from_note(note):
     if '0 % klient / 10 % partner' in note:
         return 0, 10
     return 5, 5
+
+
+def _sync_product_after_save(product):
+    """Zajistí lokální SKU/varianty a volitelně je pošle do WooCommerce."""
+    ensure_product_skus_and_variants(product)
+    db.session.commit()
+    result = sync_product_to_woocommerce(product)
+    if result.get('ok'):
+        db.session.commit()
+        flash('Produkt, barvy, velikosti a SKU byly automaticky synchronizované do WooCommerce.', 'success')
+    else:
+        db.session.commit()
+        msg = result.get('message', 'WooCommerce synchronizace se neprovedla.')
+        flash(f'Produkt je uložený lokálně. WooCommerce: {msg}', 'warning')
+
 
 
 @admin_bp.route('/')
@@ -112,8 +128,8 @@ def product_new():
         default_size_stock = max(1, product.stock // max(1, len(sizes) or 1))
         for size in sizes:
             db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
-        db.session.commit()
-        flash('Produkt byl vytvořen.', 'success')
+        db.session.flush()
+        _sync_product_after_save(product)
         return redirect(url_for('admin.products'))
     return render_template('admin/product_form.html', categories=categories, product=None)
 
@@ -176,10 +192,18 @@ def product_edit(product_id):
         default_size_stock = max(1, product.stock // max(1, len(sizes) or 1))
         for size in sizes:
             db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
-        db.session.commit()
-        flash('Produkt byl upraven.', 'success')
+        db.session.flush()
+        _sync_product_after_save(product)
         return redirect(url_for('admin.products'))
     return render_template('admin/product_form.html', categories=categories, product=product)
+
+
+@admin_bp.route('/products/<int:product_id>/woocommerce/sync', methods=['POST'])
+@admin_required
+def product_woocommerce_sync(product_id):
+    product = Product.query.get_or_404(product_id)
+    _sync_product_after_save(product)
+    return redirect(url_for('admin.product_edit', product_id=product.id))
 
 
 @admin_bp.route('/products/<int:product_id>/delete')
@@ -226,6 +250,23 @@ def order_sumool_send(order_id):
     order.sumool_submitted_at = datetime.now()
     db.session.commit()
     flash('Objednávka byla odeslána do Sumool API.' if result.get('ok') else f'Sumool chyba: {result.get("message", "neznámá chyba")}', 'success' if result.get('ok') else 'danger')
+    return redirect(url_for('admin.order_detail', order_id=order.id))
+
+
+@admin_bp.route('/orders/<int:order_id>/woocommerce/send', methods=['POST'])
+@admin_required
+def order_woocommerce_send(order_id):
+    order = Order.query.get_or_404(order_id)
+    result = submit_order_to_woocommerce(order)
+    order.woocommerce_status = 'odeslano' if result.get('ok') else 'chyba'
+    order.woocommerce_message = result.get('message', '')
+    order.woocommerce_response = result.get('raw') or ''
+    order.woocommerce_submitted_at = datetime.now()
+    data = result.get('data') or {}
+    if data.get('id'):
+        order.woocommerce_order_id = str(data.get('id'))
+    db.session.commit()
+    flash('Objednávka byla odeslána do WooCommerce.' if result.get('ok') else f'WooCommerce chyba: {result.get("message", "neznámá chyba")}', 'success' if result.get('ok') else 'danger')
     return redirect(url_for('admin.order_detail', order_id=order.id))
 
 
@@ -450,6 +491,17 @@ def settings():
             ('sumool_store_no', 'StoreNo / sklad, volitelné'),
             ('sumool_logistic_name', 'LogisticName, volitelné'),
             ('sumool_logistic_mode_code', 'LogisticModeCode, volitelné'),
+        ],
+        'WooCommerce / dodavatel API': [
+            ('woocommerce_enabled', 'Zapnout automatické odesílání objednávek do WooCommerce (1 nebo 0)'),
+            ('woocommerce_base_url', 'WooCommerce URL, např. https://dodavatel.cz'),
+            ('woocommerce_consumer_key', 'WooCommerce Consumer Key'),
+            ('woocommerce_consumer_secret', 'WooCommerce Consumer Secret'),
+            ('woocommerce_order_status', 'Stav nové objednávky ve WooCommerce, např. processing'),
+            ('woocommerce_auto_sync_products', 'Automaticky vytvářet/upravovat produkty a varianty ve WooCommerce (1 nebo 0)'),
+            ('woocommerce_sku_prefix', 'Prefix automatického SKU, např. BZH'),
+            ('woocommerce_currency', 'Měna objednávky, např. CZK'),
+            ('woocommerce_default_country', 'Výchozí země zákazníka, např. CZ'),
         ],
     }
 

@@ -13,6 +13,7 @@ from datetime import datetime
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
 from .sumool_api import submit_order_to_sumool
+from .woocommerce_api import submit_order_to_woocommerce
 from app import db
 
 shop_bp = Blueprint('shop', __name__)
@@ -98,13 +99,25 @@ def mark_paid_api():
 
     db.session.commit()
 
-    # Po zaplacení se objednávka automaticky pošle dodavateli přes Sumool API.
+    # Po zaplacení se objednávka automaticky pošle dodavateli přes Sumool API, pokud je zapnuté.
     if not order.sumool_status:
         result = submit_order_to_sumool(order)
         order.sumool_status = 'odeslano' if result.get('ok') else 'chyba'
         order.sumool_message = result.get('message', '')
         order.sumool_response = result.get('raw') or ''
         order.sumool_submitted_at = datetime.now()
+        db.session.commit()
+
+    # Stejný princip pro WooCommerce: zákazník zůstává na tomto webu, WooCommerce je jen backend pro dodavatele.
+    if not order.woocommerce_status:
+        result = submit_order_to_woocommerce(order)
+        order.woocommerce_status = 'odeslano' if result.get('ok') else 'chyba'
+        order.woocommerce_message = result.get('message', '')
+        order.woocommerce_response = result.get('raw') or ''
+        order.woocommerce_submitted_at = datetime.now()
+        data = result.get('data') or {}
+        if data.get('id'):
+            order.woocommerce_order_id = str(data.get('id'))
         db.session.commit()
 
     invoice_pdf = generate_invoice_pdf(order)

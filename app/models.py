@@ -76,6 +76,10 @@ class Product(db.Model):
     specifications = db.Column(db.Text)
     colors = db.Column(db.Text)
     supplier_sku = db.Column(db.String(120), default='')
+    woocommerce_product_id = db.Column(db.String(50), default='')
+    woocommerce_sync_status = db.Column(db.String(30), default='')
+    woocommerce_sync_message = db.Column(db.Text, default='')
+    woocommerce_synced_at = db.Column(db.DateTime, nullable=True)
 
     @property
     def discount_percent(self):
@@ -86,6 +90,23 @@ class Product(db.Model):
     @property
     def gallery_list(self):
         return [g for g in (self.gallery or '').split(',') if g]
+
+
+class ProductVariant(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    size = db.Column(db.String(20), nullable=False)
+    color = db.Column(db.String(80), default='')
+    sku = db.Column(db.String(120), nullable=False, unique=True)
+    stock = db.Column(db.Integer, default=0)
+    woocommerce_variation_id = db.Column(db.String(50), default='')
+    woocommerce_sync_status = db.Column(db.String(30), default='')
+    woocommerce_sync_message = db.Column(db.Text, default='')
+    woocommerce_synced_at = db.Column(db.DateTime, nullable=True)
+
+    product = db.relationship('Product', backref=db.backref('variants', lazy=True, cascade='all, delete-orphan'))
+
+    __table_args__ = (db.UniqueConstraint('product_id', 'size', 'color', name='uq_product_variant_size_color'),)
 
 
 class ProductSize(db.Model):
@@ -164,6 +185,11 @@ class Order(db.Model):
     sumool_message = db.Column(db.Text, default='')
     sumool_response = db.Column(db.Text, default='')
     sumool_submitted_at = db.Column(db.DateTime, nullable=True)
+    woocommerce_status = db.Column(db.String(30), default='')
+    woocommerce_message = db.Column(db.Text, default='')
+    woocommerce_response = db.Column(db.Text, default='')
+    woocommerce_order_id = db.Column(db.String(50), default='')
+    woocommerce_submitted_at = db.Column(db.DateTime, nullable=True)
     items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
 
 

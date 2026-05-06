@@ -118,10 +118,20 @@
 <div class="col-md-3 form-check ms-3"><input class="form-check-input" type="checkbox" name="featured" {% if not product or product.featured %}checked{% endif %}><label class="form-check-label">Top produkt</label></div>
 <div class="col-md-3 form-check ms-3"><input class="form-check-input" type="checkbox" name="active" {% if not product or product.active %}checked{% endif %}><label class="form-check-label">Aktivní</label></div>
 <div class="col-md-6">
-  <label class="form-label">SKU dodavatele / Sumool SKU</label>
-  <input class="form-control" name="supplier_sku" value="{{ product.supplier_sku if product else '' }}" placeholder="např. KASGLVTQF-LXLAM-C">
-  <small class="text-muted">Tohle se pošle dodavateli v poli Details.sku.</small>
+  <label class="form-label">Hlavní SKU produktu</label>
+  <input class="form-control" name="supplier_sku" value="{{ product.supplier_sku if product else '' }}" placeholder="Nech prázdné = vygeneruje se automaticky, např. BZH-000123">
+  <small class="text-muted">Použije se jako základ. Každá velikost/barva dostane vlastní SKU automaticky.</small>
 </div>
+{% if product %}
+<div class="col-md-6">
+  <label class="form-label">WooCommerce</label>
+  <div class="border rounded p-3 bg-light">
+    <div><strong>Produkt ID ve WC:</strong> {{ product.woocommerce_product_id or 'zatím nevytvořeno' }}</div>
+    <div><strong>Stav synchronizace:</strong> {{ product.woocommerce_sync_status or '—' }}</div>
+    {% if product.woocommerce_sync_message %}<div class="text-muted small">{{ product.woocommerce_sync_message }}</div>{% endif %}
+  </div>
+</div>
+{% endif %}
 <div class="mb-3">
   <label class="form-label">URL</label>
   <input
@@ -132,6 +142,31 @@
     placeholder="https://..."
   >
 </div>
-<div class="col-12"><button class="btn btn-dark rounded-pill px-4">Uložit</button></div>
-</form></div></section>
+<div class="col-12"><button class="btn btn-dark rounded-pill px-4">Uložit a synchronizovat do WooCommerce</button></div>
+</form>
+{% if product and product.variants %}
+  <hr>
+  <h2 class="h5">Automatické varianty pro WooCommerce</h2>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Velikost</th><th>Barva</th><th>SKU</th><th>Sklad</th><th>WC variation ID</th><th>Stav</th></tr></thead>
+      <tbody>
+      {% for variant in product.variants|sort(attribute='sku') %}
+        <tr>
+          <td>{{ variant.size }}</td>
+          <td>{{ variant.color or '—' }}</td>
+          <td><code>{{ variant.sku }}</code></td>
+          <td>{{ variant.stock }}</td>
+          <td>{{ variant.woocommerce_variation_id or '—' }}</td>
+          <td>{{ variant.woocommerce_sync_status or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" action="{{ url_for('admin.product_woocommerce_sync', product_id=product.id) }}">
+    <button class="btn btn-outline-dark rounded-pill px-4">Znovu synchronizovat produkt do WooCommerce</button>
+  </form>
+{% endif %}
+</div></section>
 {% endblock %}

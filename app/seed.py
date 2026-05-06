@@ -1,7 +1,7 @@
 from sqlalchemy import inspect, text
 from werkzeug.security import generate_password_hash
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Product, ProductSize, SiteSetting, User
+from .models import AffiliatePartner, Category, Coupon, Product, ProductSize, ProductVariant, SiteSetting, User
 from .utils import unique_slug
 
 
@@ -34,6 +34,10 @@ def ensure_schema_columns():
         },
         'product': {
             'supplier_sku': "ALTER TABLE product ADD COLUMN supplier_sku VARCHAR(120) DEFAULT ''",
+            'woocommerce_product_id': "ALTER TABLE product ADD COLUMN woocommerce_product_id VARCHAR(50) DEFAULT ''",
+            'woocommerce_sync_status': "ALTER TABLE product ADD COLUMN woocommerce_sync_status VARCHAR(30) DEFAULT ''",
+            'woocommerce_sync_message': "ALTER TABLE product ADD COLUMN woocommerce_sync_message TEXT DEFAULT ''",
+            'woocommerce_synced_at': "ALTER TABLE product ADD COLUMN woocommerce_synced_at DATETIME",
         },
         'coupon': None,
         'affiliate_partner': None,
@@ -50,6 +54,11 @@ def ensure_schema_columns():
             'sumool_message': "ALTER TABLE 'order' ADD COLUMN sumool_message TEXT DEFAULT ''",
             'sumool_response': "ALTER TABLE 'order' ADD COLUMN sumool_response TEXT DEFAULT ''",
             'sumool_submitted_at': "ALTER TABLE 'order' ADD COLUMN sumool_submitted_at DATETIME",
+            'woocommerce_status': "ALTER TABLE 'order' ADD COLUMN woocommerce_status VARCHAR(30) DEFAULT ''",
+            'woocommerce_message': "ALTER TABLE 'order' ADD COLUMN woocommerce_message TEXT DEFAULT ''",
+            'woocommerce_response': "ALTER TABLE 'order' ADD COLUMN woocommerce_response TEXT DEFAULT ''",
+            'woocommerce_order_id': "ALTER TABLE 'order' ADD COLUMN woocommerce_order_id VARCHAR(50) DEFAULT ''",
+            'woocommerce_submitted_at': "ALTER TABLE 'order' ADD COLUMN woocommerce_submitted_at DATETIME",
         },
     }
     with engine.begin() as conn:
@@ -166,6 +175,15 @@ def seed_data():
         'sumool_store_no': '',
         'sumool_logistic_name': '',
         'sumool_logistic_mode_code': '',
+        'woocommerce_enabled': '0',
+        'woocommerce_base_url': '',
+        'woocommerce_consumer_key': '',
+        'woocommerce_consumer_secret': '',
+        'woocommerce_order_status': 'processing',
+        'woocommerce_auto_sync_products': '1',
+        'woocommerce_sku_prefix': 'BZH',
+        'woocommerce_currency': 'CZK',
+        'woocommerce_default_country': 'CZ',
     }
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():
