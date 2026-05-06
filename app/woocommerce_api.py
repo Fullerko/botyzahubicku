@@ -72,7 +72,7 @@ def _request(method, path, payload=None):
     )
 
     try:
-        with urlopen(request, timeout=30) as response:
+        with urlopen(request, timeout=90) as response:
             raw = response.read().decode('utf-8', errors='replace').strip()
             data = json.loads(raw) if raw else {}
             return {'ok': 200 <= response.status < 300, 'message': 'OK', 'data': data, 'raw': raw}
