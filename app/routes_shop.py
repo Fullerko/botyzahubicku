@@ -1,4 +1,5 @@
 import os
+import hmac
 import random
 import string
 import qrcode
@@ -12,7 +13,6 @@ from .utils import get_cart, setting
 from datetime import datetime
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
-from .sumool_api import submit_order_to_sumool
 from .woocommerce_api import submit_order_to_woocommerce
 from app import db
 
@@ -62,10 +62,47 @@ def affiliate_click(code):
     return response
 
 
+def _payment_sync_secret():
+    """Return the shared secret required for payment sync callbacks."""
+    return (
+        setting('payment_sync_secret', '')
+        or current_app.config.get('PAYMENT_SYNC_SECRET', '')
+        or os.environ.get('PAYMENT_SYNC_SECRET', '')
+        or os.environ.get('SYNC_SECRET', '')
+        or ''
+    ).strip()
+
+
+def _mark_paid_authorized():
+    configured_secret = _payment_sync_secret()
+    if not configured_secret:
+        current_app.logger.error('Payment sync secret is not configured; refusing /api/mark-paid request.')
+        return False, 'payment sync secret is not configured', 503
+
+    incoming_secret = (
+        request.headers.get('x-sync-secret')
+        or request.headers.get('X-Sync-Secret')
+        or request.headers.get('authorization', '').removeprefix('Bearer ')
+        or ''
+    ).strip()
+
+    if not incoming_secret or not hmac.compare_digest(incoming_secret, configured_secret):
+        return False, 'unauthorized', 401
+
+    return True, '', 200
+
+
 @shop_bp.route("/api/mark-paid", methods=["POST"])
 def mark_paid_api():
-    data = request.get_json() or {}
+    authorized, reason, status_code = _mark_paid_authorized()
+    if not authorized:
+        return jsonify({"ok": False, "reason": reason}), status_code
+
+    data = request.get_json(silent=True) or {}
     vs = str(data.get("variableSymbol") or data.get("variable_symbol") or "").strip()
+
+    if not vs:
+        return jsonify({"ok": False, "reason": "missing variableSymbol"}), 400
 
     order = (
         Order.query.filter_by(variable_symbol=vs).first()
@@ -99,14 +136,7 @@ def mark_paid_api():
 
     db.session.commit()
 
-    # Po zaplacení se objednávka automaticky pošle dodavateli přes Sumool API, pokud je zapnuté.
-    if not order.sumool_status:
-        result = submit_order_to_sumool(order)
-        order.sumool_status = 'odeslano' if result.get('ok') else 'chyba'
-        order.sumool_message = result.get('message', '')
-        order.sumool_response = result.get('raw') or ''
-        order.sumool_submitted_at = datetime.now()
-        db.session.commit()
+    # Sumool odesílání je záměrně odpojené; objednávky se po platbě posílají jen do WooCommerce.
 
     # Stejný princip pro WooCommerce: zákazník zůstává na tomto webu, WooCommerce je jen backend pro dodavatele.
     if not order.woocommerce_status:

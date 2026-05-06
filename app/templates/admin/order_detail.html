@@ -107,37 +107,6 @@
         </div>
 
 
-
-        <hr>
-        <h4>Dodavatel / Sumool API</h4>
-        <div class="summary-row">
-          <span>Stav</span>
-          <strong>{{ order.sumool_status or '—' }}</strong>
-        </div>
-        <div class="summary-row">
-          <span>Zpráva</span>
-          <strong>{{ order.sumool_message or '—' }}</strong>
-        </div>
-        <div class="summary-row">
-          <span>Odesláno</span>
-          <strong>
-            {% if order.sumool_submitted_at %}
-              {{ order.sumool_submitted_at.strftime('%d.%m.%Y %H:%M') }}
-            {% else %}
-              —
-            {% endif %}
-          </strong>
-        </div>
-        <form method="post" action="{{ url_for('admin.order_sumool_send', order_id=order.id) }}" class="mt-3">
-          <button class="btn btn-outline-dark rounded-pill w-100">Odeslat / zkusit znovu do Sumool</button>
-        </form>
-        {% if order.sumool_response %}
-          <details class="mt-3">
-            <summary>Raw odpověď API</summary>
-            <pre class="small bg-light p-2 rounded" style="white-space: pre-wrap; max-height: 220px; overflow:auto;">{{ order.sumool_response }}</pre>
-          </details>
-        {% endif %}
-
       </div>
     </div>
 

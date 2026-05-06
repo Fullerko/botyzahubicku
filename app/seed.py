@@ -167,6 +167,7 @@ def seed_data():
         'footer_affiliate_url': '/affiliate',
         'bank_account': '2301234567/2010',
         'bank_iban': 'CZ6508000000192000145399',
+        'payment_sync_secret': '',
         'delivery_text': 'Doručení 8–12 dní až ke dveřím zákazníka zdarma.',
         'smtp_host': '',
         'smtp_port': '587',

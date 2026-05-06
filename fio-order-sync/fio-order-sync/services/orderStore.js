@@ -1,4 +1,5 @@
 const SHOP_API = process.env.SHOP_API || "https://botyzahubicku.cz";
+const SYNC_SECRET = process.env.SYNC_SECRET?.trim() || "";
 
 export async function getOrderByVariableSymbol(variableSymbol) {
   return { id: variableSymbol };
@@ -9,7 +10,8 @@ export async function markOrderPaid(orderId, payment) {
     const res = await fetch(`${SHOP_API}/api/mark-paid`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        ...(SYNC_SECRET ? { "x-sync-secret": SYNC_SECRET } : {})
       },
       body: JSON.stringify({
         variableSymbol: String(payment.variableSymbol)
