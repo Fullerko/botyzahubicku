@@ -52,7 +52,7 @@ def _auth_header():
     return f'Basic {token}'
 
 
-def _request(method, path, payload=None):
+def _request(method, path, payload=None, timeout=120):
     base_url = _clean_base_url(setting('woocommerce_base_url', ''))
     if not base_url:
         return {'ok': False, 'message': 'Chybí WooCommerce URL.'}
@@ -73,7 +73,7 @@ def _request(method, path, payload=None):
     )
 
     try:
-        with urlopen(request, timeout=120) as response:
+        with urlopen(request, timeout=timeout) as response:
             raw = response.read().decode('utf-8', errors='replace').strip()
             data = json.loads(raw) if raw else {}
             return {'ok': 200 <= response.status < 300, 'message': 'OK', 'data': data, 'raw': raw}
@@ -160,25 +160,72 @@ def ensure_product_skus_and_variants(product):
             db.session.delete(variant)
 
 
-def _product_images(product):
+def _public_upload_url(value):
+    """Vrátí veřejnou URL obrázku, kterou si WooCommerce umí stáhnout."""
+    value = (value or '').strip()
+    if not value:
+        return ''
+    if value.startswith(('http://', 'https://')):
+        return value
+
+    domain = (setting('domain_name', '') or '').strip().rstrip('/')
+    if not domain:
+        return ''
+    base = domain if domain.startswith(('http://', 'https://')) else f'https://{domain}'
+
+    path = value.lstrip('/')
+    if path.startswith('uploads/'):
+        return f'{base}/{path}'
+    return f'{base}/uploads/{path}'
+
+
+def _product_images(product, limit=None):
+    """Sestaví obrázky pro WooCommerce. První obrázek je hlavní, zbytek galerie."""
     images = []
     values = [product.image] + list(getattr(product, 'gallery_list', []) or [])
-    domain = (setting('domain_name', '') or '').strip().rstrip('/')
+
+    try:
+        max_images = int(setting('woocommerce_max_images', '5') or 5)
+    except Exception:
+        max_images = 5
+    if limit is not None:
+        max_images = int(limit)
+    max_images = max(1, min(max_images, 20))
+
+    seen = set()
     for value in values:
-        value = (value or '').strip()
-        if not value:
+        src = _public_upload_url(value)
+        if not src or src in seen:
             continue
-        if value.startswith(('http://', 'https://')):
-            src = value
-        elif domain:
-            base = domain if domain.startswith(('http://', 'https://')) else f'https://{domain}'
-            src = f'{base}/uploads/{value.lstrip("/")}'
-        else:
-            continue
-        if src not in [img['src'] for img in images]:
-            images.append({'src': src})
+        seen.add(src)
+        images.append({'src': src})
+        if len(images) >= max_images:
+            break
     return images
 
+
+def sync_product_images_to_woocommerce(product):
+    """Pošle obrázky až samostatně po vytvoření produktu a variant.
+
+    Důvod: WooCommerce si obrázky při API requestu stahuje z veřejné URL.
+    Když se obrázky posílají rovnou při vytváření produktu, hosting často nestihne
+    odpovědět a vznikne read timeout. Samostatný PUT je stabilnější a když selže,
+    produkt i varianty zůstanou ve WooCommerce vytvořené.
+    """
+    if not (product.woocommerce_product_id or '').strip():
+        return {'ok': False, 'message': 'Produkt ještě nemá WooCommerce product ID.'}
+
+    images = _product_images(product)
+    if not images:
+        return {'ok': True, 'message': 'Produkt nemá žádné obrázky k synchronizaci.'}
+
+    payload = {'images': images}
+    return _request(
+        'PUT',
+        f'/wp-json/wc/v3/products/{product.woocommerce_product_id}',
+        payload,
+        timeout=180,
+    )
 
 def _attributes_payload(product):
     sizes = [row.size for row in product.sizes if (row.size or '').strip()]
@@ -285,7 +332,21 @@ def sync_product_to_woocommerce(product):
 
     if variant_errors:
         return {'ok': False, 'message': 'Produkt vytvořen, ale některé varianty se neuložily: ' + '; '.join(variant_errors[:5])}
-    return {'ok': True, 'message': 'Produkt i všechny varianty byly synchronizované do WooCommerce.', 'data': product_data, 'raw': result.get('raw', '')}
+
+    image_result = sync_product_images_to_woocommerce(product)
+    if image_result.get('ok'):
+        image_message = image_result.get('message', '')
+        if image_message == 'OK':
+            return {'ok': True, 'message': 'Produkt, varianty, SKU i obrázky byly synchronizované do WooCommerce.', 'data': product_data, 'raw': result.get('raw', '')}
+        return {'ok': True, 'message': 'Produkt, varianty a SKU byly synchronizované do WooCommerce. ' + image_message, 'data': product_data, 'raw': result.get('raw', '')}
+
+    # Obrázky nesmí shodit celý sync. Dodavatel stále uvidí produkt podle názvu, SKU, barvy a velikosti.
+    return {
+        'ok': True,
+        'message': 'Produkt, varianty a SKU byly synchronizované do WooCommerce, ale obrázky se nepodařilo přidat: ' + image_result.get('message', 'neznámá chyba'),
+        'data': product_data,
+        'raw': result.get('raw', ''),
+    }
 
 
 def build_woocommerce_order(order):
