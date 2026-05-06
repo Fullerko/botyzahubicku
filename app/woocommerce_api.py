@@ -68,11 +68,12 @@ def _request(method, path, payload=None):
             'Content-Type': 'application/json; charset=utf-8',
             'Accept': 'application/json',
             'User-Agent': 'BotyZaHubicku/1.0',
+            'Connection': 'close',
         },
     )
 
     try:
-        with urlopen(request, timeout=90) as response:
+        with urlopen(request, timeout=120) as response:
             raw = response.read().decode('utf-8', errors='replace').strip()
             data = json.loads(raw) if raw else {}
             return {'ok': 200 <= response.status < 300, 'message': 'OK', 'data': data, 'raw': raw}
@@ -213,9 +214,10 @@ def build_woocommerce_product(product):
             {'key': 'BZH zdroj', 'value': 'BotyZaHubicku.cz'},
         ],
     }
-    images = _product_images(product)
-    if images:
-        payload['images'] = images
+    # Obrázky záměrně neposíláme při hlavní synchronizaci.
+    # WooCommerce si při vytvoření produktu stahuje obrázky ze zadané URL a na hostingu
+    # to často způsobí read timeout. Produkt + varianty se tím vytvoří rychleji a stabilněji.
+    # Obrázky je lepší řešit samostatně později, až bude základní sync ověřený.
     return payload
 
 
