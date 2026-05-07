@@ -470,8 +470,7 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
     generated_at = datetime.now(ZoneInfo(SUPPLIER_TIMEZONE_DEFAULT)).strftime('%Y-%m-%d %H:%M %Z')
     elements.append(Paragraph('Daily supplier order report', styles['ReportTitle']))
     elements.append(_p(f'Batch ID: {batch_id}', styles['Normal']))
-Generated at: {generated_at}
-Total orders in this PDF: {len(orders)}', styles['Normal']))
+    elements.append(_p(f'Generated at: {generated_at}\nTotal orders in this PDF: {len(orders)}', styles['Normal']))
     elements.append(Spacer(1, 6))
     elements.append(_separator())
     elements.append(Spacer(1, 6))
