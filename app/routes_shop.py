@@ -63,12 +63,17 @@ def affiliate_click(code):
 
 
 def _payment_sync_secret():
-    """Return the shared secret required for payment sync callbacks."""
+    """Return the shared secret required for payment sync callbacks.
+
+    Render environment variables are intentionally preferred over the admin DB
+    setting. This prevents an old value saved in /admin/settings from silently
+    overriding the production secret configured in Render.
+    """
     return (
-        setting('payment_sync_secret', '')
-        or current_app.config.get('PAYMENT_SYNC_SECRET', '')
-        or os.environ.get('PAYMENT_SYNC_SECRET', '')
+        os.environ.get('PAYMENT_SYNC_SECRET', '')
         or os.environ.get('SYNC_SECRET', '')
+        or current_app.config.get('PAYMENT_SYNC_SECRET', '')
+        or setting('payment_sync_secret', '')
         or ''
     ).strip()
 

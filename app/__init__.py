@@ -3,6 +3,11 @@ from flask import Flask, url_for, Response
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask import send_from_directory
+from dotenv import load_dotenv
+load_dotenv()  # Načte proměnné z .env souboru
+
+# Nyní můžeš načíst proměnné jako SYNC_SECRET
+SYNC_SECRET = os.getenv("SYNC_SECRET")
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -30,7 +35,8 @@ def create_app():
                 import shutil
                 shutil.copy2(src, dst)
 
-    app.config['SECRET_KEY'] = 'change-this-in-production'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-in-production')
+    app.config['PAYMENT_SYNC_SECRET'] = os.environ.get('PAYMENT_SYNC_SECRET') or os.environ.get('SYNC_SECRET', '')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/eshop.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = upload_folder

@@ -56,6 +56,18 @@ def _register_fonts():
     if 'DejaVu-Bold' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont('DejaVu-Bold', bold))
 
+def translate_color_to_english(color):
+    color_translation = {
+        'Černá': 'Black', 'Modrá': 'Blue', 'Červená': 'Red', 'Žlutá': 'Yellow', 'Zelená': 'Green',
+        'Oranžová': 'Orange', 'Růžová': 'Pink', 'Bílá': 'White', 'Šedá': 'Gray', 'Hnědá': 'Brown',
+        'Fialová': 'Purple', 'Zlatá': 'Gold', 'Stříbrná': 'Silver', 'Brčálová': 'Emerald',
+        'Písková': 'Sand', 'Tyrkysová': 'Turquoise', 'Měděná': 'Copper', 'Indigo': 'Indigo',
+        'Lila': 'Lilac', 'Petrolejová': 'Petrol', 'Mátová': 'Mint', 'Neonová': 'Neon', 
+        'Levandulová': 'Lavender', 'Tyrkysově modrá': 'Turquoise blue', 'Karmínová': 'Crimson',
+        'Limetková': 'Lime', 'Smaragdová': 'Emerald', 'Temně modrá': 'Navy blue', 'Světle modrá': 'Light blue',
+        # Přidej další barvy podle potřeby
+    }
+    return color_translation.get(color, color)  # If not found, return original color
 
 def _styles():
     _register_fonts()
@@ -299,11 +311,26 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
     for index, order in enumerate(orders, start=1):
         order_elements = []
         order_elements.append(Paragraph(f'Order {index}/{len(orders)} - {html.escape(order.order_number)}', styles['SectionTitle']))
+        
+        # Modify "links" section to only show the URL
+        product_url = _safe_text(order['product_url'])  # Assuming we have product URL in the order data
+        links_section = f'<p>Product link: <a href="{product_url}">Click here</a></p>'  # Only the URL
+        order_elements.append(Paragraph(links_section, styles['Small']))
+
+        # Translate color in the order to English
+        translated_color = translate_color_to_english(order['color'])
+        order_elements.append(Paragraph(f'Color: {translated_color}', styles['Normal']))
+        
+        # Include other necessary order details such as size, shipping info
+        order_elements.append(Paragraph(f'Size: {order["size"]}', styles['Normal']))
+        order_elements.append(Paragraph(f'Shipping Info: {order["shipping_method"]}', styles['Normal']))
+        
         summary = Table([
             [_p('Customer and shipping details', styles['Label']), _p('Payment / order details', styles['Label'])],
             [_p(_order_shipping_block(order), styles['Small']), _p(_payment_block(order), styles['Small'])],
             [_p('Customer note / instructions', styles['Label']), _p(_safe_text(order.note), styles['Small'])],
         ], colWidths=[92 * mm, 92 * mm])
+        
         summary.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
             ('BACKGROUND', (0, 2), (0, 2), colors.HexColor('#f3f4f6')),
@@ -313,6 +340,7 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
+        
         order_elements.append(summary)
         order_elements.append(Spacer(1, 8))
         order_elements.append(_order_item_table(order, styles))
