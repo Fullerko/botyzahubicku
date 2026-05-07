@@ -56,18 +56,189 @@ def _register_fonts():
     if 'DejaVu-Bold' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont('DejaVu-Bold', bold))
 
-def translate_color_to_english(color):
-    color_translation = {
-        'Černá': 'Black', 'Modrá': 'Blue', 'Červená': 'Red', 'Žlutá': 'Yellow', 'Zelená': 'Green',
-        'Oranžová': 'Orange', 'Růžová': 'Pink', 'Bílá': 'White', 'Šedá': 'Gray', 'Hnědá': 'Brown',
-        'Fialová': 'Purple', 'Zlatá': 'Gold', 'Stříbrná': 'Silver', 'Brčálová': 'Emerald',
-        'Písková': 'Sand', 'Tyrkysová': 'Turquoise', 'Měděná': 'Copper', 'Indigo': 'Indigo',
-        'Lila': 'Lilac', 'Petrolejová': 'Petrol', 'Mátová': 'Mint', 'Neonová': 'Neon', 
-        'Levandulová': 'Lavender', 'Tyrkysově modrá': 'Turquoise blue', 'Karmínová': 'Crimson',
-        'Limetková': 'Lime', 'Smaragdová': 'Emerald', 'Temně modrá': 'Navy blue', 'Světle modrá': 'Light blue',
-        # Přidej další barvy podle potřeby
+COLOR_TRANSLATIONS = {
+    'cerna': 'Black',
+    'bila': 'White',
+    'seda': 'Gray',
+    'siva': 'Gray',
+    'stribrna': 'Silver',
+    'zlata': 'Gold',
+    'cervena': 'Red',
+    'modra': 'Blue',
+    'zelena': 'Green',
+    'zluta': 'Yellow',
+    'oranzova': 'Orange',
+    'ruzova': 'Pink',
+    'fialova': 'Purple',
+    'hneda': 'Brown',
+    'bezova': 'Beige',
+    'kremova': 'Cream',
+    'slonovinova': 'Ivory',
+    'telova': 'Nude',
+    'prirodni': 'Natural',
+    'khaki': 'Khaki',
+    'olivova': 'Olive',
+    'morska': 'Sea blue',
+    'tyrkysova': 'Turquoise',
+    'petrolejova': 'Petrol',
+    'mintova': 'Mint',
+    'matova': 'Mint',
+    'limetkova': 'Lime',
+    'smaragdova': 'Emerald',
+    'neonova': 'Neon',
+    'neonove zelena': 'Neon green',
+    'neonove zluta': 'Neon yellow',
+    'neonove ruzova': 'Neon pink',
+    'neonove oranzova': 'Neon orange',
+    'svetle cerna': 'Light black',
+    'tmave cerna': 'Dark black',
+    'svetle bila': 'Light white',
+    'tmave bila': 'Dark white',
+    'svetle seda': 'Light gray',
+    'tmave seda': 'Dark gray',
+    'antracitova': 'Anthracite',
+    'grafitova': 'Graphite',
+    'uhlikova': 'Charcoal',
+    'kourova': 'Smoke gray',
+    'popelava': 'Ash gray',
+    'svetle modra': 'Light blue',
+    'tmave modra': 'Dark blue',
+    'navy': 'Navy',
+    'namornicka modra': 'Navy blue',
+    'kralovska modra': 'Royal blue',
+    'blankytne modra': 'Sky blue',
+    'nebesky modra': 'Sky blue',
+    'ledove modra': 'Ice blue',
+    'ocelove modra': 'Steel blue',
+    'dzinova modra': 'Denim blue',
+    'azurova': 'Azure',
+    'kobaltova': 'Cobalt blue',
+    'indigo': 'Indigo',
+    'safirova': 'Sapphire blue',
+    'svetle zelena': 'Light green',
+    'tmave zelena': 'Dark green',
+    'lesni zelena': 'Forest green',
+    'travnate zelena': 'Grass green',
+    'mechova': 'Moss green',
+    'pistaciova': 'Pistachio',
+    'salvejova': 'Sage green',
+    'lahvove zelena': 'Bottle green',
+    'jablkove zelena': 'Apple green',
+    'vojenska zelena': 'Army green',
+    'svetle cervena': 'Light red',
+    'tmave cervena': 'Dark red',
+    'vinova': 'Burgundy',
+    'bordo': 'Burgundy',
+    'vishnova': 'Cherry red',
+    'tresnova': 'Cherry red',
+    'rubinova': 'Ruby red',
+    'koralova': 'Coral',
+    'lososova': 'Salmon',
+    'malinova': 'Raspberry',
+    'karmínova': 'Crimson',
+    'karminova': 'Crimson',
+    'cihlova': 'Brick red',
+    'terakotova': 'Terracotta',
+    'svetle ruzova': 'Light pink',
+    'tmave ruzova': 'Dark pink',
+    'staroruzova': 'Dusty pink',
+    'pudrova': 'Powder pink',
+    'pastelove ruzova': 'Pastel pink',
+    'fuchsiova': 'Fuchsia',
+    'magenta': 'Magenta',
+    'svetle fialova': 'Light purple',
+    'tmave fialova': 'Dark purple',
+    'lila': 'Lilac',
+    'levandulova': 'Lavender',
+    'ametystova': 'Amethyst',
+    'slevova': 'Plum',
+    'svestkova': 'Plum',
+    'vínová': 'Burgundy',
+    'svetle zluta': 'Light yellow',
+    'tmave zluta': 'Dark yellow',
+    'horcicova': 'Mustard',
+    'citronova': 'Lemon yellow',
+    'medova': 'Honey',
+    'slunecne zluta': 'Sun yellow',
+    'pastelove zluta': 'Pastel yellow',
+    'svetle oranzova': 'Light orange',
+    'tmave oranzova': 'Dark orange',
+    'merunkova': 'Apricot',
+    'broskvova': 'Peach',
+    'mandarinkova': 'Tangerine',
+    'medená': 'Copper',
+    'medena': 'Copper',
+    'bronzova': 'Bronze',
+    'svetle hneda': 'Light brown',
+    'tmave hneda': 'Dark brown',
+    'cokoladova': 'Chocolate brown',
+    'karamelova': 'Caramel',
+    'kastanova': 'Chestnut brown',
+    'orechova': 'Walnut brown',
+    'kavova': 'Coffee brown',
+    'piskova': 'Sand',
+    'camel': 'Camel',
+    'taupe': 'Taupe',
+    'hnedo seda': 'Taupe',
+    'pruhledna': 'Transparent',
+    'duhova': 'Rainbow',
+    'multicolor': 'Multicolor',
+    'vicebarevna': 'Multicolor',
+    'barevna': 'Multicolor',
+    'maskacova': 'Camouflage',
+    'leo': 'Leopard',
+    'leopardi': 'Leopard',
+    'zebra': 'Zebra',
+    'hadí': 'Snake print',
+    'hadi': 'Snake print',
+    'black': 'Black',
+    'white': 'White',
+    'gray': 'Gray',
+    'grey': 'Gray',
+    'silver': 'Silver',
+    'gold': 'Gold',
+    'red': 'Red',
+    'blue': 'Blue',
+    'green': 'Green',
+    'yellow': 'Yellow',
+    'orange': 'Orange',
+    'pink': 'Pink',
+    'purple': 'Purple',
+    'brown': 'Brown',
+    'beige': 'Beige',
+    'cream': 'Cream',
+    'ivory': 'Ivory',
+}
+
+
+def _normalize_color_key(value):
+    text = _safe_text(value, '').lower().strip()
+    replacements = {
+        'á': 'a', 'č': 'c', 'ď': 'd', 'é': 'e', 'ě': 'e',
+        'í': 'i', 'ň': 'n', 'ó': 'o', 'ř': 'r', 'š': 's',
+        'ť': 't', 'ú': 'u', 'ů': 'u', 'ý': 'y', 'ž': 'z',
     }
-    return color_translation.get(color, color)  # If not found, return original color
+    for source, target in replacements.items():
+        text = text.replace(source, target)
+    text = text.replace('-', ' ').replace('_', ' ')
+    return ' '.join(text.split())
+
+
+def _translate_color_to_english(value):
+    text = _safe_text(value, '')
+    if not text or text == '-':
+        return '-'
+
+    for separator in [',', '/', ';', '|']:
+        if separator in text:
+            translated_parts = [
+                _translate_color_to_english(part.strip())
+                for part in text.split(separator)
+                if part.strip()
+            ]
+            return f' {separator} '.join(translated_parts) if translated_parts else '-'
+
+    return COLOR_TRANSLATIONS.get(_normalize_color_key(text), text)
 
 def _styles():
     _register_fonts()
@@ -211,43 +382,38 @@ def _order_item_table(order, styles):
         _p('Photo', styles['Label']),
         _p('Product / supplier data', styles['Label']),
         _p('Customer selection', styles['Label']),
-        _p('Links and notes', styles['Label']),
+        _p('Product URL', styles['Label']),
     ]
     rows = [header]
 
     for item in order.items:
         product = item.product
         variant = _variant_for_item(item)
+
         product_data = [
             f'Product: {_safe_text(item.product_name)}',
             f'Brand: {_safe_text(product.brand if product else "")}',
             f'Internal product ID: {_safe_text(item.product_id)}',
-            f'Product supplier SKU: {_safe_text(product.supplier_sku if product else "")}',
-            f'Variant supplier SKU: {_safe_text(variant.supplier_sku if variant else "")}',
-            f'Variant product code: {_safe_text(variant.supplier_product_code if variant else "")}',
-            f'Variant EAN: {_safe_text(variant.supplier_ean if variant else "")}',
-            f'WooCommerce product ID: {_safe_text(product.woocommerce_product_id if product else "")}',
-            f'WooCommerce variation ID: {_safe_text(variant.woocommerce_variation_id if variant else "")}',
         ]
+
+        supplier_color = variant.supplier_color if variant else ''
         selection = [
             f'Quantity: {item.quantity}',
             f'Size: {_safe_text(item.size)}',
-            f'Selected color: {_safe_text(item.color)}',
-            f'Supplier color: {_safe_text(variant.supplier_color if variant else "")}',
+            f'Selected color: {_translate_color_to_english(item.color)}',
+            f'Supplier color: {_translate_color_to_english(supplier_color)}',
             f'Unit price on store: {int(item.unit_price or 0)} CZK',
         ]
-        links = [
-            f'Source URL: {_safe_text(product.source_url if product else "")}',
-            f'Photo references: {_photo_references(product)}',
-            f'Product colors field: {_safe_text(product.colors if product else "")}',
-            f'Specifications: {_safe_text(product.specifications if product else "")}',
-        ]
+
+        product_url = _safe_text(product.source_url if product else '')
 
         rows.append([
             _product_image_flowable(product, styles),
-            _p('\n'.join(product_data), styles['Small']),
-            _p('\n'.join(selection), styles['Small']),
-            _p('\n'.join(links), styles['Small']),
+            _p('
+'.join(product_data), styles['Small']),
+            _p('
+'.join(selection), styles['Small']),
+            _p(product_url, styles['Small']),
         ])
 
     table = Table(rows, colWidths=[42 * mm, 58 * mm, 38 * mm, 47 * mm], repeatRows=1)
@@ -260,7 +426,6 @@ def _order_item_table(order, styles):
         ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     return table
-
 
 def _separator():
     table = Table([['']], colWidths=[185 * mm], rowHeights=[6])
@@ -303,7 +468,9 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
     elements = []
     generated_at = datetime.now(ZoneInfo(SUPPLIER_TIMEZONE_DEFAULT)).strftime('%Y-%m-%d %H:%M %Z')
     elements.append(Paragraph('Daily supplier order report', styles['ReportTitle']))
-    elements.append(_p(f'Batch ID: {batch_id}\nGenerated at: {generated_at}\nTotal orders in this PDF: {len(orders)}', styles['Normal']))
+    elements.append(_p(f'Batch ID: {batch_id}
+Generated at: {generated_at}
+Total orders in this PDF: {len(orders)}', styles['Normal']))
     elements.append(Spacer(1, 6))
     elements.append(_separator())
     elements.append(Spacer(1, 6))
@@ -311,26 +478,11 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
     for index, order in enumerate(orders, start=1):
         order_elements = []
         order_elements.append(Paragraph(f'Order {index}/{len(orders)} - {html.escape(order.order_number)}', styles['SectionTitle']))
-        
-        # Modify "links" section to only show the URL
-        product_url = _safe_text(order['product_url'])  # Assuming we have product URL in the order data
-        links_section = f'<p>Product link: <a href="{product_url}">Click here</a></p>'  # Only the URL
-        order_elements.append(Paragraph(links_section, styles['Small']))
-
-        # Translate color in the order to English
-        translated_color = translate_color_to_english(order['color'])
-        order_elements.append(Paragraph(f'Color: {translated_color}', styles['Normal']))
-        
-        # Include other necessary order details such as size, shipping info
-        order_elements.append(Paragraph(f'Size: {order["size"]}', styles['Normal']))
-        order_elements.append(Paragraph(f'Shipping Info: {order["shipping_method"]}', styles['Normal']))
-        
         summary = Table([
             [_p('Customer and shipping details', styles['Label']), _p('Payment / order details', styles['Label'])],
             [_p(_order_shipping_block(order), styles['Small']), _p(_payment_block(order), styles['Small'])],
             [_p('Customer note / instructions', styles['Label']), _p(_safe_text(order.note), styles['Small'])],
         ], colWidths=[92 * mm, 92 * mm])
-        
         summary.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
             ('BACKGROUND', (0, 2), (0, 2), colors.HexColor('#f3f4f6')),
@@ -340,7 +492,6 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
-        
         order_elements.append(summary)
         order_elements.append(Spacer(1, 8))
         order_elements.append(_order_item_table(order, styles))
@@ -355,7 +506,6 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
 
 def _supplier_lock_path():
     return os.path.join(current_app.instance_path, 'supplier_report.lock')
