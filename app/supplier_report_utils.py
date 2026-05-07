@@ -400,22 +400,23 @@ def _order_item_table(order, styles):
         selection = [
             f'Quantity: {item.quantity}',
             f'Size: {_safe_text(item.size)}',
-            f'Selected color: {_translate_color_to_english(item.color)}',
-            f'Supplier color: {_translate_color_to_english(supplier_color)}',
+            f'Selected color: {_translate_color_to_english(item.color)}',  # Translated color
+            f'Supplier color: {_translate_color_to_english(supplier_color)}',  # Translated color
             f'Unit price on store: {int(item.unit_price or 0)} CZK',
         ]
 
+        # Safely handle product URL
         product_url = _safe_text(product.source_url if product else '')
 
+        # Add to rows with appropriate line breaks
         rows.append([
             _product_image_flowable(product, styles),
-            _p('
-'.join(product_data), styles['Small']),
-            _p('
-'.join(selection), styles['Small']),
+            _p('\n'.join(product_data), styles['Small']),  # Fixed line breaks
+            _p('\n'.join(selection), styles['Small']),  # Fixed line breaks
             _p(product_url, styles['Small']),
         ])
 
+    # Creating the table with the rows
     table = Table(rows, colWidths=[42 * mm, 58 * mm, 38 * mm, 47 * mm], repeatRows=1)
     table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'DejaVu'),
