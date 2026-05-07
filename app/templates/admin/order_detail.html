@@ -106,6 +106,28 @@
           </strong>
         </div>
 
+        <div class="summary-row">
+          <span>Dodavatel PDF</span>
+          <strong>
+            {% if order.supplier_report_sent_at %}
+              Odesláno {{ order.supplier_report_sent_at.strftime('%d.%m.%Y %H:%M') }}
+            {% else %}
+              Čeká na denní report
+            {% endif %}
+          </strong>
+        </div>
+
+        {% if order.supplier_report_batch_id %}
+        <div class="summary-row">
+          <span>Batch ID</span>
+          <strong>{{ order.supplier_report_batch_id }}</strong>
+        </div>
+        {% endif %}
+
+        {% if order.supplier_report_message %}
+        <p class="text-secondary small mt-3 mb-0">{{ order.supplier_report_message }}</p>
+        {% endif %}
+
 
       </div>
     </div>

@@ -1,13 +1,13 @@
 import random
 import string
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
 from . import db
 from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, ProductVariant, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, unique_slug, send_email
-from .sumool_api import submit_order_to_sumool
 from .woocommerce_api import ensure_product_skus_and_variants, submit_order_to_woocommerce, sync_product_to_woocommerce
 from .supplier_import import import_supplier_sku_file
+from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -240,20 +240,6 @@ def order_detail(order_id):
     return render_template('admin/order_detail.html', order=order, Product=Product)
 
 
-@admin_bp.route('/orders/<int:order_id>/sumool/send', methods=['POST'])
-@admin_required
-def order_sumool_send(order_id):
-    order = Order.query.get_or_404(order_id)
-    result = submit_order_to_sumool(order)
-    order.sumool_status = 'odeslano' if result.get('ok') else 'chyba'
-    order.sumool_message = result.get('message', '')
-    order.sumool_response = result.get('raw') or ''
-    order.sumool_submitted_at = datetime.now()
-    db.session.commit()
-    flash('Objednávka byla odeslána do Sumool API.' if result.get('ok') else f'Sumool chyba: {result.get("message", "neznámá chyba")}', 'success' if result.get('ok') else 'danger')
-    return redirect(url_for('admin.order_detail', order_id=order.id))
-
-
 @admin_bp.route('/orders/<int:order_id>/woocommerce/send', methods=['POST'])
 @admin_required
 def order_woocommerce_send(order_id):
@@ -269,6 +255,40 @@ def order_woocommerce_send(order_id):
     db.session.commit()
     flash('Objednávka byla odeslána do WooCommerce.' if result.get('ok') else f'WooCommerce chyba: {result.get("message", "neznámá chyba")}', 'success' if result.get('ok') else 'danger')
     return redirect(url_for('admin.order_detail', order_id=order.id))
+
+
+
+@admin_bp.route('/supplier-report/send-now', methods=['POST'])
+@admin_required
+def supplier_report_send_now():
+    result = send_supplier_orders_report()
+    if result.get('ok') and result.get('sent'):
+        flash(
+            f'Dodavatelský PDF report byl odeslán na {result.get("recipient")} '
+            f'({result.get("count")} objednávek, {result.get("pdf_size_bytes")} B).',
+            'success'
+        )
+    elif result.get('ok'):
+        flash(f'Dodavatelský PDF report nebyl odeslán: {result.get("message")}.', 'info')
+    else:
+        flash(f'Dodavatelský PDF report se nepodařilo odeslat: {result.get("message")}.', 'danger')
+    return redirect(url_for('admin.orders'))
+
+
+@admin_bp.route('/supplier-report/preview.pdf')
+@admin_required
+def supplier_report_preview_pdf():
+    orders = get_pending_supplier_orders()
+    if not orders:
+        flash('Nejsou žádné nové objednávky pro dodavatelský report.', 'info')
+        return redirect(url_for('admin.orders'))
+    pdf = generate_supplier_orders_pdf(orders, batch_id='BZH-SUP-PREVIEW')
+    return send_file(
+        pdf,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name='supplier_orders_preview.pdf',
+    )
 
 
 @admin_bp.route('/affiliate')
@@ -500,6 +520,7 @@ def settings():
         'Platba a e-mail': [
             ('bank_account', 'Číslo účtu'),
             ('bank_iban', 'IBAN'),
+            ('payment_sync_secret', 'Tajný klíč pro Fio sync /api/mark-paid'),
             ('smtp_host', 'SMTP host'),
             ('smtp_port', 'SMTP port'),
             ('smtp_username', 'SMTP uživatel'),
@@ -507,17 +528,13 @@ def settings():
             ('smtp_sender', 'SMTP odesílatel'),
             ('smtp_use_tls', 'SMTP TLS (1 nebo 0)'),
         ],
-        'Sumool / dodavatel API': [
-            ('sumool_enabled', 'Zapnout automatické odesílání objednávek do Sumool (1 nebo 0)'),
-            ('sumool_base_url', 'Sumool API URL, např. https://hzmhkj.sumool.com'),
-            ('sumool_tokenkeys', 'Tokenkeys'),
-            ('sumool_tokens', 'Tokens / API key'),
-            ('sumool_user_id', 'UserId obchodu u dodavatele'),
-            ('sumool_currency', 'Měna objednávky, např. CZK'),
-            ('sumool_default_country', 'Výchozí země zákazníka, např. CZ'),
-            ('sumool_store_no', 'StoreNo / sklad, volitelné'),
-            ('sumool_logistic_name', 'LogisticName, volitelné'),
-            ('sumool_logistic_mode_code', 'LogisticModeCode, volitelné'),
+        'Dodavatel PDF report': [
+            ('supplier_report_enabled', 'Zapnout denní PDF report dodavateli (1 nebo 0)'),
+            ('supplier_report_email', 'E-mail dodavatele'),
+            ('supplier_report_hour', 'Hodina odeslání 0–23'),
+            ('supplier_report_minute', 'Minuta odeslání 0–59'),
+            ('supplier_report_timezone', 'Časové pásmo'),
+            ('supplier_report_only_paid', 'Posílat jen zaplacené objednávky (1 nebo 0)'),
         ],
         'WooCommerce / dodavatel API': [
             ('woocommerce_enabled', 'Zapnout automatické odesílání objednávek do WooCommerce (1 nebo 0)'),

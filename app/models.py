@@ -198,6 +198,12 @@ class Order(db.Model):
     woocommerce_response = db.Column(db.Text, default='')
     woocommerce_order_id = db.Column(db.String(50), default='')
     woocommerce_submitted_at = db.Column(db.DateTime, nullable=True)
+
+    supplier_report_sent_at = db.Column(db.DateTime, nullable=True)
+    supplier_report_batch_id = db.Column(db.String(80), default='')
+    supplier_report_status = db.Column(db.String(30), default='')
+    supplier_report_message = db.Column(db.Text, default='')
+
     items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
 
 

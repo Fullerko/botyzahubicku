@@ -138,6 +138,9 @@ Sitemap: {sitemap}
         ensure_schema_columns()
         seed_data()
 
+        from .supplier_scheduler import start_supplier_report_scheduler
+        start_supplier_report_scheduler(app)
+
         zimni = Category.query.filter_by(slug='zimni').first()
         if not zimni:
             zimni = Category(

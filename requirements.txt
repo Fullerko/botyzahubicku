@@ -8,3 +8,4 @@ gunicorn
 reportlab
 openpyxl==3.1.5
 apscheduler==3.9.1
+setuptools<81

@@ -68,6 +68,10 @@ def ensure_schema_columns():
             'woocommerce_response': "ALTER TABLE 'order' ADD COLUMN woocommerce_response TEXT DEFAULT ''",
             'woocommerce_order_id': "ALTER TABLE 'order' ADD COLUMN woocommerce_order_id VARCHAR(50) DEFAULT ''",
             'woocommerce_submitted_at': "ALTER TABLE 'order' ADD COLUMN woocommerce_submitted_at DATETIME",
+            'supplier_report_sent_at': "ALTER TABLE 'order' ADD COLUMN supplier_report_sent_at DATETIME",
+            'supplier_report_batch_id': "ALTER TABLE 'order' ADD COLUMN supplier_report_batch_id VARCHAR(80) DEFAULT ''",
+            'supplier_report_status': "ALTER TABLE 'order' ADD COLUMN supplier_report_status VARCHAR(30) DEFAULT ''",
+            'supplier_report_message': "ALTER TABLE 'order' ADD COLUMN supplier_report_message TEXT DEFAULT ''",
         },
     }
     with engine.begin() as conn:
@@ -194,6 +198,12 @@ def seed_data():
         'woocommerce_sku_prefix': 'BZH',
         'woocommerce_currency': 'CZK',
         'woocommerce_default_country': 'CZ',
+        'supplier_report_enabled': '1',
+        'supplier_report_email': 'fullerko@seznam.cz',
+        'supplier_report_hour': '0',
+        'supplier_report_minute': '0',
+        'supplier_report_timezone': 'Europe/Prague',
+        'supplier_report_only_paid': '1',
     }
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():
