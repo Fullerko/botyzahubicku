@@ -5,17 +5,15 @@ import string
 from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
 from . import db
 from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, ProductVariant, SiteSetting, User
-from .utils import admin_required, save_image, set_setting, unique_slug, send_email
+from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .woocommerce_api import ensure_product_skus_and_variants, submit_order_to_woocommerce, sync_product_to_woocommerce
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from .import_1688 import build_seo_draft, download_product_images, expand_size_range, parse_urls, scrape_1688_product
+from .ai_product_generator import generate_product_fields, merge_generated_fields
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
-
-
-
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 def _affiliate_code_for_partner(partner):
@@ -82,6 +80,59 @@ def _int_form(name, default=0):
         return int(default or 0)
 
 
+def _selected_gender(default='unisex'):
+    values = request.form.getlist('gender')
+    if values:
+        return ','.join(values)
+    return request.form.get('gender', default) or default
+
+
+def _primary_gender(value):
+    parts = [part.strip() for part in (value or '').split(',') if part.strip()]
+    if 'damske' in parts:
+        return 'damske'
+    if 'panske' in parts:
+        return 'panske'
+    return parts[0] if parts else 'unisex'
+
+
+def _product_payload_from_form(product=None):
+    return {
+        'name': request.form.get('name', getattr(product, 'name', '') if product else '').strip(),
+        'brand': request.form.get('brand', getattr(product, 'brand', '') if product else '').strip(),
+        'slug': request.form.get('slug', getattr(product, 'slug', '') if product else '').strip(),
+        'short_description': request.form.get('short_description', getattr(product, 'short_description', '') if product else '').strip(),
+        'description': request.form.get('description', getattr(product, 'description', '') if product else '').strip(),
+        'seo_title': request.form.get('seo_title', getattr(product, 'seo_title', '') if product else '').strip(),
+        'meta_description': request.form.get('meta_description', getattr(product, 'meta_description', '') if product else '').strip(),
+        'seo_keywords': request.form.get('seo_keywords', getattr(product, 'seo_keywords', '') if product else '').strip(),
+        'image_alt': request.form.get('image_alt', getattr(product, 'image_alt', '') if product else '').strip(),
+        'specifications': request.form.get('specifications', getattr(product, 'specifications', '') if product else '').strip(),
+        'sizes': request.form.get('sizes', '').strip() if request.form.get('sizes') is not None else ','.join([s.size for s in getattr(product, 'sizes', [])]),
+        'colors': request.form.get('colors', getattr(product, 'colors', '') if product else '').strip(),
+        'source_url': request.form.get('source_url', getattr(product, 'source_url', '') if product else '').strip(),
+        'supplier_sku': request.form.get('supplier_sku', getattr(product, 'supplier_sku', '') if product else '').strip(),
+        'gender': _selected_gender(getattr(product, 'gender', 'unisex') if product else 'unisex'),
+        'price': str(request.form.get('price', getattr(product, 'price', '') if product else '')).strip(),
+        'original_price': str(request.form.get('original_price', getattr(product, 'original_price', '') if product else '')).strip(),
+    }
+
+
+def _maybe_generate_product_payload(payload, category, default_enabled=False):
+    enabled = request.form.get('auto_generate_ai') == '1' or (default_enabled and request.form.get('auto_generate_ai') is None)
+    if not enabled:
+        return payload
+
+    overwrite = request.form.get('overwrite_ai') == '1' or setting('ai_overwrite_on_save', '0').strip() == '1'
+    generated, status = generate_product_fields(payload, category.name if category else 'Tenisky')
+    merged = merge_generated_fields(payload, generated, overwrite=overwrite)
+    if status.get('source') == 'openai':
+        flash('AI doplnila produktové texty, SEO, ALT text, slug a atributy.', 'success')
+    else:
+        flash(status.get('message', 'Texty byly doplněné lokální SEO šablonou.'), 'warning')
+    return merged
+
+
 @admin_bp.route('/import-1688', methods=['GET', 'POST'])
 @admin_required
 def import_1688():
@@ -95,6 +146,7 @@ def import_1688():
     default_price = _float_form('default_price', 799)
     default_original_price = _float_form('default_original_price', 1299)
     default_stock = _int_form('default_stock', 10)
+    use_ai = request.form.get('use_ai') == '1' if request.method == 'POST' else setting('ai_generation_enabled', '1').strip() == '1'
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -111,6 +163,12 @@ def import_1688():
                 draft['original_price'] = default_original_price
                 draft['stock'] = default_stock
                 draft['category_id'] = int(selected_category.id) if selected_category else None
+                if use_ai:
+                    ai_context = dict(draft)
+                    ai_context['gender'] = gender
+                    generated, ai_status = generate_product_fields(ai_context, selected_category.name if selected_category else 'Tenisky')
+                    draft = merge_generated_fields(draft, generated, overwrite=True)
+                    draft['ai_status'] = ai_status.get('source', 'fallback')
                 drafts.append(draft)
             drafts_json = json.dumps(drafts, ensure_ascii=False)
             if drafts:
@@ -176,10 +234,12 @@ def import_1688():
                     db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
                 db.session.flush()
                 ensure_product_skus_and_variants(product)
+                if setting('woocommerce_enabled', '0').strip() == '1' and setting('woocommerce_auto_sync_products', '1').strip() == '1':
+                    sync_product_to_woocommerce(product)
                 created += 1
 
             db.session.commit()
-            flash(f'Import hotový: vytvořeno {created} produktů, přeskočeno {skipped}.', 'success')
+            flash(f'Import hotový: vytvořeno {created} produktů, přeskočeno {skipped}. Produkty mají automatické SKU/varianty a při zapnutém WooCommerce nastavení se odešlou i přes API.', 'success')
             return redirect(url_for('admin.products'))
 
     return render_template(
@@ -191,6 +251,7 @@ def import_1688():
         default_price=default_price,
         default_original_price=default_original_price,
         default_stock=default_stock,
+        use_ai=use_ai,
         drafts=drafts,
         drafts_json=drafts_json,
     )
@@ -208,31 +269,39 @@ def products():
 def product_new():
     categories = Category.query.order_by(Category.name.asc()).all()
     if request.method == 'POST':
-        product_name = request.form.get('name', '').strip()
-        product_slug = request.form.get('slug', '').strip() or product_name
+        category_id = request.form.get('category_id')
+        category = Category.query.get(int(category_id)) if category_id else None
+        if not category:
+            flash('Vyber prosím hlavní kategorii produktu.', 'warning')
+            return render_template('admin/product_form.html', categories=categories, product=None)
+
+        payload = _product_payload_from_form()
+        payload = _maybe_generate_product_payload(payload, category, default_enabled=True)
+
+        product_name = payload.get('name') or f"{category.name} {''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}"
         product = Product(
             name=product_name,
-            slug=unique_slug(Product, product_slug),
-            brand=request.form.get('brand', '').strip(),
-            short_description=request.form.get('short_description', '').strip(),
-            description=request.form.get('description', '').strip(),
-            seo_title=request.form.get('seo_title', '').strip(),
-            meta_description=request.form.get('meta_description', '').strip(),
-            seo_keywords=request.form.get('seo_keywords', '').strip(),
-            image_alt=request.form.get('image_alt', '').strip(),
-            price=float(request.form.get('price', 0) or 0),
-            original_price=float(request.form.get('original_price', 0) or 0),
-            stock=int(request.form.get('stock', 0) or 0),
+            slug=unique_slug(Product, payload.get('slug') or product_name),
+            brand=payload.get('brand') or 'Fashion',
+            short_description=payload.get('short_description', ''),
+            description=payload.get('description', ''),
+            seo_title=payload.get('seo_title', ''),
+            meta_description=payload.get('meta_description', ''),
+            seo_keywords=payload.get('seo_keywords', ''),
+            image_alt=payload.get('image_alt', ''),
+            price=_float_form('price', 0),
+            original_price=_float_form('original_price', 0),
+            stock=_int_form('stock', 0),
             featured=bool(request.form.get('featured')),
             active=bool(request.form.get('active')),
-            category_id=int(request.form.get('category_id')),
+            category_id=category.id,
             image=request.form.get('image_url', '').strip() or 'default-product.svg',
             gallery=request.form.get('gallery', '').strip(),
-            source_url=request.form.get('source_url', '').strip(),
-            supplier_sku=request.form.get('supplier_sku', '').strip(),
-            specifications=request.form.get('specifications', '').strip(),
-            colors=request.form.get('colors', '').strip(),
-            gender=','.join(request.form.getlist('gender')) or 'unisex',
+            source_url=payload.get('source_url', ''),
+            supplier_sku=payload.get('supplier_sku', ''),
+            specifications=payload.get('specifications', ''),
+            colors=payload.get('colors', ''),
+            gender=payload.get('gender') or 'unisex',
         )
         image = save_image(request.files.get('image'))
         gallery_files = request.files.getlist('gallery_images')
@@ -244,7 +313,7 @@ def product_new():
                 gallery_images.append(saved)
 
         if gallery_images:
-            product.gallery = ",".join(gallery_images)
+            product.gallery = ','.join(gallery_images)
         if image:
             product.image = image
         db.session.add(product)
@@ -259,9 +328,11 @@ def product_new():
                 if cat:
                     product.categories.append(cat)
         else:
-            if product.category:
-                product.categories.append(product.category)
-        sizes = [s.strip() for s in request.form.get('sizes', '').split(',') if s.strip()]
+            product.categories.append(category)
+
+        sizes = expand_size_range(payload.get('sizes', ''))
+        if not sizes:
+            sizes = expand_size_range('35-40' if _primary_gender(product.gender) == 'damske' else '39-45' if _primary_gender(product.gender) == 'panske' else '36-44')
         default_size_stock = max(1, product.stock // max(1, len(sizes) or 1))
         for size in sizes:
             db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
@@ -277,24 +348,33 @@ def product_edit(product_id):
     product = Product.query.get_or_404(product_id)
     categories = Category.query.order_by(Category.name.asc()).all()
     if request.method == 'POST':
-        product.name = request.form.get('name', '').strip()
-        product_slug = request.form.get('slug', '').strip() or product.name
+        category_id = request.form.get('category_id')
+        category = Category.query.get(int(category_id)) if category_id else product.category
+        if not category:
+            flash('Vyber prosím hlavní kategorii produktu.', 'warning')
+            return render_template('admin/product_form.html', categories=categories, product=product)
+
+        payload = _product_payload_from_form(product)
+        payload = _maybe_generate_product_payload(payload, category, default_enabled=False)
+
+        product.name = payload.get('name') or product.name
+        product_slug = payload.get('slug') or product.name
         product.slug = unique_slug(Product, product_slug, current_id=product.id)
-        product.brand = request.form.get('brand', '').strip()
-        product.short_description = request.form.get('short_description', '').strip()
-        product.description = request.form.get('description', '').strip()
-        product.seo_title = request.form.get('seo_title', '').strip()
-        product.meta_description = request.form.get('meta_description', '').strip()
-        product.seo_keywords = request.form.get('seo_keywords', '').strip()
-        product.image_alt = request.form.get('image_alt', '').strip()
-        product.price = float(request.form.get('price', 0) or 0)
-        product.original_price = float(request.form.get('original_price', 0) or 0)
-        product.stock = int(request.form.get('stock', 0) or 0)
+        product.brand = payload.get('brand') or product.brand or 'Fashion'
+        product.short_description = payload.get('short_description', '')
+        product.description = payload.get('description', '')
+        product.seo_title = payload.get('seo_title', '')
+        product.meta_description = payload.get('meta_description', '')
+        product.seo_keywords = payload.get('seo_keywords', '')
+        product.image_alt = payload.get('image_alt', '')
+        product.price = _float_form('price', 0)
+        product.original_price = _float_form('original_price', 0)
+        product.stock = _int_form('stock', 0)
         product.featured = bool(request.form.get('featured'))
         product.active = bool(request.form.get('active'))
-        product.category_id = int(request.form.get('category_id'))
+        product.category_id = category.id
         selected_categories = request.form.getlist('categories')
-        product.gender = ','.join(request.form.getlist('gender')) or 'unisex'
+        product.gender = payload.get('gender') or 'unisex'
 
         product.categories = []
 
@@ -304,8 +384,7 @@ def product_edit(product_id):
                 if cat:
                     product.categories.append(cat)
         else:
-            if product.category:
-                product.categories.append(product.category)
+            product.categories.append(category)
         product.image = request.form.get('image_url', '').strip() or product.image
         if request.form.get('delete_main_image'):
             product.image = 'default-product.svg'
@@ -321,21 +400,23 @@ def product_edit(product_id):
         image = save_image(request.files.get('image'))
         gallery_files = request.files.getlist('gallery_images')
         gallery_images = []
-        product.specifications = request.form.get('specifications', '').strip()
-        product.colors = request.form.get('colors', '').strip()
+        product.specifications = payload.get('specifications', '')
+        product.colors = payload.get('colors', '')
 
         for file in gallery_files[:8]:
             saved = save_image(file)
             if saved:
                 gallery_images.append(saved)
 
-        product.gallery = ",".join(existing_gallery + gallery_images)
-        product.source_url = request.form.get('source_url', '').strip()
-        product.supplier_sku = request.form.get('supplier_sku', '').strip()
+        product.gallery = ','.join(existing_gallery + gallery_images)
+        product.source_url = payload.get('source_url', '')
+        product.supplier_sku = payload.get('supplier_sku', '')
         if image:
             product.image = image
         ProductSize.query.filter_by(product_id=product.id).delete()
-        sizes = [s.strip() for s in request.form.get('sizes', '').split(',') if s.strip()]
+        sizes = expand_size_range(payload.get('sizes', ''))
+        if not sizes:
+            sizes = expand_size_range('35-40' if _primary_gender(product.gender) == 'damske' else '39-45' if _primary_gender(product.gender) == 'panske' else '36-44')
         default_size_stock = max(1, product.stock // max(1, len(sizes) or 1))
         for size in sizes:
             db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
@@ -692,6 +773,12 @@ def settings():
             ('woocommerce_sku_prefix', 'Prefix automatického SKU, např. BZH'),
             ('woocommerce_currency', 'Měna objednávky, např. CZK'),
             ('woocommerce_default_country', 'Výchozí země zákazníka, např. CZ'),
+        ],
+        'AI generování produktů': [
+            ('ai_generation_enabled', 'Zapnout AI generování produktových textů (1 nebo 0)'),
+            ('openai_api_key', 'OpenAI API klíč (lepší je nastavit jako OPENAI_API_KEY v prostředí)'),
+            ('openai_model', 'OpenAI model, např. gpt-5-mini'),
+            ('ai_overwrite_on_save', 'Při AI generování přepisovat už vyplněná pole automaticky (1 nebo 0)'),
         ],
     }
 

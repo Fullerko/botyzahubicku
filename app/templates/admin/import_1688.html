@@ -51,6 +51,15 @@
         <input class="form-control" name="limit" type="number" min="1" max="100" value="20">
       </div>
       <div class="col-12">
+        <div class="border rounded-4 p-3 bg-light">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="use_ai" value="1" id="use_ai" {% if use_ai %}checked{% endif %}>
+            <label class="form-check-label" for="use_ai">Vylepšit názvy, popisy, SEO a atributy přes AI při náhledu</label>
+          </div>
+          <small class="text-muted">Bez OpenAI API klíče se automaticky použije lokální SEO šablona. Pro větší importy může AI chvíli trvat podle počtu URL.</small>
+        </div>
+      </div>
+      <div class="col-12">
         <button class="btn btn-dark rounded-pill px-4">Načíst náhled produktů</button>
       </div>
     </div>
@@ -65,6 +74,7 @@
       <input type="hidden" name="default_price" value="{{ default_price }}">
       <input type="hidden" name="default_original_price" value="{{ default_original_price }}">
       <input type="hidden" name="default_stock" value="{{ default_stock }}">
+      <input type="hidden" name="use_ai" value="{{ 1 if use_ai else 0 }}">
 
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
@@ -86,6 +96,7 @@
               <div class="small text-muted">Zdroj: <a href="{{ draft.source_url }}" target="_blank" rel="noopener">{{ draft.source_url }}</a></div>
               {% if draft.original_title %}<div class="small text-muted">Původní název: {{ draft.original_title }}</div>{% endif %}
               {% if draft.price_cny %}<div class="small text-muted">Nalezená cena na 1688: {{ draft.price_cny }} CNY</div>{% endif %}
+              {% if draft.ai_status %}<div class="small text-muted">Generování textů: {{ 'OpenAI API' if draft.ai_status == 'openai' else 'lokální SEO šablona' }}</div>{% endif %}
             </div>
             <input type="hidden" name="category_id_{{ i }}" value="{{ draft.category_id }}">
             <input type="hidden" name="gender_{{ i }}" value="{{ draft.gender }}">

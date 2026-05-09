@@ -3,8 +3,8 @@
 {% block content %}
 <section class="container py-5"><div class="info-card"><h1 class="h2 mb-4">{{ 'Upravit produkt' if product else 'Nový produkt' }}</h1>
 <form method="post" enctype="multipart/form-data" class="row g-3">
-<div class="col-md-6"><label class="form-label">Název</label><input class="form-control" name="name" value="{{ product.name if product else '' }}" required></div>
-<div class="col-md-6"><label class="form-label">Značka</label><input class="form-control" name="brand" value="{{ product.brand if product else '' }}" required></div>
+<div class="col-md-6"><label class="form-label">Název</label><input class="form-control" name="name" value="{{ product.name if product else '' }}" placeholder="Může zůstat prázdné — doplní AI/šablona"></div>
+<div class="col-md-6"><label class="form-label">Značka / série</label><input class="form-control" name="brand" value="{{ product.brand if product else '' }}" placeholder="Fashion, Urban, CoreStep nebo VeloxityX"></div>
 <div class="col-md-6">
   <label class="form-label">URL slug produktu</label>
   <input class="form-control" name="slug" value="{{ product.slug if product else '' }}" placeholder="panske-lehke-tenisky-veloxityx-aerowalk">
@@ -48,6 +48,21 @@
   </div>
 </div>
 
+<div class="col-12">
+  <div class="border rounded-4 p-3 bg-light">
+    <h2 class="h5 mb-2">Automatické generování produktu</h2>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="auto_generate_ai" value="1" id="auto_generate_ai" {% if not product %}checked{% endif %}>
+      <label class="form-check-label" for="auto_generate_ai">Automaticky doplnit název, popisy, SEO, ALT text, slug, atributy a velikosti při uložení</label>
+    </div>
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" name="overwrite_ai" value="1" id="overwrite_ai">
+      <label class="form-check-label" for="overwrite_ai">Přepsat i už vyplněná pole</label>
+    </div>
+    <small class="text-muted d-block mt-2">Když je nastavený OpenAI API klíč, použije se AI. Bez klíče se použije lokální SEO šablona, takže produkt se přesto doplní.</small>
+  </div>
+</div>
+
 <div class="col-md-6">
   <label class="form-label">Další kategorie</label>
   <div class="border rounded p-3 bg-light">
@@ -71,7 +86,7 @@
 <div class="col-md-3"><label class="form-label">Cena</label><input class="form-control" name="price" type="number" step="0.01" value="{{ product.price if product else '' }}" required></div>
 <div class="col-md-3"><label class="form-label">Původní cena</label><input class="form-control" name="original_price" type="number" step="0.01" value="{{ product.original_price if product else '' }}"></div>
 <div class="col-md-4"><label class="form-label">Sklad</label><input class="form-control" name="stock" type="number" value="{{ product.stock if product else '10' }}"></div>
-<div class="col-md-4"><label class="form-label">Velikosti</label><input class="form-control" name="sizes" value="{{ product.sizes|map(attribute='size')|join(',') if product else '36,37,38,39,40,41' }}"></div>
+<div class="col-md-4"><label class="form-label">Velikosti</label><input class="form-control" name="sizes" value="{{ product.sizes|map(attribute='size')|join(',') if product else '35-40' }}"></div>
 <div class="col-md-4">
   <label class="form-label">Barvy</label>
   <input
@@ -136,7 +151,7 @@
     class="form-control"
     name="specifications"
     rows="8"
-    placeholder="Materiál: Síťovaná tkanina&#10;Podrážka: Pryž&#10;Váha: 500 g&#10;Velikosti: 39, 40, 41, 42"
+    placeholder="Materiál: Síťovaná tkanina&#10;Podrážka: Pryž&#10;Váha: 500 g&#10;Velikosti: 35-40&#10;Dodání: 8–12 dní"
   >{{ product.specifications if product else '' }}</textarea>
   <small class="text-muted">
     Každý atribut piš na nový řádek ve formátu Název: Hodnota.
