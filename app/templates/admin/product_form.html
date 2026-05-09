@@ -48,20 +48,6 @@
   </div>
 </div>
 
-<div class="col-12">
-  <div class="border rounded-4 p-3 bg-light">
-    <h2 class="h5 mb-2">Automatické generování produktu</h2>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="auto_generate_ai" value="1" id="auto_generate_ai" {% if not product %}checked{% endif %}>
-      <label class="form-check-label" for="auto_generate_ai">Automaticky doplnit název, popisy, SEO, ALT text, slug, atributy a velikosti při uložení</label>
-    </div>
-    <div class="form-check mt-2">
-      <input class="form-check-input" type="checkbox" name="overwrite_ai" value="1" id="overwrite_ai">
-      <label class="form-check-label" for="overwrite_ai">Přepsat i už vyplněná pole</label>
-    </div>
-    <small class="text-muted d-block mt-2">Když je nastavený OpenAI API klíč, použije se AI. Bez klíče se použije lokální SEO šablona, takže produkt se přesto doplní.</small>
-  </div>
-</div>
 
 <div class="col-md-6">
   <label class="form-label">Další kategorie</label>
@@ -197,16 +183,7 @@
   <input class="form-control" name="supplier_sku" value="{{ product.supplier_sku if product else '' }}" placeholder="Nech prázdné = vygeneruje se automaticky, např. BZH-000123">
   <small class="text-muted">Použije se jako základ. Každá velikost/barva dostane vlastní SKU automaticky.</small>
 </div>
-{% if product %}
-<div class="col-md-6">
-  <label class="form-label">WooCommerce</label>
-  <div class="border rounded p-3 bg-light">
-    <div><strong>Produkt ID ve WC:</strong> {{ product.woocommerce_product_id or 'zatím nevytvořeno' }}</div>
-    <div><strong>Stav synchronizace:</strong> {{ product.woocommerce_sync_status or '—' }}</div>
-    {% if product.woocommerce_sync_message %}<div class="text-muted small">{{ product.woocommerce_sync_message }}</div>{% endif %}
-  </div>
-</div>
-{% endif %}
+
 <div class="mb-3">
   <label class="form-label">URL</label>
   <input

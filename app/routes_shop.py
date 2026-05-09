@@ -13,7 +13,6 @@ from .utils import get_cart, setting
 from datetime import datetime
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
-from .woocommerce_api import submit_order_to_woocommerce
 from app import db
 
 shop_bp = Blueprint('shop', __name__)
@@ -144,16 +143,6 @@ def mark_paid_api():
     # Sumool odesílání je záměrně odpojené; objednávky se po platbě posílají jen do WooCommerce.
 
     # Stejný princip pro WooCommerce: zákazník zůstává na tomto webu, WooCommerce je jen backend pro dodavatele.
-    if not order.woocommerce_status:
-        result = submit_order_to_woocommerce(order)
-        order.woocommerce_status = 'odeslano' if result.get('ok') else 'chyba'
-        order.woocommerce_message = result.get('message', '')
-        order.woocommerce_response = result.get('raw') or ''
-        order.woocommerce_submitted_at = datetime.now()
-        data = result.get('data') or {}
-        if data.get('id'):
-            order.woocommerce_order_id = str(data.get('id'))
-        db.session.commit()
 
     invoice_pdf = generate_invoice_pdf(order)
 

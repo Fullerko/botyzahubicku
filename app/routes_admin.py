@@ -6,11 +6,9 @@ from flask import Blueprint, flash, redirect, render_template, request, send_fil
 from . import db
 from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, ProductVariant, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
-from .woocommerce_api import ensure_product_skus_and_variants, submit_order_to_woocommerce, sync_product_to_woocommerce
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from .import_1688 import build_seo_draft, download_product_images, expand_size_range, parse_urls, scrape_1688_product
-from .ai_product_generator import generate_product_fields, merge_generated_fields
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -36,17 +34,15 @@ def _parse_split_from_note(note):
 
 
 def _sync_product_after_save(product):
-    """Zajistí lokální SKU/varianty a volitelně je pošle do WooCommerce."""
+    """Zajistí lokální SKU/varianty a nepošle je do WooCommerce."""
+    # Lokální generování SKU a variant
     ensure_product_skus_and_variants(product)
+    
+    # Uložíme produkt v DB
     db.session.commit()
-    result = sync_product_to_woocommerce(product)
-    if result.get('ok'):
-        db.session.commit()
-        flash('Produkt, barvy, velikosti a SKU byly automaticky synchronizované do WooCommerce.', 'success')
-    else:
-        db.session.commit()
-        msg = result.get('message', 'WooCommerce synchronizace se neprovedla.')
-        flash(f'Produkt je uložený lokálně. WooCommerce: {msg}', 'warning')
+
+    # Bez synchronizace do WooCommerce
+    flash('Produkt, barvy, velikosti a SKU byly automaticky vytvořeny a uloženy lokálně.', 'success')
 
 
 
@@ -118,143 +114,7 @@ def _product_payload_from_form(product=None):
     }
 
 
-def _maybe_generate_product_payload(payload, category, default_enabled=False):
-    enabled = request.form.get('auto_generate_ai') == '1' or (default_enabled and request.form.get('auto_generate_ai') is None)
-    if not enabled:
-        return payload
 
-    overwrite = request.form.get('overwrite_ai') == '1' or setting('ai_overwrite_on_save', '0').strip() == '1'
-    generated, status = generate_product_fields(payload, category.name if category else 'Tenisky')
-    merged = merge_generated_fields(payload, generated, overwrite=overwrite)
-    if status.get('source') == 'openai':
-        flash('AI doplnila produktové texty, SEO, ALT text, slug a atributy.', 'success')
-    else:
-        flash(status.get('message', 'Texty byly doplněné lokální SEO šablonou.'), 'warning')
-    return merged
-
-
-@admin_bp.route('/import-1688', methods=['GET', 'POST'])
-@admin_required
-def import_1688():
-    categories = Category.query.order_by(Category.name.asc()).all()
-    selected_category_id = request.form.get('category_id') or (categories[0].id if categories else None)
-    selected_category = Category.query.get(int(selected_category_id)) if selected_category_id else None
-    gender = request.form.get('gender', 'damske')
-    raw_urls = request.form.get('urls', '')
-    drafts = []
-    drafts_json = ''
-    default_price = _float_form('default_price', 799)
-    default_original_price = _float_form('default_original_price', 1299)
-    default_stock = _int_form('default_stock', 10)
-    use_ai = request.form.get('use_ai') == '1' if request.method == 'POST' else setting('ai_generation_enabled', '1').strip() == '1'
-
-    if request.method == 'POST':
-        action = request.form.get('action')
-
-        if action == 'preview':
-            limit = min(max(_int_form('limit', 20), 1), 100)
-            urls = parse_urls(raw_urls, limit=limit)
-            if not urls:
-                flash('Vlož aspoň jednu platnou URL z detail.1688.com.', 'warning')
-            for url in urls:
-                scraped = scrape_1688_product(url, gender=gender)
-                draft = build_seo_draft(scraped, gender=gender, category_name=selected_category.name if selected_category else 'Tenisky')
-                draft['price'] = default_price
-                draft['original_price'] = default_original_price
-                draft['stock'] = default_stock
-                draft['category_id'] = int(selected_category.id) if selected_category else None
-                if use_ai:
-                    ai_context = dict(draft)
-                    ai_context['gender'] = gender
-                    generated, ai_status = generate_product_fields(ai_context, selected_category.name if selected_category else 'Tenisky')
-                    draft = merge_generated_fields(draft, generated, overwrite=True)
-                    draft['ai_status'] = ai_status.get('source', 'fallback')
-                drafts.append(draft)
-            drafts_json = json.dumps(drafts, ensure_ascii=False)
-            if drafts:
-                flash(f'Načteno {len(drafts)} produktů k náhledu. Obrázky můžeš před importem odškrtnout.', 'success')
-
-        elif action == 'import':
-            try:
-                drafts = json.loads(request.form.get('drafts_json', '[]'))
-            except Exception:
-                drafts = []
-            created = 0
-            skipped = 0
-            for index, draft in enumerate(drafts):
-                if request.form.get(f'import_{index}') != '1':
-                    skipped += 1
-                    continue
-                category_id = int(request.form.get(f'category_id_{index}') or draft.get('category_id') or selected_category_id)
-                category = Category.query.get(category_id)
-                if not category:
-                    skipped += 1
-                    continue
-
-                keep_images = request.form.getlist(f'keep_image_{index}')
-                main_image, gallery = download_product_images(keep_images)
-                product_name = request.form.get(f'name_{index}', draft.get('name', '')).strip() or draft.get('name', '')
-                product_slug = request.form.get(f'slug_{index}', draft.get('slug', '')).strip() or product_name
-                price = _float_form(f'price_{index}', draft.get('price') or default_price)
-                original_price = _float_form(f'original_price_{index}', draft.get('original_price') or default_original_price)
-                stock = _int_form(f'stock_{index}', draft.get('stock') or default_stock)
-                size_range = request.form.get(f'sizes_{index}', draft.get('sizes', '')).strip() or draft.get('sizes', '')
-
-                product = Product(
-                    name=product_name,
-                    slug=unique_slug(Product, product_slug),
-                    brand=request.form.get(f'brand_{index}', draft.get('brand', '')).strip() or draft.get('brand', 'Fashion'),
-                    gender=request.form.get(f'gender_{index}', draft.get('gender', gender)).strip() or gender,
-                    short_description=request.form.get(f'short_description_{index}', draft.get('short_description', '')).strip(),
-                    description=request.form.get(f'description_{index}', draft.get('description', '')).strip(),
-                    seo_title=request.form.get(f'seo_title_{index}', draft.get('seo_title', '')).strip(),
-                    meta_description=request.form.get(f'meta_description_{index}', draft.get('meta_description', '')).strip(),
-                    seo_keywords=request.form.get(f'seo_keywords_{index}', draft.get('seo_keywords', '')).strip(),
-                    image_alt=request.form.get(f'image_alt_{index}', draft.get('image_alt', '')).strip(),
-                    price=price,
-                    original_price=original_price,
-                    stock=stock,
-                    featured=False,
-                    active=True,
-                    category_id=category.id,
-                    image=main_image,
-                    gallery=gallery,
-                    source_url=draft.get('source_url', ''),
-                    supplier_sku=draft.get('offer_id', ''),
-                    specifications=request.form.get(f'specifications_{index}', draft.get('specifications', '')).strip(),
-                    colors=request.form.get(f'colors_{index}', draft.get('colors', '')).strip(),
-                )
-                db.session.add(product)
-                db.session.flush()
-                product.categories.append(category)
-
-                size_list = expand_size_range(size_range)
-                default_size_stock = max(1, stock // max(1, len(size_list) or 1))
-                for size in size_list:
-                    db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
-                db.session.flush()
-                ensure_product_skus_and_variants(product)
-                if setting('woocommerce_enabled', '0').strip() == '1' and setting('woocommerce_auto_sync_products', '1').strip() == '1':
-                    sync_product_to_woocommerce(product)
-                created += 1
-
-            db.session.commit()
-            flash(f'Import hotový: vytvořeno {created} produktů, přeskočeno {skipped}. Produkty mají automatické SKU/varianty a při zapnutém WooCommerce nastavení se odešlou i přes API.', 'success')
-            return redirect(url_for('admin.products'))
-
-    return render_template(
-        'admin/import_1688.html',
-        categories=categories,
-        selected_category_id=int(selected_category_id) if selected_category_id else None,
-        gender=gender,
-        raw_urls=raw_urls,
-        default_price=default_price,
-        default_original_price=default_original_price,
-        default_stock=default_stock,
-        use_ai=use_ai,
-        drafts=drafts,
-        drafts_json=drafts_json,
-    )
 
 
 @admin_bp.route('/products')
@@ -276,7 +136,6 @@ def product_new():
             return render_template('admin/product_form.html', categories=categories, product=None)
 
         payload = _product_payload_from_form()
-        payload = _maybe_generate_product_payload(payload, category, default_enabled=True)
 
         product_name = payload.get('name') or f"{category.name} {''.join(random.choices(string.ascii_uppercase + string.digits, k=6))}"
         product = Product(
@@ -355,7 +214,6 @@ def product_edit(product_id):
             return render_template('admin/product_form.html', categories=categories, product=product)
 
         payload = _product_payload_from_form(product)
-        payload = _maybe_generate_product_payload(payload, category, default_enabled=False)
 
         product.name = payload.get('name') or product.name
         product_slug = payload.get('slug') or product.name
@@ -426,13 +284,6 @@ def product_edit(product_id):
     return render_template('admin/product_form.html', categories=categories, product=product)
 
 
-@admin_bp.route('/products/<int:product_id>/woocommerce/sync', methods=['POST'])
-@admin_required
-def product_woocommerce_sync(product_id):
-    product = Product.query.get_or_404(product_id)
-    _sync_product_after_save(product)
-    return redirect(url_for('admin.product_edit', product_id=product.id))
-
 
 @admin_bp.route('/products/<int:product_id>/delete')
 @admin_required
@@ -466,22 +317,6 @@ def order_detail(order_id):
         flash('Stav objednávky byl změněn.', 'success')
     return render_template('admin/order_detail.html', order=order, Product=Product)
 
-
-@admin_bp.route('/orders/<int:order_id>/woocommerce/send', methods=['POST'])
-@admin_required
-def order_woocommerce_send(order_id):
-    order = Order.query.get_or_404(order_id)
-    result = submit_order_to_woocommerce(order)
-    order.woocommerce_status = 'odeslano' if result.get('ok') else 'chyba'
-    order.woocommerce_message = result.get('message', '')
-    order.woocommerce_response = result.get('raw') or ''
-    order.woocommerce_submitted_at = datetime.now()
-    data = result.get('data') or {}
-    if data.get('id'):
-        order.woocommerce_order_id = str(data.get('id'))
-    db.session.commit()
-    flash('Objednávka byla odeslána do WooCommerce.' if result.get('ok') else f'WooCommerce chyba: {result.get("message", "neznámá chyba")}', 'success' if result.get('ok') else 'danger')
-    return redirect(url_for('admin.order_detail', order_id=order.id))
 
 
 
@@ -681,7 +516,7 @@ def supplier_sku_import():
     result = None
     if request.method == 'POST':
         uploaded = request.files.get('supplier_file')
-        update_woocommerce = bool(request.form.get('update_woocommerce'))
+        update_woocommerce = False
         if not uploaded or not uploaded.filename:
             flash('Nahraj prosím CSV nebo XLSX soubor od dodavatele.', 'warning')
         else:
@@ -762,23 +597,6 @@ def settings():
             ('supplier_report_minute', 'Minuta odeslání 0–59'),
             ('supplier_report_timezone', 'Časové pásmo'),
             ('supplier_report_only_paid', 'Posílat jen zaplacené objednávky (1 nebo 0)'),
-        ],
-        'WooCommerce / dodavatel API': [
-            ('woocommerce_enabled', 'Zapnout automatické odesílání objednávek do WooCommerce (1 nebo 0)'),
-            ('woocommerce_base_url', 'WooCommerce URL, např. https://dodavatel.cz'),
-            ('woocommerce_consumer_key', 'WooCommerce Consumer Key'),
-            ('woocommerce_consumer_secret', 'WooCommerce Consumer Secret'),
-            ('woocommerce_order_status', 'Stav nové objednávky ve WooCommerce, např. processing'),
-            ('woocommerce_auto_sync_products', 'Automaticky vytvářet/upravovat produkty a varianty ve WooCommerce (1 nebo 0)'),
-            ('woocommerce_sku_prefix', 'Prefix automatického SKU, např. BZH'),
-            ('woocommerce_currency', 'Měna objednávky, např. CZK'),
-            ('woocommerce_default_country', 'Výchozí země zákazníka, např. CZ'),
-        ],
-        'AI generování produktů': [
-            ('ai_generation_enabled', 'Zapnout AI generování produktových textů (1 nebo 0)'),
-            ('openai_api_key', 'OpenAI API klíč (lepší je nastavit jako OPENAI_API_KEY v prostředí)'),
-            ('openai_model', 'OpenAI model, např. gpt-5-mini'),
-            ('ai_overwrite_on_save', 'Při AI generování přepisovat už vyplněná pole automaticky (1 nebo 0)'),
         ],
     }
 

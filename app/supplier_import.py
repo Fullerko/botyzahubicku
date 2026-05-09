@@ -6,7 +6,6 @@ from datetime import datetime
 
 from . import db
 from .models import Product, ProductVariant
-from .woocommerce_api import update_supplier_variant_in_woocommerce
 
 
 HEADER_ALIASES = {
@@ -217,15 +216,5 @@ def import_supplier_sku_file(file_storage, update_woocommerce=False):
             'supplier_color': variant.supplier_color,
         })
 
-        if update_woocommerce:
-            db.session.flush()
-            wc_result = update_supplier_variant_in_woocommerce(variant)
-            variant.supplier_sync_status = 'wc aktualizováno' if wc_result.get('ok') else 'wc chyba'
-            variant.supplier_sync_message = wc_result.get('message', '')
-            variant.supplier_synced_at = datetime.now()
-            if wc_result.get('ok'):
-                result['updated_wc'] += 1
-            else:
-                result['wc_errors'] += 1
 
     return result
