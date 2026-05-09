@@ -6,6 +6,12 @@
 <div class="col-md-6"><label class="form-label">Název</label><input class="form-control" name="name" value="{{ product.name if product else '' }}" required></div>
 <div class="col-md-6"><label class="form-label">Značka</label><input class="form-control" name="brand" value="{{ product.brand if product else '' }}" required></div>
 <div class="col-md-6">
+  <label class="form-label">URL slug produktu</label>
+  <input class="form-control" name="slug" value="{{ product.slug if product else '' }}" placeholder="panske-lehke-tenisky-veloxityx-aerowalk">
+  <small class="text-muted">Když necháš prázdné, vytvoří se automaticky z názvu. Používej malá písmena, pomlčky a bez diakritiky.</small>
+</div>
+
+<div class="col-md-6">
   <label class="form-label">Hlavní kategorie</label>
   <select class="form-select" name="category_id" required>
     {% for cat in categories %}
@@ -76,9 +82,38 @@
   >
 </div>
 <div class="col-md-4"><label class="form-label">URL obrázku</label><input class="form-control" name="image_url" value="{{ product.image if product else '' }}"></div>
+<div class="col-md-8">
+  <label class="form-label">ALT text hlavního obrázku</label>
+  <input class="form-control" name="image_alt" value="{{ product.image_alt if product else '' }}" placeholder="Pánské lehké tenisky VeloxityX AeroWalk s prodyšným svrškem">
+  <small class="text-muted">Popiš, co je na obrázku. Pomáhá vyhledávání obrázků i přístupnosti.</small>
+</div>
+
 <div class="col-12"><label class="form-label">Upload obrázku</label><input class="form-control" type="file" name="image"></div>
 <div class="col-12"><label class="form-label">Krátký popis</label><input class="form-control" name="short_description" value="{{ product.short_description if product else '' }}"></div>
 <div class="col-12"><label class="form-label">Detail popisu</label><textarea class="form-control" name="description" rows="5">{{ product.description if product else '' }}</textarea></div>
+<div class="col-12 mt-3">
+  <div class="border rounded-4 p-3 bg-light">
+    <h2 class="h5 mb-3">SEO nastavení produktu</h2>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">SEO title / titulek pro Google</label>
+        <input class="form-control" name="seo_title" maxlength="180" value="{{ product.seo_title if product else '' }}" placeholder="Pánské lehké tenisky VeloxityX AeroWalk | Prodyšná obuv pro každý den">
+        <small class="text-muted">Když necháš prázdné, použije se název produktu. Ideálně cca 50-60 znaků.</small>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Meta description / popisek ve vyhledávání</label>
+        <textarea class="form-control" name="meta_description" rows="3" maxlength="320" placeholder="Pánské lehké tenisky s prodyšným svrškem, pohodlným zpracováním a pružnou podešví pro chůzi, město i volný čas.">{{ product.meta_description if product else '' }}</textarea>
+        <small class="text-muted">Krátký prodejní text pro výsledky vyhledávání. Ideálně cca 140-160 znaků.</small>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Klíčová slova / interní tagy</label>
+        <textarea class="form-control" name="seo_keywords" rows="2" placeholder="pánské tenisky, lehké tenisky, sportovní obuv, tenisky na chůzi, volnočasová obuv">{{ product.seo_keywords if product else '' }}</textarea>
+        <small class="text-muted">Používej jako interní tagy a pomoc pro vyhledávání v e-shopu. Nepřeplňovat.</small>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="col-12">
   <label class="form-label">Atributy produktu</label>
   <textarea

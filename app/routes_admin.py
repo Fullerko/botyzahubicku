@@ -78,12 +78,18 @@ def products():
 def product_new():
     categories = Category.query.order_by(Category.name.asc()).all()
     if request.method == 'POST':
+        product_name = request.form.get('name', '').strip()
+        product_slug = request.form.get('slug', '').strip() or product_name
         product = Product(
-            name=request.form.get('name', '').strip(),
-            slug=unique_slug(Product, request.form.get('name', '')),
+            name=product_name,
+            slug=unique_slug(Product, product_slug),
             brand=request.form.get('brand', '').strip(),
             short_description=request.form.get('short_description', '').strip(),
             description=request.form.get('description', '').strip(),
+            seo_title=request.form.get('seo_title', '').strip(),
+            meta_description=request.form.get('meta_description', '').strip(),
+            seo_keywords=request.form.get('seo_keywords', '').strip(),
+            image_alt=request.form.get('image_alt', '').strip(),
             price=float(request.form.get('price', 0) or 0),
             original_price=float(request.form.get('original_price', 0) or 0),
             stock=int(request.form.get('stock', 0) or 0),
@@ -142,10 +148,15 @@ def product_edit(product_id):
     categories = Category.query.order_by(Category.name.asc()).all()
     if request.method == 'POST':
         product.name = request.form.get('name', '').strip()
-        product.slug = unique_slug(Product, product.name, current_id=product.id)
+        product_slug = request.form.get('slug', '').strip() or product.name
+        product.slug = unique_slug(Product, product_slug, current_id=product.id)
         product.brand = request.form.get('brand', '').strip()
         product.short_description = request.form.get('short_description', '').strip()
         product.description = request.form.get('description', '').strip()
+        product.seo_title = request.form.get('seo_title', '').strip()
+        product.meta_description = request.form.get('meta_description', '').strip()
+        product.seo_keywords = request.form.get('seo_keywords', '').strip()
+        product.image_alt = request.form.get('image_alt', '').strip()
         product.price = float(request.form.get('price', 0) or 0)
         product.original_price = float(request.form.get('original_price', 0) or 0)
         product.stock = int(request.form.get('stock', 0) or 0)

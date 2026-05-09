@@ -1,6 +1,7 @@
 import os
 import re
 import uuid
+import unicodedata
 import smtplib
 from email.message import EmailMessage
 from functools import wraps
@@ -11,6 +12,8 @@ from . import db
 
 
 def slugify(value):
+    # SEO friendly URL bez diakritiky: "Pánské lehké tenisky" -> "panske-lehke-tenisky"
+    value = unicodedata.normalize('NFKD', str(value or '')).encode('ascii', 'ignore').decode('ascii')
     value = value.lower().strip()
     value = re.sub(r'[^a-z0-9\s-]', '', value)
     value = re.sub(r'[\s-]+', '-', value)

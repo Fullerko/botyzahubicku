@@ -354,6 +354,7 @@ def _variation_attributes(variant):
 def build_woocommerce_product(product):
     payload = {
         'name': product.name,
+        'slug': product.slug,
         'type': 'variable',
         'status': 'publish' if product.active else 'draft',
         'sku': product_base_sku(product),
@@ -365,6 +366,10 @@ def build_woocommerce_product(product):
         'meta_data': [
             {'key': 'BZH produkt ID', 'value': str(product.id)},
             {'key': 'BZH zdroj', 'value': 'BotyZaHubicku.cz'},
+            {'key': '_yoast_wpseo_title', 'value': getattr(product, 'seo_title', '') or product.name},
+            {'key': '_yoast_wpseo_metadesc', 'value': getattr(product, 'meta_description', '') or product.short_description or ''},
+            {'key': '_yoast_wpseo_focuskw', 'value': getattr(product, 'seo_keywords', '') or ''},
+            {'key': 'BZH image alt', 'value': getattr(product, 'image_alt', '') or product.name},
         ],
     }
     # Obrázky záměrně neposíláme při hlavní synchronizaci.

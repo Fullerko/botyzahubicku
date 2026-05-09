@@ -1,5 +1,46 @@
 {% extends 'base.html' %}
-{% block title %}{{ product.name }} | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% set product_meta_description = product.meta_description or product.short_description or (product.description|striptags|truncate(155, True, '')) %}
+{% set product_seo_title = product.seo_title or (product.name ~ ' | ' ~ settings.get('site_name', 'BotyZaHubicku.cz')) %}
+{% set product_alt = product.image_alt or product.name %}
+{% set product_url = url_for('shop.product_detail', slug=product.slug, _external=True) %}
+{% set product_image_url = image_url(product.image) %}
+{% block title %}{{ product_seo_title }}{% endblock %}
+{% block meta_description %}{{ product_meta_description }}{% endblock %}
+{% block meta_keywords %}{% if product.seo_keywords %}<meta name="keywords" content="{{ product.seo_keywords }}">{% endif %}{% endblock %}
+{% block canonical_url %}{{ product_url }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product_seo_title }}{% endblock %}
+{% block og_description %}{{ product_meta_description }}{% endblock %}
+{% block og_url %}{{ product_url }}{% endblock %}
+{% block og_image %}{{ product_image_url }}{% endblock %}
+{% block twitter_title %}{{ product_seo_title }}{% endblock %}
+{% block twitter_description %}{{ product_meta_description }}{% endblock %}
+{% block twitter_image %}{{ product_image_url }}{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": {{ product.name|tojson }},
+  "description": {{ product_meta_description|tojson }},
+  "image": [{{ product_image_url|tojson }}],
+  "sku": {{ (product.supplier_sku or ('BZH-' ~ product.id))|tojson }},
+  "category": {{ product.category.name|tojson }},
+  "brand": {
+    "@type": "Brand",
+    "name": {{ product.brand|tojson }}
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": {{ product_url|tojson }},
+    "priceCurrency": "CZK",
+    "price": {{ ('%.2f'|format(product.price or 0))|tojson }},
+    "availability": "{% if product.stock and product.stock > 0 %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "itemCondition": "https://schema.org/NewCondition"
+  }
+}
+</script>
+{% endblock %}
 {% block content %}
 <section class="container py-5">
   <div class="row g-5">
@@ -12,7 +53,7 @@
 			id="mainProductImage"
 			class="detail-image"
 			src="{{ image_url(gallery_images[0]) }}"
-			alt="{{ product.name }}"
+			alt="{{ product_alt }}"
 		  >
 		</div>
 
@@ -24,7 +65,7 @@
 			  onmouseenter="changeProductImage(this, '{{ image_url(img) }}')"
 			  onclick="changeProductImage(this, '{{ image_url(img) }}')"
 			>
-			  <img src="{{ image_url(img) }}" alt="{{ product.name }} fotka {{ loop.index }}">
+			  <img src="{{ image_url(img) }}" alt="{{ product_alt }} - fotka {{ loop.index }}">
 			</button>
 		  {% endfor %}
 		</div>

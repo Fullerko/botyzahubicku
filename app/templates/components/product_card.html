@@ -3,7 +3,7 @@
     <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">
       <div class="product-image-wrap">
         {% if product.discount_percent %}<span class="discount-badge">-{{ product.discount_percent }} %</span>{% endif %}
-        <img class="product-image" src="{{ image_url(product.image) }}" alt="{{ product.name }}">
+        <img class="product-image" src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}">
       </div>
       <div class="p-3">
         <div class="text-secondary small mb-1">{{ product.brand }}</div>

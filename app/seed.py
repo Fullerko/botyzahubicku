@@ -33,6 +33,10 @@ def ensure_schema_columns():
             'show_in_menu': "ALTER TABLE category ADD COLUMN show_in_menu BOOLEAN DEFAULT 1",
         },
         'product': {
+            'seo_title': "ALTER TABLE product ADD COLUMN seo_title VARCHAR(180) DEFAULT ''",
+            'meta_description': "ALTER TABLE product ADD COLUMN meta_description VARCHAR(320) DEFAULT ''",
+            'seo_keywords': "ALTER TABLE product ADD COLUMN seo_keywords TEXT DEFAULT ''",
+            'image_alt': "ALTER TABLE product ADD COLUMN image_alt VARCHAR(255) DEFAULT ''",
             'supplier_sku': "ALTER TABLE product ADD COLUMN supplier_sku VARCHAR(120) DEFAULT ''",
             'woocommerce_product_id': "ALTER TABLE product ADD COLUMN woocommerce_product_id VARCHAR(50) DEFAULT ''",
             'woocommerce_sync_status': "ALTER TABLE product ADD COLUMN woocommerce_sync_status VARCHAR(30) DEFAULT ''",

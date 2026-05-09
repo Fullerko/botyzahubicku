@@ -429,7 +429,14 @@ def products():
         q = q.filter(Product.brand == brand)
 
     if search:
-        q = q.filter(Product.name.ilike(f'%{search}%'))
+        q = q.filter(
+            db.or_(
+                Product.name.ilike(f'%{search}%'),
+                Product.short_description.ilike(f'%{search}%'),
+                Product.description.ilike(f'%{search}%'),
+                Product.seo_keywords.ilike(f'%{search}%'),
+            )
+        )
 
     if size:
         q = q.join(ProductSize).filter(ProductSize.size == size, ProductSize.stock > 0)
