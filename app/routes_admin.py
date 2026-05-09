@@ -8,7 +8,6 @@ from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductS
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
-from .import_1688 import build_seo_draft, download_product_images, expand_size_range, parse_urls, scrape_1688_product
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
