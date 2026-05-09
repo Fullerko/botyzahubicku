@@ -132,6 +132,45 @@ def expand_size_range(value):
     return sizes
 
 
+def _size_sort_key(value):
+    value = str(value or '').strip()
+    try:
+        return (0, int(float(value.replace(',', '.'))))
+    except Exception:
+        return (1, value.lower())
+
+
+def format_product_sizes(product):
+    values = []
+    for size_row in getattr(product, 'sizes', []) or []:
+        value = str(getattr(size_row, 'size', '') or '').strip()
+        if value and value not in values:
+            values.append(value)
+
+    if not values:
+        return 'Nenastaveno'
+
+    values = sorted(values, key=_size_sort_key)
+
+    numeric_values = []
+    for value in values:
+        try:
+            numeric_values.append(int(float(value.replace(',', '.'))))
+        except Exception:
+            numeric_values = []
+            break
+
+    if numeric_values and len(numeric_values) == len(values):
+        unique_numbers = sorted(set(numeric_values))
+        if len(unique_numbers) == 1:
+            return str(unique_numbers[0])
+        if unique_numbers == list(range(unique_numbers[0], unique_numbers[-1] + 1)):
+            return f'{unique_numbers[0]}-{unique_numbers[-1]}'
+        return ', '.join(str(number) for number in unique_numbers)
+
+    return ', '.join(values)
+
+
 def _product_payload_from_form(product=None):
     return {
         'name': request.form.get('name', getattr(product, 'name', '') if product else '').strip(),
@@ -168,8 +207,19 @@ def import_1688():
 @admin_bp.route('/products')
 @admin_required
 def products():
-    products = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).all()
-    return render_template('admin/products.html', products=products)
+    search_query = (request.args.get('q') or '').strip()
+    products_query = Product.query.filter_by(active=True)
+
+    if search_query:
+        products_query = products_query.filter(Product.name.ilike(f'%{search_query}%'))
+
+    products = products_query.order_by(Product.created_at.desc()).all()
+    return render_template(
+        'admin/products.html',
+        products=products,
+        search_query=search_query,
+        format_product_sizes=format_product_sizes,
+    )
 
 
 @admin_bp.route('/products/new', methods=['GET', 'POST'])

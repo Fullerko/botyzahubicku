@@ -3,64 +3,102 @@
 {% block content %}
 <section class="container py-5">
   <div class="section-header mb-4">
-    <div><h1 class="h2 mb-1">Produkty</h1></div>
+    <div>
+      <h1 class="h2 mb-1">Produkty</h1>
+      <p class="text-secondary mb-0">Přehled produktů s hlavním obrázkem, cenou a reálnými velikostmi.</p>
+    </div>
     <div class="d-flex gap-2 flex-wrap">
       <a href="{{ url_for('admin.product_new') }}" class="btn btn-outline-dark rounded-pill">Přidat produkt</a>
     </div>
   </div>
 
-  {% if products %}
-  <div class="section-header mb-4">
-    <h2 class="h4 mb-1">Náhled produktů</h2>
-    <p class="text-secondary mb-0">Uprav název/cenu a nech zaškrtnuté jen fotky, které chceš uložit.</p>
-  </div>
-  <form method="POST">
-    <div class="table-responsive info-card">
-      <table class="table align-middle mb-0">
-        <thead>
-          <tr>
-            <th>Název</th>
-            <th>Popis</th>
-            <th>Obrázky</th>
-            <th>Cena</th>
-            <th>Velikosti</th>
-            <th>Upravit</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for product in products %}
-          <tr>
-            <td><input type="text" name="name_{{ loop.index }}" value="{{ product.name }}" class="form-control"></td>
-            <td><input type="text" name="description_{{ loop.index }}" value="{{ product.description }}" class="form-control"></td>
-            <td>
-              <div class="d-flex gap-3 flex-wrap">
-                {% for img in product.images %}
-                <div class="form-check">
-                  <img src="{{ img }}" alt="Náhled obrázku" style="width: 100px; height: 100px; object-fit: cover;">
-                  <input class="form-check-input" type="checkbox" name="keep_image_{{ loop.index }}" value="{{ img }}" checked>
-                  <label class="form-check-label">Uložit</label>
-                </div>
-                {% endfor %}
-              </div>
-            </td>
-            <td><input type="number" name="price_{{ loop.index }}" value="{{ product.price }}" class="form-control" step="0.01"></td>
-            <td><input type="text" name="sizes_{{ loop.index }}" value="{{ product.sizes }}" class="form-control"></td>
-            <td>
-              <a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Upravit</a>
-              <a href="{{ url_for('admin.product_delete', product_id=product.id) }}" class="btn btn-sm btn-outline-danger rounded-pill">Smazat</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="mt-3">
-      <button type="submit" class="btn btn-dark rounded-pill px-4">Importovat vybrané produkty</button>
+  <form method="GET" action="{{ url_for('admin.products') }}" class="info-card mb-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-8 col-lg-9">
+        <label for="product-search" class="form-label fw-semibold">Vyhledávání podle názvu</label>
+        <input
+          id="product-search"
+          type="search"
+          name="q"
+          value="{{ search_query }}"
+          class="form-control form-control-lg"
+          placeholder="Napiš část názvu produktu..."
+        >
+      </div>
+      <div class="col-md-4 col-lg-3 d-flex gap-2">
+        <button type="submit" class="btn btn-dark rounded-pill flex-fill">Hledat</button>
+        {% if search_query %}
+        <a href="{{ url_for('admin.products') }}" class="btn btn-outline-secondary rounded-pill">Zrušit</a>
+        {% endif %}
+      </div>
     </div>
   </form>
+
+  <div class="section-header mb-3">
+    <h2 class="h4 mb-1">Náhled produktů</h2>
+    <p class="text-secondary mb-0">Zobrazeno produktů: {{ products|length }}</p>
+  </div>
+
+  {% if products %}
+  <div class="table-responsive info-card">
+    <table class="table align-middle mb-0 admin-products-table">
+      <thead>
+        <tr>
+          <th style="min-width: 320px;">Název</th>
+          <th style="width: 140px;">Hlavní obrázek</th>
+          <th style="width: 130px;">Cena</th>
+          <th style="min-width: 160px;">Velikosti</th>
+          <th style="width: 180px;">Upravit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>
+            <div class="fw-semibold text-wrap" style="white-space: normal; line-height: 1.35;">{{ product.name }}</div>
+            {% if product.slug %}
+            <div class="small text-secondary mt-1">/{{ product.slug }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <img
+              src="{{ image_url(product.image or 'default-product.svg') }}"
+              alt="{{ product.image_alt or product.name }}"
+              style="width: 86px; height: 86px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(0,0,0,.08);"
+              loading="lazy"
+            >
+          </td>
+          <td>
+            <strong>{{ '{:,.0f}'.format(product.price or 0).replace(',', ' ') }} Kč</strong>
+            {% if product.original_price and product.original_price > product.price %}
+            <div class="small text-secondary text-decoration-line-through">{{ '{:,.0f}'.format(product.original_price).replace(',', ' ') }} Kč</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge rounded-pill text-bg-light border px-3 py-2">{{ format_product_sizes(product) }}</span>
+          </td>
+          <td>
+            <div class="d-flex gap-2 flex-wrap">
+              <a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Upravit</a>
+              <a href="{{ url_for('admin.product_delete', product_id=product.id) }}" class="btn btn-sm btn-outline-danger rounded-pill">Smazat</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p>Žádné produkty k zobrazení.</p>
+  <div class="info-card text-center py-5">
+    {% if search_query %}
+    <h2 class="h5">Nic jsem podle „{{ search_query }}“ nenašel.</h2>
+    <p class="text-secondary mb-3">Zkus kratší část názvu nebo filtr zruš.</p>
+    <a href="{{ url_for('admin.products') }}" class="btn btn-outline-dark rounded-pill">Zobrazit všechny produkty</a>
+    {% else %}
+    <h2 class="h5">Žádné produkty k zobrazení.</h2>
+    <p class="text-secondary mb-0">Přidej první produkt a tabulka se tady rozsvítí.</p>
+    {% endif %}
+  </div>
   {% endif %}
 </section>
 {% endblock %}
