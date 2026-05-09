@@ -2,7 +2,7 @@
 {% block title %}Admin dashboard{% endblock %}
 {% block content %}
 <section class="container py-5">
-  <div class="section-header mb-4"><div><h1 class="h2 mb-1">Admin panel</h1><p class="text-secondary mb-0">Produkty, objednávky,  a nastavení e-shopu.</p></div><div class="d-flex gap-2 flex-wrap"><a href="#" class="btn btn-dark rounded-pill" disabled>Import z 1688</a><a href="{{ url_for('admin.product_new') }}" class="btn btn-outline-dark rounded-pill">Nový produkt</a><a href="{{ url_for('admin.coupon_new') }}" class="btn btn-outline-dark rounded-pill">Nový kód</a></div></div>
+  <div class="section-header mb-4"><div><h1 class="h2 mb-1">Admin panel</h1><p class="text-secondary mb-0">Produkty, objednávky,  a nastavení e-shopu.</p></div><div class="d-flex gap-2 flex-wrap"><a href="{{ url_for('admin.product_new') }}" class="btn btn-outline-dark rounded-pill">Nový produkt</a><a href="{{ url_for('admin.coupon_new') }}" class="btn btn-outline-dark rounded-pill">Nový kód</a></div></div>
   <div class="row g-4">
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Produkty</span><strong>{{ stats.products }}</strong></div></div>
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Objednávky</span><strong>{{ stats.orders }}</strong></div></div>

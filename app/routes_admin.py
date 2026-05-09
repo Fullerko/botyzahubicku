@@ -33,15 +33,9 @@ def _parse_split_from_note(note):
 
 
 def _sync_product_after_save(product):
-    """Zajistí lokální SKU/varianty a nepošle je do WooCommerce."""
-    # Lokální generování SKU a variant
-    ensure_product_skus_and_variants(product)
-    
-    # Uložíme produkt v DB
+    """Uloží produkt lokálně bez WooCommerce synchronizace."""
     db.session.commit()
-
-    # Bez synchronizace do WooCommerce
-    flash('Produkt, barvy, velikosti a SKU byly automaticky vytvořeny a uloženy lokálně.', 'success')
+    flash('Produkt byl uložen lokálně.', 'success')
 
 
 
