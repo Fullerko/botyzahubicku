@@ -35,7 +35,7 @@ def _parse_split_from_note(note):
 def _sync_product_after_save(product):
     """Uloží produkt lokálně bez WooCommerce synchronizace."""
     db.session.commit()
-    flash('Produkt byl uložen lokálně.', 'success')
+    flash('Produkt byl uložen lokálně bez WooCommerce synchronizace.', 'success')
 
 
 
@@ -85,6 +85,53 @@ def _primary_gender(value):
     return parts[0] if parts else 'unisex'
 
 
+
+def expand_size_range(value):
+    """Převede text velikostí na seznam.
+
+    Podporuje:
+    - "35-40" -> ["35", "36", "37", "38", "39", "40"]
+    - "35,36,37" -> ["35", "36", "37"]
+    - kombinace: "35-37,40"
+    """
+    raw = str(value or '').replace(';', ',')
+    sizes = []
+
+    for part in raw.split(','):
+        part = part.strip()
+        if not part:
+            continue
+
+        if '-' in part:
+            start_raw, end_raw = part.split('-', 1)
+            start_raw = start_raw.strip()
+            end_raw = end_raw.strip()
+
+            try:
+                start = int(float(start_raw.replace(',', '.')))
+                end = int(float(end_raw.replace(',', '.')))
+            except Exception:
+                if part not in sizes:
+                    sizes.append(part)
+                continue
+
+            if start <= end:
+                for number in range(start, end + 1):
+                    item = str(number)
+                    if item not in sizes:
+                        sizes.append(item)
+            else:
+                for number in range(start, end - 1, -1):
+                    item = str(number)
+                    if item not in sizes:
+                        sizes.append(item)
+        else:
+            if part not in sizes:
+                sizes.append(part)
+
+    return sizes
+
+
 def _product_payload_from_form(product=None):
     return {
         'name': request.form.get('name', getattr(product, 'name', '') if product else '').strip(),
@@ -108,6 +155,14 @@ def _product_payload_from_form(product=None):
 
 
 
+
+
+@admin_bp.route('/import-1688', methods=['GET', 'POST'])
+@admin_required
+def import_1688():
+    """Bezpečná záslepka pro staré odkazy v šablonách."""
+    flash('Import z 1688 je vypnutý. Produkt prosím přidej ručně.', 'info')
+    return redirect(url_for('admin.products'))
 
 
 @admin_bp.route('/products')
@@ -278,6 +333,16 @@ def product_edit(product_id):
 
 
 
+@admin_bp.route('/products/<int:product_id>/woocommerce/sync', methods=['POST'])
+@admin_required
+def product_woocommerce_sync(product_id):
+    """Bezpečná záslepka pro staré WooCommerce tlačítko v šabloně."""
+    product = Product.query.get_or_404(product_id)
+    db.session.commit()
+    flash('WooCommerce synchronizace je vypnutá. Produkt zůstal uložený pouze lokálně.', 'info')
+    return redirect(url_for('admin.product_edit', product_id=product.id))
+
+
 @admin_bp.route('/products/<int:product_id>/delete')
 @admin_required
 def product_delete(product_id):
@@ -311,6 +376,16 @@ def order_detail(order_id):
     return render_template('admin/order_detail.html', order=order, Product=Product)
 
 
+
+
+@admin_bp.route('/orders/<int:order_id>/woocommerce/send', methods=['POST'])
+@admin_required
+def order_woocommerce_send(order_id):
+    """Bezpečná záslepka pro staré WooCommerce tlačítko u objednávky."""
+    order = Order.query.get_or_404(order_id)
+    db.session.commit()
+    flash('WooCommerce odesílání objednávky je vypnuté. Objednávka zůstala pouze lokálně.', 'info')
+    return redirect(url_for('admin.order_detail', order_id=order.id))
 
 
 @admin_bp.route('/supplier-report/send-now', methods=['POST'])
