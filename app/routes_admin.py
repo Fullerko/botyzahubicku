@@ -1,3 +1,4 @@
+import json
 import random
 import string
 
@@ -8,6 +9,7 @@ from .utils import admin_required, save_image, set_setting, unique_slug, send_em
 from .woocommerce_api import ensure_product_skus_and_variants, submit_order_to_woocommerce, sync_product_to_woocommerce
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
+from .import_1688 import build_seo_draft, download_product_images, expand_size_range, parse_urls, scrape_1688_product
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -66,6 +68,134 @@ def dashboard():
 
     return render_template('admin/dashboard.html', stats=stats, latest_orders=latest_orders)
 
+def _float_form(name, default=0):
+    try:
+        return float(str(request.form.get(name, default) or default).replace(',', '.'))
+    except Exception:
+        return float(default or 0)
+
+
+def _int_form(name, default=0):
+    try:
+        return int(float(str(request.form.get(name, default) or default).replace(',', '.')))
+    except Exception:
+        return int(default or 0)
+
+
+@admin_bp.route('/import-1688', methods=['GET', 'POST'])
+@admin_required
+def import_1688():
+    categories = Category.query.order_by(Category.name.asc()).all()
+    selected_category_id = request.form.get('category_id') or (categories[0].id if categories else None)
+    selected_category = Category.query.get(int(selected_category_id)) if selected_category_id else None
+    gender = request.form.get('gender', 'damske')
+    raw_urls = request.form.get('urls', '')
+    drafts = []
+    drafts_json = ''
+    default_price = _float_form('default_price', 799)
+    default_original_price = _float_form('default_original_price', 1299)
+    default_stock = _int_form('default_stock', 10)
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'preview':
+            limit = min(max(_int_form('limit', 20), 1), 100)
+            urls = parse_urls(raw_urls, limit=limit)
+            if not urls:
+                flash('Vlož aspoň jednu platnou URL z detail.1688.com.', 'warning')
+            for url in urls:
+                scraped = scrape_1688_product(url, gender=gender)
+                draft = build_seo_draft(scraped, gender=gender, category_name=selected_category.name if selected_category else 'Tenisky')
+                draft['price'] = default_price
+                draft['original_price'] = default_original_price
+                draft['stock'] = default_stock
+                draft['category_id'] = int(selected_category.id) if selected_category else None
+                drafts.append(draft)
+            drafts_json = json.dumps(drafts, ensure_ascii=False)
+            if drafts:
+                flash(f'Načteno {len(drafts)} produktů k náhledu. Obrázky můžeš před importem odškrtnout.', 'success')
+
+        elif action == 'import':
+            try:
+                drafts = json.loads(request.form.get('drafts_json', '[]'))
+            except Exception:
+                drafts = []
+            created = 0
+            skipped = 0
+            for index, draft in enumerate(drafts):
+                if request.form.get(f'import_{index}') != '1':
+                    skipped += 1
+                    continue
+                category_id = int(request.form.get(f'category_id_{index}') or draft.get('category_id') or selected_category_id)
+                category = Category.query.get(category_id)
+                if not category:
+                    skipped += 1
+                    continue
+
+                keep_images = request.form.getlist(f'keep_image_{index}')
+                main_image, gallery = download_product_images(keep_images)
+                product_name = request.form.get(f'name_{index}', draft.get('name', '')).strip() or draft.get('name', '')
+                product_slug = request.form.get(f'slug_{index}', draft.get('slug', '')).strip() or product_name
+                price = _float_form(f'price_{index}', draft.get('price') or default_price)
+                original_price = _float_form(f'original_price_{index}', draft.get('original_price') or default_original_price)
+                stock = _int_form(f'stock_{index}', draft.get('stock') or default_stock)
+                size_range = request.form.get(f'sizes_{index}', draft.get('sizes', '')).strip() or draft.get('sizes', '')
+
+                product = Product(
+                    name=product_name,
+                    slug=unique_slug(Product, product_slug),
+                    brand=request.form.get(f'brand_{index}', draft.get('brand', '')).strip() or draft.get('brand', 'Fashion'),
+                    gender=request.form.get(f'gender_{index}', draft.get('gender', gender)).strip() or gender,
+                    short_description=request.form.get(f'short_description_{index}', draft.get('short_description', '')).strip(),
+                    description=request.form.get(f'description_{index}', draft.get('description', '')).strip(),
+                    seo_title=request.form.get(f'seo_title_{index}', draft.get('seo_title', '')).strip(),
+                    meta_description=request.form.get(f'meta_description_{index}', draft.get('meta_description', '')).strip(),
+                    seo_keywords=request.form.get(f'seo_keywords_{index}', draft.get('seo_keywords', '')).strip(),
+                    image_alt=request.form.get(f'image_alt_{index}', draft.get('image_alt', '')).strip(),
+                    price=price,
+                    original_price=original_price,
+                    stock=stock,
+                    featured=False,
+                    active=True,
+                    category_id=category.id,
+                    image=main_image,
+                    gallery=gallery,
+                    source_url=draft.get('source_url', ''),
+                    supplier_sku=draft.get('offer_id', ''),
+                    specifications=request.form.get(f'specifications_{index}', draft.get('specifications', '')).strip(),
+                    colors=request.form.get(f'colors_{index}', draft.get('colors', '')).strip(),
+                )
+                db.session.add(product)
+                db.session.flush()
+                product.categories.append(category)
+
+                size_list = expand_size_range(size_range)
+                default_size_stock = max(1, stock // max(1, len(size_list) or 1))
+                for size in size_list:
+                    db.session.add(ProductSize(product_id=product.id, size=size, stock=default_size_stock))
+                db.session.flush()
+                ensure_product_skus_and_variants(product)
+                created += 1
+
+            db.session.commit()
+            flash(f'Import hotový: vytvořeno {created} produktů, přeskočeno {skipped}.', 'success')
+            return redirect(url_for('admin.products'))
+
+    return render_template(
+        'admin/import_1688.html',
+        categories=categories,
+        selected_category_id=int(selected_category_id) if selected_category_id else None,
+        gender=gender,
+        raw_urls=raw_urls,
+        default_price=default_price,
+        default_original_price=default_original_price,
+        default_stock=default_stock,
+        drafts=drafts,
+        drafts_json=drafts_json,
+    )
+
+
 @admin_bp.route('/products')
 @admin_required
 def products():
@@ -108,7 +238,7 @@ def product_new():
         gallery_files = request.files.getlist('gallery_images')
         gallery_images = []
 
-        for file in gallery_files[:4]:
+        for file in gallery_files[:8]:
             saved = save_image(file)
             if saved:
                 gallery_images.append(saved)
@@ -177,24 +307,29 @@ def product_edit(product_id):
             if product.category:
                 product.categories.append(product.category)
         product.image = request.form.get('image_url', '').strip() or product.image
+        if request.form.get('delete_main_image'):
+            product.image = 'default-product.svg'
+
+        existing_gallery = list(product.gallery_list)
+        delete_gallery_images = set(request.form.getlist('delete_gallery_images'))
+        existing_gallery = [img for img in existing_gallery if img not in delete_gallery_images]
 
         new_gallery_text = request.form.get('gallery', '').strip()
         if new_gallery_text:
-            product.gallery = new_gallery_text
-                
+            existing_gallery = [img.strip() for img in new_gallery_text.split(',') if img.strip()]
+
         image = save_image(request.files.get('image'))
         gallery_files = request.files.getlist('gallery_images')
         gallery_images = []
         product.specifications = request.form.get('specifications', '').strip()
         product.colors = request.form.get('colors', '').strip()
 
-        for file in gallery_files[:4]:
+        for file in gallery_files[:8]:
             saved = save_image(file)
             if saved:
                 gallery_images.append(saved)
 
-        if gallery_images:
-            product.gallery = ",".join(gallery_images)
+        product.gallery = ",".join(existing_gallery + gallery_images)
         product.source_url = request.form.get('source_url', '').strip()
         product.supplier_sku = request.form.get('supplier_sku', '').strip()
         if image:

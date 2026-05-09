@@ -5,8 +5,9 @@
   <div class="section-header mb-4">
     <div><h1 class="h2 mb-1">Produkty</h1></div>
     <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('admin.import_1688') }}" class="btn btn-dark rounded-pill">Import z 1688 URL</a>
       <a href="{{ url_for('admin.supplier_sku_import') }}" class="btn btn-outline-dark rounded-pill">Import SKU dodavatele</a>
-      <a href="{{ url_for('admin.product_new') }}" class="btn btn-dark rounded-pill">Přidat produkt</a>
+      <a href="{{ url_for('admin.product_new') }}" class="btn btn-outline-dark rounded-pill">Přidat produkt</a>
     </div>
   </div>
   <div class="table-responsive info-card"><table class="table align-middle mb-0"><thead><tr><th>Název</th><th>Značka</th><th>Kategorie</th><th>Cena</th><th>Sklad</th><th></th></tr></thead><tbody>{% for product in products %}<tr><td>{{ product.name }}</td><td>{{ product.brand }}</td><td>{{ product.category.name }}</td><td>{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</td><td>{{ product.stock }}</td><td class="text-end"><a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('admin.product_edit', product_id=product.id) }}">Upravit</a> <a class="btn btn-sm btn-outline-danger rounded-pill" href="{{ url_for('admin.product_delete', product_id=product.id) }}">Smazat</a></td></tr>{% endfor %}</tbody></table></div>

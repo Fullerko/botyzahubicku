@@ -88,7 +88,23 @@
   <small class="text-muted">Popiš, co je na obrázku. Pomáhá vyhledávání obrázků i přístupnosti.</small>
 </div>
 
-<div class="col-12"><label class="form-label">Upload obrázku</label><input class="form-control" type="file" name="image"></div>
+{% if product and product.image and product.image != 'default-product.svg' %}
+  <div class="col-12">
+    <label class="form-label">Aktuální hlavní obrázek</label>
+    <div class="d-flex align-items-center gap-3 border rounded-4 p-3 bg-light flex-wrap">
+      <img src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}" style="width:110px;height:110px;object-fit:cover;border-radius:14px;">
+      <div>
+        <div class="small text-muted mb-2">Když má fotka čínské znaky nebo ji nechceš, můžeš ji smazat a nahrát novou.</div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="delete_main_image" value="1" id="delete_main_image">
+          <label class="form-check-label" for="delete_main_image">Smazat hlavní obrázek</label>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="col-12"><label class="form-label">Upload hlavního obrázku</label><input class="form-control" type="file" name="image" accept="image/*"></div>
 <div class="col-12"><label class="form-label">Krátký popis</label><input class="form-control" name="short_description" value="{{ product.short_description if product else '' }}"></div>
 <div class="col-12"><label class="form-label">Detail popisu</label><textarea class="form-control" name="description" rows="5">{{ product.description if product else '' }}</textarea></div>
 <div class="col-12 mt-3">
@@ -127,7 +143,7 @@
   </small>
 </div>
 <div class="col-12">
-  <label class="form-label">Galerie produktu / fotky 2–5</label>
+  <label class="form-label">Galerie produktu / fotky 2–9</label>
   <input
     class="form-control"
     type="file"
@@ -136,18 +152,27 @@
     multiple
   >
   <small class="text-muted">
-    Nahraj až 4 další fotky produktu. Můžeš je přetáhnout nebo vybrat ze složky.
+    Nahraj další fotky produktu. Fotky s čínskými znaky můžeš níže smazat zaškrtnutím.
   </small>
 </div>
 
 {% if product and product.gallery %}
   <div class="col-12">
     <label class="form-label">Aktuální galerie</label>
-    <div class="d-flex gap-2 flex-wrap">
+    <div class="d-flex gap-3 flex-wrap">
       {% for img in product.gallery_list %}
-        <img src="{{ image_url(img) }}" style="width:80px;height:80px;object-fit:cover;border-radius:12px;">
+        <div class="border rounded-4 p-2 bg-light" style="width:130px;">
+          <img src="{{ image_url(img) }}" style="width:100%;height:90px;object-fit:cover;border-radius:12px;" alt="{{ product.image_alt or product.name }}">
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="delete_gallery_images" value="{{ img }}" id="delete_gallery_{{ loop.index }}">
+            <label class="form-check-label small" for="delete_gallery_{{ loop.index }}">Smazat</label>
+          </div>
+        </div>
       {% endfor %}
     </div>
+    <label class="form-label mt-3">Ruční seznam galerie</label>
+    <textarea class="form-control" name="gallery" rows="2" placeholder="filename1.webp,filename2.webp">{{ product.gallery }}</textarea>
+    <small class="text-muted">Nepovinné. Pokud pole upravíš, přepíše aktuální pořadí galerie.</small>
   </div>
 {% endif %}
 <div class="col-md-3 form-check ms-3"><input class="form-check-input" type="checkbox" name="featured" {% if not product or product.featured %}checked{% endif %}><label class="form-check-label">Top produkt</label></div>
