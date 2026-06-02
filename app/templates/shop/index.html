@@ -11,7 +11,7 @@
                                                   <p>{{ settings.get('hero_subtitle', 'Lehké, stylové a pohodlné modely pro každý den.') }}</p>
 
                                                   <!-- Tlačítka hero, mobil vycentrované -->
-                                                  <div class="d-flex gap-3 flex-wrap mt-4 justify-content-center justify-content-md-start">
+                                                  <div class="hero-points-mobile mt-4 d-flex flex-wrap gap-3 justify-content-start d-md-none" style="margin-left: 10px;">
                                                             <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat boty') }}</a>
                                                             <a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_secondary_text', 'Produkty') }}</a>
                                                   </div>
