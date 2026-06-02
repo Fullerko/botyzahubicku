@@ -10,13 +10,13 @@
           <h1>{{ settings.get('hero_title', 'Běžecké, sportovní i elegantní boty') }}</h1>
           <p>{{ settings.get('hero_subtitle', 'Lehké, stylové a pohodlné modely pro každý den.') }}</p>
           <div class="d-flex gap-3 flex-wrap mt-4">
-            <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat boty') }}</a>
+            <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat') }}</a>
             <a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_secondary_text', 'Produkty') }}</a>
           </div>
           <div class="hero-points mt-4">
-            <div><i class="bi bi-truck"></i> {{ settings.get('hero_feature_1', 'Kurýrem až domů') }}</div>
-            <div><i class="bi bi-calendar-check"></i> {{ settings.get('hero_feature_2', '8–12 dní doručení') }}</div>
-            <div><i class="bi bi-shield-lock"></i> {{ settings.get('hero_feature_3', 'Zabezpečená platba') }}</div>
+            <div><i class="bi bi-star"></i> Nové kousky</div>
+			<div><i class="bi bi-award"></i> Prémiová kvalita</div>
+			<div><i class="bi bi-shield-lock"></i> Záruka 2 roky</div>
           </div>
         </div>
         <div class="col-lg-6">
