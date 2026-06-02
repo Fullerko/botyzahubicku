@@ -438,7 +438,14 @@ def products():
         q = q.order_by(Product.created_at.desc())
 
     products = q.all()
-    brands = [x[0] for x in db.session.query(Product.brand).distinct().order_by(Product.brand.asc()).all()]
+    brands = [
+        x[0]
+        for x in db.session.query(Product.brand)
+        .distinct()
+        .order_by(Product.brand.asc())
+        .all()
+        if x[0] and x[0].lower() != "wc"
+    ]
     sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47']
     categories = Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all()
 
