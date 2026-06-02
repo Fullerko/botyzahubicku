@@ -13,13 +13,15 @@
             <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat boty') }}</a>
             <a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_secondary_text', 'Produkty') }}</a>
           </div>
-          <div class="hero-points mt-4 d-flex flex-wrap gap-3 justify-content-start">
+
+          <!-- Desktop bublinky -->
+          <div class="hero-points mt-4 d-flex flex-wrap gap-3 justify-content-start d-none d-md-flex">
             <div><i class="bi bi-truck"></i> Kurýrem až domů</div>
             <div><i class="bi bi-award"></i> Prémiová kvalita</div>
             <div><i class="bi bi-shield-lock"></i> Záruka 2 roky</div>
           </div>
 
-          <!-- Mobilní verze: pouze 3 bublinky -->
+          <!-- Mobilní verze: pouze 3 bublinky, odstraněno Kurýrem až domů -->
           <div class="hero-points-mobile mt-2 d-flex flex-wrap gap-3 justify-content-center d-md-none">
             <div class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold">Prémiová kvalita</div>
             <div class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold">Záruka 2 roky</div>
@@ -28,6 +30,12 @@
           <style>
             @media (min-width: 768px) {
               .hero-points-mobile { display: none; }
+            }
+            @media (max-width: 768px) {
+              .hero-points-mobile .btn {
+                flex: 1 1 45%;
+                text-align: center;
+              }
             }
           </style>
           <!-- Konec mobilní verze -->
