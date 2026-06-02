@@ -90,7 +90,28 @@ def ensure_schema_columns():
                         conn.execute(text(statement))
 
 
+def _cleanup_product_brands():
+    """Jednorazove i opakovane vycisti spatne znacky v DB.
+
+    Zatim nechceme mazat produkty - znacka je jen text ve sloupci
+    product.brand. Hodnoty 'wc'/'WC' a prazdne znacky tedy prepiseme
+    na bezpecnou vychozi znacku, aby se uz nemohly vracet do filtru.
+    """
+    changed = False
+    for product in Product.query.all():
+        clean = (product.brand or '').strip()
+        if not clean or clean.casefold() == 'wc':
+            clean = 'Fashion'
+        if product.brand != clean:
+            product.brand = clean
+            changed = True
+    if changed:
+        db.session.commit()
+
+
 def seed_data():
+    _cleanup_product_brands()
+
     if not User.query.filter_by(email='admin@eshop2.local').first():
         admin = User(
             email='admin@eshop2.local',

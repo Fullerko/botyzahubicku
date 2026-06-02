@@ -69,6 +69,13 @@ def _int_form(name, default=0):
         return int(default or 0)
 
 
+def _normalize_brand(value, default='Fashion'):
+    brand = (value or '').strip()
+    if not brand or brand.casefold() == 'wc':
+        return default
+    return brand
+
+
 def _selected_gender(default='unisex'):
     values = request.form.getlist('gender')
     if values:
@@ -174,7 +181,7 @@ def format_product_sizes(product):
 def _product_payload_from_form(product=None):
     return {
         'name': request.form.get('name', getattr(product, 'name', '') if product else '').strip(),
-        'brand': request.form.get('brand', getattr(product, 'brand', '') if product else '').strip(),
+        'brand': _normalize_brand(request.form.get('brand', getattr(product, 'brand', '') if product else '')),
         'slug': request.form.get('slug', getattr(product, 'slug', '') if product else '').strip(),
         'short_description': request.form.get('short_description', getattr(product, 'short_description', '') if product else '').strip(),
         'description': request.form.get('description', getattr(product, 'description', '') if product else '').strip(),

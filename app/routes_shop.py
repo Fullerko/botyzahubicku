@@ -21,6 +21,43 @@ AFF_COOKIE = 'bzh_affiliate_code'
 AFF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90
 
 
+def _clean_brand(value):
+    return (value or '').strip()
+
+
+def _blocked_brand(value):
+    return _clean_brand(value).casefold() == 'wc'
+
+
+def _product_filter_brands():
+    """Vrati znacky pro filtr.
+
+    Znacky se netvori v samostatne tabulce - berou se automaticky
+    z Product.brand. Proto tady zaroven cistime mezery, schovavame WC/wc
+    a deduplikujeme rozdilne velikosti pismen.
+    """
+    rows = (
+        db.session.query(Product.brand)
+        .filter(Product.active.is_(True))
+        .filter(Product.brand.isnot(None))
+        .filter(db.func.trim(Product.brand) != '')
+        .filter(db.func.lower(db.func.trim(Product.brand)) != 'wc')
+        .order_by(db.func.lower(db.func.trim(Product.brand)).asc())
+        .all()
+    )
+
+    brands = []
+    seen = set()
+    for value, in rows:
+        clean = _clean_brand(value)
+        key = clean.casefold()
+        if not key or key == 'wc' or key in seen:
+            continue
+        brands.append(clean)
+        seen.add(key)
+    return brands
+
+
 def _coupon_by_code(code):
     code = (code or '').strip()
     if not code:
@@ -392,7 +429,9 @@ def products():
     q = Product.query.filter_by(active=True)
 
     category_slug = request.args.get('category', '')
-    brand = request.args.get('brand', '')
+    brand = _clean_brand(request.args.get('brand', ''))
+    if _blocked_brand(brand):
+        brand = ''
     size = request.args.get('size', '')
     sort = request.args.get('sort', 'newest')
     search = request.args.get('search', '').strip()
@@ -415,7 +454,7 @@ def products():
         q = q.filter(Product.gender.like(f'%{gender}%'))
 
     if brand:
-        q = q.filter(Product.brand == brand)
+        q = q.filter(db.func.lower(db.func.trim(Product.brand)) == brand.casefold())
 
     if search:
         q = q.filter(
@@ -438,14 +477,7 @@ def products():
         q = q.order_by(Product.created_at.desc())
 
     products = q.all()
-    brands = [
-        x[0]
-        for x in db.session.query(Product.brand)
-        .distinct()
-        .order_by(Product.brand.asc())
-        .all()
-        if x[0] and x[0].lower() != "wc"
-    ]
+    brands = _product_filter_brands()
     sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47']
     categories = Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all()
 
