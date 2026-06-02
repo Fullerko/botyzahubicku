@@ -131,7 +131,46 @@
       {% endif %}
     {% endwith %}
   </div>
-  {% block content %}{% endblock %}
+  
+<div class="container my-4">
+  <div class="row g-3 justify-content-center benefits-row">
+    <div class="col-6 col-md-4 d-flex justify-content-center">
+      <div class="benefit-box">🚚 Kurýrem až domů</div>
+    </div>
+    <div class="col-6 col-md-4 d-flex justify-content-center">
+      <div class="benefit-box">📦 8–12 dní doručení</div>
+    </div>
+    <div class="col-6 col-md-4 d-flex justify-content-center">
+      <div class="benefit-box">🔒 Bezpečná platba</div>
+    </div>
+    <div class="col-6 col-md-4 d-flex justify-content-center">
+      <div class="benefit-box">👟 Výměna velikosti zdarma</div>
+    </div>
+  </div>
+  <div class="text-center my-3">
+    <span class="fw-bold fs-5">⭐ 2 000+ spokojených zákazníků</span>
+  </div>
+</div>
+
+<style>
+.benefit-box {
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 10px 15px;
+  text-align: center;
+  background-color: #fff;
+  white-space: nowrap;
+  font-size: 14px;
+}
+@media (max-width: 768px) {
+  .benefit-box {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
+</style>
+
+{% block content %}{% endblock %}
 </main>
 
 <footer class="footer mt-5 py-5 bg-dark text-white">
