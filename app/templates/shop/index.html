@@ -13,26 +13,24 @@
             <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat boty') }}</a>
             <a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_secondary_text', 'Produkty') }}</a>
           </div>
-          <div class="hero-points mt-4">
-            <div><i class="bi bi-truck"></i> {{ settings.get('hero_feature_1', 'Kurýrem až domů') }}</div>
-            <div><i class="bi bi-calendar-check"></i> {{ settings.get('hero_feature_2', '8–12 dní doručení') }}</div>
-            <div><i class="bi bi-shield-lock"></i> {{ settings.get('hero_feature_3', 'Zabezpečená platba') }}</div>
+          <div class="hero-points mt-4 d-flex flex-wrap gap-3 justify-content-start">
+            <div><i class="bi bi-truck"></i> Kurýrem až domů</div>
+            <div><i class="bi bi-award"></i> Prémiová kvalita</div>
+            <div><i class="bi bi-shield-lock"></i> Záruka 2 roky</div>
           </div>
 
-          <!-- Nový druhý řádek bublin -->
-          <div class="hero-trust mt-2 d-flex flex-wrap justify-content-center gap-3">
-            <div class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold">⭐ 2 000+ spokojených zákazníků</div>
+          <!-- Mobilní verze: pouze 3 bublinky -->
+          <div class="hero-points-mobile mt-2 d-flex flex-wrap gap-3 justify-content-center d-md-none">
+            <div class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold">Prémiová kvalita</div>
             <div class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold">Záruka 2 roky</div>
+            <div class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold">2000+ spokojených zákazníků</div>
           </div>
           <style>
-            @media (max-width: 768px) {
-              .hero-trust .btn {
-                flex: 1 1 45%;
-                text-align: center;
-              }
+            @media (min-width: 768px) {
+              .hero-points-mobile { display: none; }
             }
           </style>
-          <!-- Konec nového druhého řádku bublin -->
+          <!-- Konec mobilní verze -->
 
         </div>
         <div class="col-lg-6">
@@ -49,6 +47,7 @@
   </div>
 </section>
 
+<!-- Zbytek stránky zůstává nezměněn -->
 <section class="container py-5">
   <div class="section-header">
     <div>
