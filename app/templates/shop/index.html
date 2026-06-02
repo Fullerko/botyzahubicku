@@ -1,46 +1,3 @@
-
-
-<!-- Benefity a trust element pod horní ikonami -->
-<div class="container my-3 benefits-container">
-  <div class="row g-3 justify-content-center benefits-row">
-    <div class="col-6 col-md-3 d-flex justify-content-center">
-      <div class="benefit-box">🚚 Kurýrem až domů</div>
-    </div>
-    <div class="col-6 col-md-3 d-flex justify-content-center">
-      <div class="benefit-box">📦 8–12 dní doručení</div>
-    </div>
-    <div class="col-6 col-md-3 d-flex justify-content-center">
-      <div class="benefit-box">🔒 Bezpečná platba</div>
-    </div>
-    <div class="col-6 col-md-3 d-flex justify-content-center">
-      <div class="benefit-box">👟 Výměna velikosti zdarma</div>
-    </div>
-  </div>
-  <div class="text-center my-2">
-    <span class="fw-bold fs-5 d-none d-md-inline">⭐ 2 000+ spokojených zákazníků</span>
-    <span class="fw-bold fs-5 d-inline d-md-none">⭐ 2 000+ zákazníků</span>
-  </div>
-</div>
-
-<style>
-.benefit-box {
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  padding: 10px 15px;
-  text-align: center;
-  background-color: #fff;
-  white-space: nowrap;
-  font-size: 14px;
-}
-@media (max-width: 768px) {
-  .benefit-box {
-    font-size: 13px;
-    padding: 8px 10px;
-  }
-}
-</style>
-
-
 {% extends 'base.html' %}
 {% block title %}{{ settings.get('site_name', 'BotyZaHubicku.cz') }} | stylové boty{% endblock %}
 {% block content %}
@@ -64,7 +21,7 @@
         </div>
         <div class="col-lg-6">
           <div class="hero-card shadow-lg">
-            <img class="hero-photo" src="{{ settings.get('hero_image_url', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80') }}" alt="hero shoe">
+            <img class="hero-photo" src="{{ settings.get('hero_image_url', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80') }}" alt="hero shoe"><style>.hero-photo{max-height:400px;object-fit:cover;object-position:center top;}</style>
             <div class="row g-3 mt-1">
               <div class="col-6"><div class="mini-stat"><strong>{{ settings.get('hero_stat_1_title', 'Doprava zdarma') }}</strong><span>{{ settings.get('hero_stat_1_text', 'na každou objednávku') }}</span></div></div>
               <div class="col-6"><div class="mini-stat"><strong>{{ settings.get('hero_stat_2_title', 'Nové modely') }}</strong><span>{{ settings.get('hero_stat_2_text', 'pravidelně skladem') }}</span></div></div>
