@@ -22,21 +22,39 @@
           </div>
 
           <!-- Mobilní verze: pouze 3 bublinky, odstraněno Kurýrem až domů -->
-          <div class="hero-points-mobile mt-2 d-flex flex-wrap gap-3 justify-content-center d-md-none">
-            <div><i class="bi bi-truck"></i> Prémiová kvalita</div>
-            <div><i class="bi bi-award"></i> Záruka 2 roky</div>
-            <div><i class="bi bi-shield-lock"></i> 2000+ spokojených zákazníků</div>
+          <div class="hero-points-mobile mt-4 d-flex flex-wrap gap-3 justify-content-center d-md-none">
+                    <div class="btn btn-outline-dark rounded-circle px-4 py-3 fw-semibold d-flex align-items-center justify-content-center">
+                              <i class="bi bi-award me-2"></i> Prémiová kvalita
+                    </div>
+                    <div class="btn btn-outline-dark rounded-circle px-4 py-3 fw-semibold d-flex align-items-center justify-content-center">
+                              <i class="bi bi-shield-lock me-2"></i> Záruka 2 roky
+                    </div>
+                    <div class="btn btn-outline-dark rounded-circle px-4 py-3 fw-semibold d-flex align-items-center justify-content-center">
+                              <i class="bi bi-person-check me-2"></i> 2000+ spokojených zákazníků
+                    </div>
           </div>
+
           <style>
-            @media (min-width: 768px) {
-              .hero-points-mobile { display: none; }
-            }
-            @media (max-width: 768px) {
-              .hero-points-mobile .btn {
-                flex: 1 1 45%;
-                text-align: center;
-              }
-            }
+                    @media (min-width: 768px) {
+                              .hero-points-mobile { display: none; }
+                    }
+
+                    @media (max-width: 768px) {
+                              .hero-points-mobile .btn {
+                                        flex: 1 1 30%;
+                                        text-align: center;
+                                        border-radius: 50%; /* kolečko */
+                                        height: 70px;       /* výška kruhu */
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        white-space: nowrap;
+                                        padding: 0 10px;
+                              }
+                              .hero-points-mobile .btn i {
+                                        margin-right: 5px;  /* malý odstup ikony od textu */
+                              }
+                    }
           </style>
           <!-- Konec mobilní verze -->
 
