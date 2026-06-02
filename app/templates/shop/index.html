@@ -21,14 +21,17 @@
             <div><i class="bi bi-shield-lock"></i> Záruka 2 roky</div>
           </div>
 
-          <!-- Mobilní verze: pouze 3 bublinky, odstraněno Kurýrem až domů -->
+          <!-- Mobilní verze: 2 bublinky nahoře, 1 bublinka dole -->
           <div class="hero-points-mobile mt-4 d-flex flex-wrap gap-3 justify-content-center d-md-none">
+                    <!-- První řádek -->
                     <div class="btn btn-outline-dark rounded-circle px-4 py-3 fw-semibold d-flex align-items-center justify-content-center">
                               <i class="bi bi-award me-2"></i> Prémiová kvalita
                     </div>
                     <div class="btn btn-outline-dark rounded-circle px-4 py-3 fw-semibold d-flex align-items-center justify-content-center">
                               <i class="bi bi-shield-lock me-2"></i> Záruka 2 roky
                     </div>
+                    <!-- Druhý řádek -->
+                    <div class="w-100"></div> <!-- nutný pro zalomení -->
                     <div class="btn btn-outline-dark rounded-circle px-4 py-3 fw-semibold d-flex align-items-center justify-content-center">
                               <i class="bi bi-person-check me-2"></i> 2000+ spokojených zákazníků
                     </div>
@@ -41,7 +44,7 @@
 
                     @media (max-width: 768px) {
                               .hero-points-mobile .btn {
-                                        flex: 1 1 30%;
+                                        flex: 1 1 45%;
                                         text-align: center;
                                         border-radius: 50%; /* kolečko */
                                         height: 70px;       /* výška kruhu */
@@ -52,7 +55,7 @@
                                         padding: 0 10px;
                               }
                               .hero-points-mobile .btn i {
-                                        margin-right: 5px;  /* malý odstup ikony od textu */
+                                        margin-right: 5px;
                               }
                     }
           </style>
