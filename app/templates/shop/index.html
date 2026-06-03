@@ -23,26 +23,27 @@
         </div>
 
         <div class="col-lg-6">
-          <div class="hero-card shadow-lg">
-            <img class="hero-photo" 
-                 style="object-fit: cover; object-position: center 20%; height: 400px; width: 100%;" 
-                 src="{{ settings.get('hero_image_url', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80') }}" 
-                 alt="hero shoe">
-            <div class="row g-3 mt-1">
-              <div class="col-6">
-                <div class="mini-stat">
-                  <strong>{{ settings.get('hero_stat_1_title', 'Doprava zdarma') }}</strong>
-                  <span>{{ settings.get('hero_stat_1_text', 'na každou objednávku') }}</span>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="mini-stat">
-                  <strong>{{ settings.get('hero_stat_2_title', 'Nové modely') }}</strong>
-                  <span>{{ settings.get('hero_stat_2_text', 'pravidelně skladem') }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+		  <div class="hero-card shadow-lg">
+			<img class="hero-photo" 
+				  style="object-fit: cover; object-position: center 50%; height: 400px; width: 100%;" 
+				  src="{{ settings.get('hero_image_url', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80') }}" 
+				  alt="hero shoe">
+			<div class="row g-3 mt-1">
+			  <div class="col-6">
+				<div class="mini-stat">
+				  <strong>{{ settings.get('hero_stat_1_title', 'Doprava zdarma') }}</strong>
+				  <span>{{ settings.get('hero_stat_1_text', 'na každou objednávku') }}</span>
+				</div>
+			  </div>
+			  <div class="col-6">
+				<div class="mini-stat">
+				  <strong>{{ settings.get('hero_stat_2_title', 'Nové modely') }}</strong>
+				  <span>{{ settings.get('hero_stat_2_text', 'pravidelně skladem') }}</span>
+				</div>
+			  </div>
+			</div>
+		  </div>
+		</div>
         </div>
 
       </div>
