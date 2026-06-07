@@ -158,3 +158,39 @@ body { background: var(--bg); color: var(--dark); font-family: Inter, system-ui,
 .product-card .detail-btn {
   margin-top: auto;
 }
+
+/* Footer - kontakt a sociální sítě */
+.footer .footer-links a {
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.footer .footer-links a:hover {
+  color: #ff4b00;
+  transform: translateX(3px);
+}
+
+.footer .footer-links i {
+  color: #ff4b00 !important;
+  min-width: 22px;
+}
+
+.footer h6 {
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.footer-logo {
+  max-height: 45px;
+  width: auto;
+}
+
+@media (max-width: 991px) {
+  .footer {
+    text-align: left;
+  }
+
+  .footer .row {
+    row-gap: 28px;
+  }
+}
