@@ -22,9 +22,11 @@ def create_app():
 
     upload_folder = '/data/uploads'
     qr_folder = os.path.join(upload_folder, 'qr')
+    email_attachment_folder = '/data/email_attachments'
 
     os.makedirs(upload_folder, exist_ok=True)
     os.makedirs(qr_folder, exist_ok=True)
+    os.makedirs(email_attachment_folder, exist_ok=True)
         # Jednorázově zkopíruje obrázky z projektu do Render disku
     local_uploads = os.path.join(os.getcwd(), 'uploads')
     if os.path.exists(local_uploads):
@@ -41,6 +43,7 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = upload_folder
     app.config['QR_FOLDER'] = qr_folder
+    app.config['EMAIL_ATTACHMENT_FOLDER'] = email_attachment_folder
     app.config['FREE_SHIPPING_THRESHOLD'] = 0
     app.config['SHIPPING_PRICE'] = 0
     app.config['DELIVERY_TEXT'] = 'Doručení 8–12 dní až ke dveřím zdarma.'
@@ -129,11 +132,13 @@ Sitemap: {sitemap}
     from .routes_shop import shop_bp
     from .routes_auth import auth_bp
     from .routes_admin import admin_bp
+    from .routes_emailing import emailing_bp
     from .analytics import analytics_bp
 
     app.register_blueprint(shop_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(emailing_bp)
     app.register_blueprint(analytics_bp)
 
     with app.app_context():
@@ -146,6 +151,9 @@ Sitemap: {sitemap}
 
         from .supplier_scheduler import start_supplier_report_scheduler
         start_supplier_report_scheduler(app)
+
+        from .emailing_scheduler import start_emailing_scheduler
+        start_emailing_scheduler(app)
 
         zimni = Category.query.filter_by(slug='zimni').first()
         if not zimni:

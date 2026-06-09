@@ -229,6 +229,11 @@ def seed_data():
         'supplier_report_minute': '0',
         'supplier_report_timezone': 'Europe/Prague',
         'supplier_report_only_paid': '1',
+        'emailing_sender_name': 'BotyZaHubicku.cz',
+        'emailing_reply_to': '',
+        'emailing_batch_size': '50',
+        'emailing_delay_seconds': '0',
+        'emailing_max_attachment_mb': '10',
     }
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():
@@ -250,3 +255,9 @@ def seed_data():
         db.session.add(Coupon(code='WELCOME5', label='Welcome', description='5 % klient bez partnera', discount_percent_client=5, commission_percent_partner=0, affiliate_partner_id=None))
 
     db.session.commit()
+
+    try:
+        from .emailing_service import sync_existing_contacts
+        sync_existing_contacts()
+    except Exception:
+        db.session.rollback()

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Kampaně | Emailing{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div><h1 class="h2 mb-1">Emailing kampaně</h1><p class="text-secondary mb-0">Koncepty, fronta, odesílání po dávkách a log příjemců.</p></div>
+    <a href="{{ url_for('admin.emailing_campaign_new') }}" class="btn btn-dark rounded-pill">Nová kampaň</a>
+  </div>
+  <div class="info-card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Název</th><th>Předmět</th><th>Stav</th><th>Příjemci</th><th>Odesláno</th><th>Chyby</th><th>Vytvořeno</th><th></th></tr></thead>
+        <tbody>
+        {% for campaign in campaigns %}
+          <tr>
+            <td><a href="{{ url_for('admin.emailing_campaign_detail', campaign_id=campaign.id) }}">{{ campaign.title }}</a></td>
+            <td>{{ campaign.subject }}</td>
+            <td><span class="badge text-bg-secondary">{{ campaign.status }}</span></td>
+            <td>{{ campaign.total_recipients }}</td>
+            <td>{{ campaign.sent_count }}</td>
+            <td>{{ campaign.failed_count }}</td>
+            <td>{{ campaign.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+            <td><a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('admin.emailing_campaign_edit', campaign_id=campaign.id) }}">Upravit</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="text-secondary">Zatím žádné kampaně.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

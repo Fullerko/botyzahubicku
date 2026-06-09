@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 from flask_login import UserMixin
 from sqlalchemy.orm import validates
 from . import db
@@ -249,3 +250,121 @@ class SiteSetting(db.Model):
     @validates('key')
     def validate_key(self, key, value):
         return value.strip()
+
+
+
+class EmailContact(db.Model):
+    """Jeden marketingový kontakt dostupný pro admin emailing."""
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(160), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(160), default='')
+    phone = db.Column(db.String(40), default='')
+    source = db.Column(db.String(40), default='manual')
+    has_order = db.Column(db.Boolean, default=False, index=True)
+    has_paid_order = db.Column(db.Boolean, default=False, index=True)
+    has_cart = db.Column(db.Boolean, default=False, index=True)
+    is_affiliate = db.Column(db.Boolean, default=False, index=True)
+    orders_count = db.Column(db.Integer, default=0)
+    total_spent = db.Column(db.Float, default=0)
+    last_order_at = db.Column(db.DateTime, nullable=True)
+    last_cart_at = db.Column(db.DateTime, nullable=True)
+    cart_json = db.Column(db.Text, default='')
+    note = db.Column(db.Text, default='')
+    marketing_enabled = db.Column(db.Boolean, default=True, index=True)
+    unsubscribed_at = db.Column(db.DateTime, nullable=True)
+    deleted_at = db.Column(db.DateTime, nullable=True, index=True)
+    unsubscribe_token = db.Column(db.String(80), unique=True, nullable=False, default=lambda: uuid.uuid4().hex)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    recipients = db.relationship('EmailCampaignRecipient', backref='contact', lazy=True)
+
+    @property
+    def display_name(self):
+        return self.name or self.email
+
+    @property
+    def can_receive_email(self):
+        return bool(self.email and self.marketing_enabled and not self.unsubscribed_at and not self.deleted_at)
+
+
+class CartLead(db.Model):
+    """E-mail zachycený z košíku nebo checkoutu před vytvořením objednávky."""
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(160), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(160), default='')
+    phone = db.Column(db.String(40), default='')
+    session_id = db.Column(db.String(120), default='')
+    cart_json = db.Column(db.Text, default='')
+    subtotal = db.Column(db.Float, default=0)
+    item_count = db.Column(db.Integer, default=0)
+    converted_order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=True)
+    converted_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class EmailSuppression(db.Model):
+    """Trvalé vyřazení e-mailu z rozesílek kvůli odhlášení/blacklistu."""
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(160), unique=True, nullable=False, index=True)
+    reason = db.Column(db.String(120), default='manual')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class EmailCampaign(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(180), nullable=False)
+    subject = db.Column(db.String(220), nullable=False)
+    html_body = db.Column(db.Text, default='')
+    text_body = db.Column(db.Text, default='')
+    status = db.Column(db.String(30), default='draft', index=True)  # draft, queued, sending, paused, done, cancelled
+    segment_type = db.Column(db.String(40), default='all')
+    filters_json = db.Column(db.Text, default='{}')
+    selected_contact_ids = db.Column(db.Text, default='[]')
+    excluded_contact_ids = db.Column(db.Text, default='[]')
+    batch_size = db.Column(db.Integer, default=50)
+    delay_seconds = db.Column(db.Integer, default=0)
+    total_recipients = db.Column(db.Integer, default=0)
+    sent_count = db.Column(db.Integer, default=0)
+    failed_count = db.Column(db.Integer, default=0)
+    skipped_count = db.Column(db.Integer, default=0)
+    queued_at = db.Column(db.DateTime, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    last_error = db.Column(db.Text, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    recipients = db.relationship('EmailCampaignRecipient', backref='campaign', lazy=True, cascade='all, delete-orphan')
+    attachments = db.relationship('EmailAttachment', backref='campaign', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def pending_count(self):
+        return max(0, (self.total_recipients or 0) - (self.sent_count or 0) - (self.failed_count or 0) - (self.skipped_count or 0))
+
+
+class EmailCampaignRecipient(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('email_campaign.id'), nullable=False, index=True)
+    contact_id = db.Column(db.Integer, db.ForeignKey('email_contact.id'), nullable=True, index=True)
+    email = db.Column(db.String(160), nullable=False, index=True)
+    name = db.Column(db.String(160), default='')
+    status = db.Column(db.String(30), default='pending', index=True)  # pending, sent, failed, skipped
+    attempts = db.Column(db.Integer, default=0)
+    error_message = db.Column(db.Text, default='')
+    sent_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('campaign_id', 'email', name='uq_campaign_recipient_email'),)
+
+
+class EmailAttachment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('email_campaign.id'), nullable=False, index=True)
+    filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(600), nullable=False)
+    mime_type = db.Column(db.String(120), default='application/octet-stream')
+    size_bytes = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

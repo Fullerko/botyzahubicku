@@ -21,6 +21,7 @@
 <tr>
 <th>Číslo</th>
 <th>Zákazník</th>
+<th>E-mail</th>
 <th>Platba</th>
 <th>Kód</th>
 <th>Provize</th>
@@ -35,6 +36,7 @@
 <tr>
 <td>{{ order.order_number }}</td>
 <td>{{ order.customer_name }}</td>
+<td><a href="mailto:{{ order.email }}">{{ order.email }}</a></td>
 <td>{{ order.payment_method }}</td>
 <td>{{ order.coupon_code or '—' }}</td>
 <td>{{ ((order._commission_amount if order._commission_amount is defined and order._commission_amount is not none else order.affiliate_commission_amount or 0)|int)|string|replace(',', ' ') }} Kč</td>

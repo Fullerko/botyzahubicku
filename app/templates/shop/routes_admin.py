@@ -1,16 +1,21 @@
 import json
+import mimetypes
+import os
 import random
 import string
+import uuid
 
-from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Order, Product, ProductSize, ProductVariant, SiteSetting, User
+from .models import AffiliatePartner, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
+from .emailing_service import contacts_query, enqueue_campaign, ensure_suppression, retry_failed_recipients, send_campaign_batch, send_test_campaign_email, sync_existing_contacts
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 def _affiliate_code_for_partner(partner):
@@ -49,6 +54,7 @@ def dashboard():
         'partners': AffiliatePartner.query.count(),
         'coupon_codes': Coupon.query.count(),
         'affiliate_balance': sum((p.commission_balance or 0) for p in AffiliatePartner.query.all()),
+        'email_contacts': EmailContact.query.filter(EmailContact.deleted_at.is_(None)).count(),
     }
 
     latest_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
@@ -661,6 +667,394 @@ def supplier_sku_import():
     return render_template('admin/supplier_sku_import.html', result=result)
 
 
+EMAIL_SEGMENTS = [
+    ('all', 'Všechny aktivní kontakty'),
+    ('ordered', 'Objednali aspoň jednou'),
+    ('paid', 'Objednali a zaplatili'),
+    ('cart', 'Zadali e-mail v košíku / checkoutu'),
+    ('abandoned', 'Košík bez objednávky'),
+    ('affiliate', 'Affiliate partneři'),
+    ('manual', 'Ručně vybrané kontakty'),
+    ('unsubscribed', 'Odhlášení / blokovaní'),
+]
+
+
+def _pagination_args(default_per_page=50):
+    page = max(1, request.args.get('page', 1, type=int))
+    per_page = min(200, max(10, request.args.get('per_page', default_per_page, type=int)))
+    return page, per_page
+
+
+def _safe_int_list(values):
+    ids = []
+    for value in values:
+        for part in str(value or '').replace(';', ',').split(','):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                ids.append(int(part))
+            except Exception:
+                continue
+    return sorted(set(ids))
+
+
+def _campaign_from_form(campaign):
+    campaign.title = request.form.get('title', '').strip() or request.form.get('subject', '').strip() or 'Nová kampaň'
+    campaign.subject = request.form.get('subject', '').strip() or campaign.title
+    campaign.html_body = request.form.get('html_body', '').strip()
+    campaign.text_body = request.form.get('text_body', '').strip()
+    campaign.segment_type = request.form.get('segment_type', 'all').strip() or 'all'
+    campaign.batch_size = max(1, min(1000, int(request.form.get('batch_size', setting('emailing_batch_size', '50')) or 50)))
+    campaign.delay_seconds = max(0, min(60, int(request.form.get('delay_seconds', setting('emailing_delay_seconds', '0')) or 0)))
+
+    selected_ids = _safe_int_list(request.form.getlist('contact_ids') + [request.form.get('selected_contact_ids', '')])
+    excluded_ids = _safe_int_list([request.form.get('excluded_contact_ids', '')])
+    campaign.selected_contact_ids = json.dumps(selected_ids)
+    campaign.excluded_contact_ids = json.dumps(excluded_ids)
+    campaign.filters_json = json.dumps({
+        'segment': campaign.segment_type,
+        'search': request.form.get('contact_search', '').strip(),
+        'include_unsubscribed': bool(request.form.get('include_unsubscribed')),
+    }, ensure_ascii=False)
+    return campaign
+
+
+def _save_campaign_attachments(campaign):
+    files = request.files.getlist('attachments')
+    if not files:
+        return 0
+    max_mb = int(setting('emailing_max_attachment_mb', '10') or 10)
+    max_bytes = max_mb * 1024 * 1024
+    base_folder = current_app.config.get('EMAIL_ATTACHMENT_FOLDER') or os.path.join(current_app.instance_path, 'email_attachments')
+    campaign_folder = os.path.join(base_folder, str(campaign.id))
+    os.makedirs(campaign_folder, exist_ok=True)
+    saved = 0
+    for uploaded in files:
+        if not uploaded or not uploaded.filename:
+            continue
+        original = secure_filename(uploaded.filename)
+        if not original:
+            continue
+        uploaded.stream.seek(0, os.SEEK_END)
+        size = uploaded.stream.tell()
+        uploaded.stream.seek(0)
+        if size > max_bytes:
+            flash(f'Příloha {original} je větší než limit {max_mb} MB a nebyla uložena.', 'warning')
+            continue
+        stored = f'{uuid.uuid4().hex}_{original}'
+        path = os.path.join(campaign_folder, stored)
+        uploaded.save(path)
+        mime_type = mimetypes.guess_type(original)[0] or 'application/octet-stream'
+        db.session.add(EmailAttachment(
+            campaign_id=campaign.id,
+            filename=original,
+            stored_filename=stored,
+            file_path=path,
+            mime_type=mime_type,
+            size_bytes=size,
+        ))
+        saved += 1
+    return saved
+
+
+def _campaign_contact_options(campaign=None):
+    segment = request.args.get('segment_type') or request.form.get('segment_type') or getattr(campaign, 'segment_type', 'all') or 'all'
+    search = request.args.get('contact_search') or request.form.get('contact_search') or ''
+    return contacts_query(segment=segment, search=search).order_by(EmailContact.email.asc()).limit(250).all()
+
+
+@admin_bp.route('/emailing')
+@admin_required
+def emailing_index():
+    stats = {
+        'contacts': EmailContact.query.filter(EmailContact.deleted_at.is_(None)).count(),
+        'subscribed': EmailContact.query.filter(EmailContact.deleted_at.is_(None), EmailContact.marketing_enabled.is_(True), EmailContact.unsubscribed_at.is_(None)).count(),
+        'cart': EmailContact.query.filter(EmailContact.deleted_at.is_(None), EmailContact.has_cart.is_(True)).count(),
+        'ordered': EmailContact.query.filter(EmailContact.deleted_at.is_(None), EmailContact.has_order.is_(True)).count(),
+        'campaigns': EmailCampaign.query.count(),
+        'queued': EmailCampaign.query.filter(EmailCampaign.status.in_(('queued', 'sending', 'paused'))).count(),
+    }
+    latest_campaigns = EmailCampaign.query.order_by(EmailCampaign.created_at.desc()).limit(8).all()
+    return render_template('admin/emailing/index.html', stats=stats, latest_campaigns=latest_campaigns)
+
+
+@admin_bp.route('/emailing/sync', methods=['POST'])
+@admin_required
+def emailing_sync():
+    count = sync_existing_contacts()
+    flash(f'Kontakty byly synchronizovány z objednávek a affiliate partnerů. Zpracováno: {count}.', 'success')
+    return redirect(url_for('admin.emailing_contacts'))
+
+
+@admin_bp.route('/emailing/contacts')
+@admin_required
+def emailing_contacts():
+    q = request.args.get('q', '').strip()
+    segment = request.args.get('segment', 'all').strip() or 'all'
+    include_deleted = bool(request.args.get('deleted'))
+    page, per_page = _pagination_args(50)
+    query = contacts_query(segment=segment, search=q, include_deleted=include_deleted).order_by(EmailContact.updated_at.desc(), EmailContact.email.asc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    return render_template(
+        'admin/emailing/contacts.html',
+        contacts=pagination.items,
+        pagination=pagination,
+        q=q,
+        segment=segment,
+        segments=EMAIL_SEGMENTS,
+        include_deleted=include_deleted,
+    )
+
+
+@admin_bp.route('/emailing/contacts/bulk', methods=['POST'])
+@admin_required
+def emailing_contacts_bulk():
+    action = request.form.get('action', '')
+    selected_ids = _safe_int_list(request.form.getlist('contact_ids'))
+    if request.form.get('all_filtered'):
+        q = request.form.get('q', '').strip()
+        segment = request.form.get('segment', 'all')
+        selected_ids = [c.id for c in contacts_query(segment=segment, search=q).with_entities(EmailContact.id).all()]
+    if not selected_ids:
+        flash('Nebyl vybrán žádný kontakt.', 'warning')
+        return redirect(url_for('admin.emailing_contacts'))
+    contacts = EmailContact.query.filter(EmailContact.id.in_(selected_ids)).all()
+    now = datetime.utcnow()
+    for contact in contacts:
+        if action == 'suppress':
+            ensure_suppression(contact.email, reason='admin')
+        elif action == 'delete':
+            contact.deleted_at = now
+        elif action == 'restore':
+            contact.deleted_at = None
+            if not contact.unsubscribed_at:
+                contact.marketing_enabled = True
+        elif action == 'enable':
+            contact.marketing_enabled = True
+            contact.unsubscribed_at = None
+        elif action == 'disable':
+            contact.marketing_enabled = False
+    db.session.commit()
+    flash(f'Akce byla provedena pro {len(contacts)} kontaktů.', 'success')
+    return redirect(url_for('admin.emailing_contacts', q=request.form.get('q', ''), segment=request.form.get('segment', 'all')))
+
+
+@admin_bp.route('/emailing/contacts/<int:contact_id>/<action>', methods=['POST'])
+@admin_required
+def emailing_contact_action(contact_id, action):
+    contact = EmailContact.query.get_or_404(contact_id)
+    if action == 'suppress':
+        ensure_suppression(contact.email, reason='admin')
+        flash('Kontakt byl trvale odhlášen z rozesílek.', 'success')
+    elif action == 'delete':
+        contact.deleted_at = datetime.utcnow()
+        flash('Kontakt byl skrytý/smazaný z marketingové databáze.', 'info')
+    elif action == 'restore':
+        contact.deleted_at = None
+        if not contact.unsubscribed_at:
+            contact.marketing_enabled = True
+        flash('Kontakt byl obnoven.', 'success')
+    elif action == 'disable':
+        contact.marketing_enabled = False
+        flash('Kontakt byl vypnutý pro rozesílky.', 'info')
+    elif action == 'enable':
+        contact.marketing_enabled = True
+        contact.unsubscribed_at = None
+        flash('Kontakt byl zapnutý pro rozesílky.', 'success')
+    db.session.commit()
+    return redirect(request.referrer or url_for('admin.emailing_contacts'))
+
+
+@admin_bp.route('/emailing/campaigns')
+@admin_required
+def emailing_campaigns():
+    page, per_page = _pagination_args(25)
+    status = request.args.get('status', '').strip()
+    q = EmailCampaign.query
+    if status:
+        q = q.filter_by(status=status)
+    pagination = q.order_by(EmailCampaign.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('admin/emailing/campaigns.html', campaigns=pagination.items, pagination=pagination, status=status)
+
+
+@admin_bp.route('/emailing/campaigns/new', methods=['GET', 'POST'])
+@admin_required
+def emailing_campaign_new():
+    campaign = EmailCampaign(title='', subject='')
+    if request.method == 'POST':
+        _campaign_from_form(campaign)
+        db.session.add(campaign)
+        db.session.flush()
+        _save_campaign_attachments(campaign)
+        db.session.commit()
+        action = request.form.get('action', 'save')
+        if action == 'test':
+            try:
+                send_test_campaign_email(campaign, request.form.get('test_email', ''))
+                flash('Testovací e-mail byl odeslán / uložen do logu.', 'success')
+            except Exception as exc:
+                flash(f'Test se nepovedl: {exc}', 'danger')
+            return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign.id))
+        if action == 'queue':
+            try:
+                count = enqueue_campaign(campaign)
+                flash(f'Kampaň byla zařazena k odeslání pro {count} příjemců.', 'success')
+            except Exception as exc:
+                flash(f'Kampaň se nepodařilo zařadit: {exc}', 'danger')
+            return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+        flash('Kampaň byla uložena jako koncept.', 'success')
+        return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign.id))
+    contacts = _campaign_contact_options(campaign)
+    return render_template('admin/emailing/campaign_form.html', campaign=campaign, segments=EMAIL_SEGMENTS, contacts=contacts, selected_ids=[])
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def emailing_campaign_edit(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if request.method == 'POST':
+        if campaign.status == 'sending':
+            flash('Kampaň se právě odesílá. Nejdřív ji pozastav.', 'warning')
+            return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+        _campaign_from_form(campaign)
+        _save_campaign_attachments(campaign)
+        db.session.commit()
+        action = request.form.get('action', 'save')
+        if action == 'test':
+            try:
+                send_test_campaign_email(campaign, request.form.get('test_email', ''))
+                flash('Testovací e-mail byl odeslán / uložen do logu.', 'success')
+            except Exception as exc:
+                flash(f'Test se nepovedl: {exc}', 'danger')
+            return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign.id))
+        if action == 'queue':
+            try:
+                count = enqueue_campaign(campaign)
+                flash(f'Kampaň byla zařazena k odeslání pro {count} příjemců.', 'success')
+            except Exception as exc:
+                flash(f'Kampaň se nepodařilo zařadit: {exc}', 'danger')
+            return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+        flash('Kampaň byla uložena.', 'success')
+        return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign.id))
+    selected_ids = json.loads(campaign.selected_contact_ids or '[]')
+    contacts = _campaign_contact_options(campaign)
+    return render_template('admin/emailing/campaign_form.html', campaign=campaign, segments=EMAIL_SEGMENTS, contacts=contacts, selected_ids=selected_ids)
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>')
+@admin_required
+def emailing_campaign_detail(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    status = request.args.get('recipient_status', '')
+    page, per_page = _pagination_args(100)
+    q = EmailCampaignRecipient.query.filter_by(campaign_id=campaign.id)
+    if status:
+        q = q.filter_by(status=status)
+    pagination = q.order_by(EmailCampaignRecipient.id.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    return render_template('admin/emailing/campaign_detail.html', campaign=campaign, recipients=pagination.items, pagination=pagination, recipient_status=status)
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/queue', methods=['POST'])
+@admin_required
+def emailing_campaign_queue(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    try:
+        count = enqueue_campaign(campaign)
+        flash(f'Kampaň byla zařazena k odeslání pro {count} příjemců.', 'success')
+    except Exception as exc:
+        flash(f'Kampaň se nepodařilo zařadit: {exc}', 'danger')
+    return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/send-batch', methods=['POST'])
+@admin_required
+def emailing_campaign_send_batch(campaign_id):
+    result = send_campaign_batch(campaign_id=campaign_id)
+    flash(f'Dávka hotová: odesláno {result.get("sent", 0)}, chyby {result.get("failed", 0)}, přeskočeno {result.get("skipped", 0)}.', 'success')
+    return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign_id))
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/pause', methods=['POST'])
+@admin_required
+def emailing_campaign_pause(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if campaign.status in ('queued', 'sending'):
+        campaign.status = 'paused'
+        db.session.commit()
+        flash('Kampaň byla pozastavena.', 'info')
+    return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/resume', methods=['POST'])
+@admin_required
+def emailing_campaign_resume(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if campaign.status == 'paused':
+        campaign.status = 'queued'
+        db.session.commit()
+        flash('Kampaň bude pokračovat v další dávce.', 'success')
+    return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/cancel', methods=['POST'])
+@admin_required
+def emailing_campaign_cancel(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if campaign.status in ('queued', 'sending', 'paused'):
+        campaign.status = 'cancelled'
+        db.session.commit()
+        flash('Kampaň byla zrušena.', 'info')
+    return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/retry-failed', methods=['POST'])
+@admin_required
+def emailing_campaign_retry_failed(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    try:
+        count = retry_failed_recipients(campaign)
+        flash(f'Neúspěšní příjemci byli vráceni do fronty: {count}.', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+
+
+@admin_bp.route('/emailing/campaigns/<int:campaign_id>/delete', methods=['POST'])
+@admin_required
+def emailing_campaign_delete(campaign_id):
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+    if campaign.status == 'sending':
+        flash('Právě odesílanou kampaň nejdřív pozastav.', 'warning')
+        return redirect(url_for('admin.emailing_campaign_detail', campaign_id=campaign.id))
+    for attachment in list(campaign.attachments):
+        try:
+            if attachment.file_path and os.path.exists(attachment.file_path):
+                os.remove(attachment.file_path)
+        except Exception:
+            pass
+    db.session.delete(campaign)
+    db.session.commit()
+    flash('Kampaň byla smazána.', 'info')
+    return redirect(url_for('admin.emailing_campaigns'))
+
+
+@admin_bp.route('/emailing/attachments/<int:attachment_id>/delete', methods=['POST'])
+@admin_required
+def emailing_attachment_delete(attachment_id):
+    attachment = EmailAttachment.query.get_or_404(attachment_id)
+    campaign_id = attachment.campaign_id
+    try:
+        if attachment.file_path and os.path.exists(attachment.file_path):
+            os.remove(attachment.file_path)
+    except Exception:
+        pass
+    db.session.delete(attachment)
+    db.session.commit()
+    flash('Příloha byla smazána.', 'info')
+    return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign_id))
+
+
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @admin_required
 def settings():
@@ -722,6 +1116,13 @@ def settings():
             ('supplier_report_minute', 'Minuta odeslání 0–59'),
             ('supplier_report_timezone', 'Časové pásmo'),
             ('supplier_report_only_paid', 'Posílat jen zaplacené objednávky (1 nebo 0)'),
+        ],
+        'Emailing rozesílka': [
+            ('emailing_sender_name', 'Jméno odesílatele pro kampaně'),
+            ('emailing_reply_to', 'Reply-To e-mail pro kampaně'),
+            ('emailing_batch_size', 'Počet e-mailů v jedné dávce'),
+            ('emailing_delay_seconds', 'Pauza mezi e-maily v dávce (sekundy)'),
+            ('emailing_max_attachment_mb', 'Maximální velikost jedné přílohy v MB'),
         ],
     }
 

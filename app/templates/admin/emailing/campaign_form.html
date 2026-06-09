@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{% if campaign.id %}Upravit kampaň{% else %}Nová kampaň{% endif %} | Emailing{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+      <h1 class="h2 mb-1">{% if campaign.id %}Upravit kampaň{% else %}Nová kampaň{% endif %}</h1>
+      <p class="text-secondary mb-0">Kampaň se nejdřív uloží, potom se zařadí do fronty a odesílá po dávkách.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('admin.emailing_campaigns') }}" class="btn btn-outline-dark rounded-pill">Kampaně</a>
+      {% if campaign.id %}<a href="{{ url_for('admin.emailing_campaign_detail', campaign_id=campaign.id) }}" class="btn btn-outline-dark rounded-pill">Detail</a>{% endif %}
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="row g-4">
+    <div class="col-lg-8">
+      <div class="info-card mb-4">
+        <h4>Obsah e-mailu</h4>
+        <div class="row g-3 mt-1">
+          <div class="col-md-6"><label class="form-label">Interní název kampaně</label><input class="form-control" name="title" value="{{ campaign.title or '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">Předmět e-mailu</label><input class="form-control" name="subject" value="{{ campaign.subject or '' }}" required></div>
+          <div class="col-12">
+            <label class="form-label">HTML obsah</label>
+            <textarea class="form-control" name="html_body" rows="16" placeholder="&lt;h2&gt;Ahoj {{ '{{ name }}' }}&lt;/h2&gt;&lt;p&gt;Text e-mailu...&lt;/p&gt;">{{ campaign.html_body or '' }}</textarea>
+            <div class="form-text">Proměnné: <code>{{ '{{ name }}' }}</code>, <code>{{ '{{ email }}' }}</code>, <code>{{ '{{ site_name }}' }}</code>, <code>{{ '{{ unsubscribe_url }}' }}</code></div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Textová verze</label>
+            <textarea class="form-control" name="text_body" rows="6" placeholder="Text pro klienty bez HTML podpory.">{{ campaign.text_body or '' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card mb-4">
+        <h4>Přílohy</h4>
+        {% if campaign.attachments %}
+        <div class="table-responsive my-3">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>Soubor</th><th>Velikost</th><th></th></tr></thead>
+            <tbody>
+            {% for attachment in campaign.attachments %}
+              <tr>
+                <td>{{ attachment.filename }}</td>
+                <td>{{ ((attachment.size_bytes or 0) / 1024 / 1024)|round(2) }} MB</td>
+                <td class="text-end"><form method="post" action="{{ url_for('admin.emailing_attachment_delete', attachment_id=attachment.id) }}"><button class="btn btn-sm btn-outline-danger rounded-pill">Smazat</button></form></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+        <label class="form-label">Přidat přílohy</label>
+        <input class="form-control" type="file" name="attachments" multiple>
+        <div class="form-text">Limit nastavíš v administraci v Nastavení → Emailing rozesílka.</div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="info-card mb-4">
+        <h4>Příjemci</h4>
+        <div class="mb-3">
+          <label class="form-label">Segment</label>
+          <select class="form-select" name="segment_type" id="segmentType">
+            {% for key, label in segments %}<option value="{{ key }}" {% if campaign.segment_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Vyhledávání uvnitř segmentu</label>
+          <input class="form-control" name="contact_search" value="{{ request.form.get('contact_search', request.args.get('contact_search', '')) }}" placeholder="např. seznam.cz nebo jméno">
+          <div class="form-text">Při segmentu „ručně vybrané“ se použijí zaškrtnuté kontakty níže.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Ručně vybrané kontakty</label>
+          <div class="border rounded-4 p-2" style="max-height:260px; overflow:auto;">
+            {% for contact in contacts %}
+            <label class="d-flex gap-2 align-items-start small py-1">
+              <input class="form-check-input mt-1" type="checkbox" name="contact_ids" value="{{ contact.id }}" {% if contact.id in selected_ids %}checked{% endif %}>
+              <span><strong>{{ contact.email }}</strong><br><span class="text-secondary">{{ contact.name or 'bez jména' }}</span></span>
+            </label>
+            {% else %}
+            <div class="text-secondary small">Žádné kontakty pro náhled.</div>
+            {% endfor %}
+          </div>
+          <input type="hidden" name="selected_contact_ids" value="{{ selected_ids|join(',') }}">
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="include_unsubscribed" value="1" id="includeUnsubscribed">
+          <label class="form-check-label" for="includeUnsubscribed">Zahrnout i vypnuté/odhlášené kontakty</label>
+          <div class="form-text">Běžně nechávej vypnuté. Blacklist se stejně vždy přeskočí.</div>
+        </div>
+      </div>
+
+      <div class="info-card mb-4">
+        <h4>Odesílání</h4>
+        <div class="mb-3"><label class="form-label">E-mailů v jedné dávce</label><input class="form-control" type="number" min="1" max="1000" name="batch_size" value="{{ campaign.batch_size or settings.get('emailing_batch_size', '50') }}"></div>
+        <div class="mb-3"><label class="form-label">Pauza mezi e-maily v dávce</label><input class="form-control" type="number" min="0" max="60" name="delay_seconds" value="{{ campaign.delay_seconds or settings.get('emailing_delay_seconds', '0') }}"></div>
+        <div class="alert alert-light border rounded-4 small mb-0">Scheduler každou minutu odešle další dávku. Ručně lze dávku spustit i v detailu kampaně.</div>
+      </div>
+
+      <div class="info-card">
+        <h4>Akce</h4>
+        <div class="mb-3"><label class="form-label">Testovací e-mail</label><input class="form-control" type="email" name="test_email" placeholder="tvuj@email.cz"></div>
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-dark rounded-pill" name="action" value="save" type="submit">Uložit koncept</button>
+          <button class="btn btn-outline-dark rounded-pill" name="action" value="test" type="submit">Poslat test</button>
+          <button class="btn btn-dark rounded-pill" name="action" value="queue" type="submit">Uložit a zařadit k odeslání</button>
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
+{% endblock %}

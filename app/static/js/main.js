@@ -96,3 +96,59 @@ document.addEventListener("click", async function (event) {
     }, 1200);
   }
 });
+// Emailing: zachycení e-mailu z košíku / checkoutu pro opuštěný košík v adminu.
+async function saveCartLead(email, name = '', phone = '', messageBox = null) {
+  if (!email || !email.includes('@')) return;
+  try {
+    const response = await fetch('/api/cart-lead', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, phone })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (messageBox) {
+      if (response.ok && data.ok) {
+        messageBox.className = 'small text-success';
+        messageBox.textContent = 'Košík byl uložen k e-mailu.';
+      } else {
+        messageBox.className = 'small text-danger';
+        messageBox.textContent = 'Košík se nepodařilo uložit.';
+      }
+    }
+  } catch (error) {
+    if (messageBox) {
+      messageBox.className = 'small text-danger';
+      messageBox.textContent = 'Košík se nepodařilo uložit.';
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cartLeadForm = document.getElementById('cartLeadForm');
+  if (cartLeadForm) {
+    cartLeadForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const messageBox = document.getElementById('cartLeadMessage');
+      const email = cartLeadForm.querySelector('[name="email"]')?.value || '';
+      const name = cartLeadForm.querySelector('[name="name"]')?.value || '';
+      await saveCartLead(email, name, '', messageBox);
+    });
+  }
+
+  const checkoutEmail = document.querySelector('[data-cart-lead-email]');
+  if (checkoutEmail) {
+    let timer = null;
+    const sendCheckoutLead = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        saveCartLead(
+          checkoutEmail.value || '',
+          document.getElementById('checkoutName')?.value || '',
+          document.getElementById('checkoutPhone')?.value || ''
+        );
+      }, 700);
+    };
+    checkoutEmail.addEventListener('input', sendCheckoutLead);
+    checkoutEmail.addEventListener('blur', sendCheckoutLead);
+  }
+});

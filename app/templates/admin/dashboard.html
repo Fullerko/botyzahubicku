@@ -9,16 +9,18 @@
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Obrat</span><strong>{{ '{:,.0f}'.format(stats.revenue).replace(',', ' ') }} Kč</strong></div></div>
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Partneři</span><strong>{{ stats.partners }}</strong></div></div>
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Kódy</span><strong>{{ stats.coupon_codes }}</strong></div></div>
+    <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Email kontakty</span><strong>{{ stats.email_contacts }}</strong></div></div>
   </div>
   <div class="admin-links mt-4 d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.products') }}">Produkty</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.orders') }}">Objednávky</a>
+    <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.emailing_index') }}">Emailing</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.settings') }}">Nastavení</a>
   </div>
   <div class="info-card mt-4">
     <h4>Poslední objednávky</h4>
-    <div class="table-responsive mt-3"><table class="table align-middle mb-0"><thead><tr><th>Objednávka</th><th>Zákazník</th><th>Stav</th><th>Kód</th><th>Celkem</th></tr></thead><tbody>{% for order in latest_orders %}<tr><td><a href="{{ url_for('admin.order_detail', order_id=order.id) }}">{{ order.order_number }}</a></td><td>{{ order.customer_name }}</td><td>{{ order.status }}</td><td>{{ order.coupon_code or '—' }}</td><td>{{ '{:,.0f}'.format(order.total_price).replace(',', ' ') }} Kč</td></tr>{% endfor %}</tbody></table></div>
+    <div class="table-responsive mt-3"><table class="table align-middle mb-0"><thead><tr><th>Objednávka</th><th>Zákazník</th><th>E-mail</th><th>Stav</th><th>Kód</th><th>Celkem</th></tr></thead><tbody>{% for order in latest_orders %}<tr><td><a href="{{ url_for('admin.order_detail', order_id=order.id) }}">{{ order.order_number }}</a></td><td>{{ order.customer_name }}</td><td><a href="mailto:{{ order.email }}">{{ order.email }}</a></td><td>{{ order.status }}</td><td>{{ order.coupon_code or '—' }}</td><td>{{ '{:,.0f}'.format(order.total_price).replace(',', ' ') }} Kč</td></tr>{% endfor %}</tbody></table></div>
   </div>
 </section>
 {% endblock %}

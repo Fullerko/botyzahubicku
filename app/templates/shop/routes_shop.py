@@ -13,6 +13,7 @@ from .utils import get_cart, setting
 from datetime import datetime
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
+from .emailing_service import capture_cart_lead, upsert_contact_from_order
 from app import db
 
 shop_bp = Blueprint('shop', __name__)
@@ -529,6 +530,20 @@ def cart():
     return render_template('shop/cart.html', items=items, subtotal=subtotal, shipping=shipping, discount_amount=discount_amount, total=total)
 
 
+
+@shop_bp.route('/api/cart-lead', methods=['POST'])
+def cart_lead_api():
+    data = request.get_json(silent=True) or request.form
+    email = (data.get('email') or '').strip()
+    name = (data.get('name') or data.get('customer_name') or '').strip()
+    phone = (data.get('phone') or '').strip()
+    lead = capture_cart_lead(email=email, name=name, phone=phone, session_id=request.cookies.get(current_app.config.get('SESSION_COOKIE_NAME', 'session'), ''))
+    if not lead:
+        return jsonify({'ok': False, 'reason': 'missing_email_or_empty_cart'}), 400
+    db.session.commit()
+    return jsonify({'ok': True, 'email': lead.email, 'items': lead.item_count})
+
+
 @shop_bp.route('/cart/update', methods=['POST'])
 def cart_update():
     key = request.form.get('key')
@@ -663,6 +678,7 @@ def checkout():
             product = Product.query.get(item['product_id'])
             size_row = ProductSize.query.filter_by(product_id=product.id, size=item['size']).first()
             if not size_row or size_row.stock < item['quantity']:
+                db.session.rollback()
                 flash(f'Produkt {product.name} už není v požadovaném množství skladem.', 'danger')
                 return redirect(url_for('shop.cart'))
             size_row.stock -= item['quantity']
@@ -676,6 +692,8 @@ def checkout():
                 unit_price=product.price,
                 color=item.get('color', ''),
             ))
+        capture_cart_lead(order.email, name=order.customer_name, phone=order.phone, session_id=request.cookies.get(current_app.config.get('SESSION_COOKIE_NAME', 'session'), ''))
+        upsert_contact_from_order(order)
         db.session.commit()
         session['cart'] = {}
         session.pop('coupon', None)

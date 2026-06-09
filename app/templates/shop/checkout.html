@@ -7,9 +7,9 @@
       <h1 class="h2 mb-4">Dokončení objednávky</h1>
       <form method="post" class="checkout-form">
         <div class="row g-3">
-          <div class="col-md-6"><label class="form-label">Jméno a příjmení</label><input class="form-control" name="customer_name" value="{{ current_user.full_name if current_user.is_authenticated else '' }}" required></div>
-          <div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" type="email" name="email" value="{{ current_user.email if current_user.is_authenticated else '' }}" required></div>
-          <div class="col-md-6"><label class="form-label">Telefon</label><input class="form-control" name="phone" required></div>
+          <div class="col-md-6"><label class="form-label">Jméno a příjmení</label><input class="form-control" name="customer_name" id="checkoutName" value="{{ current_user.full_name if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" type="email" name="email" id="checkoutEmail" data-cart-lead-email value="{{ current_user.email if current_user.is_authenticated else '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">Telefon</label><input class="form-control" name="phone" id="checkoutPhone" required></div>
           <div class="col-md-6"><label class="form-label">PSČ</label><input class="form-control" name="postal_code" value="{{ current_user.postal_code if current_user.is_authenticated else '' }}" required></div>
           <div class="col-12"><label class="form-label">Ulice a číslo</label><input class="form-control" name="street" value="{{ current_user.address if current_user.is_authenticated else '' }}" required></div>
           <div class="col-md-6"><label class="form-label">Město</label><input class="form-control" name="city" value="{{ current_user.city if current_user.is_authenticated else '' }}" required></div>

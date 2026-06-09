@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Odhlášení z e-mailů | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="info-card text-center">
+        <h1 class="h3 mb-3">Odhlášení z e-mailů</h1>
+        {% if contact.unsubscribed_at or not contact.marketing_enabled %}
+          <p class="text-secondary mb-0">E-mail <strong>{{ contact.email }}</strong> je už z marketingových rozesílek odhlášený.</p>
+        {% else %}
+          <p class="text-secondary">Chcete odhlásit e-mail <strong>{{ contact.email }}</strong> z marketingových rozesílek?</p>
+          <form method="post" class="mt-4">
+            <button class="btn btn-dark rounded-pill px-4" type="submit">Ano, odhlásit</button>
+            <a href="{{ url_for('shop.index') }}" class="btn btn-outline-dark rounded-pill px-4 ms-2">Zpět na web</a>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

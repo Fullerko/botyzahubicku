@@ -18,6 +18,19 @@
       {% else %}<div class="info-card">Košík je prázdný.</div>{% endfor %}
     </div>
     <div class="col-lg-4">
+
+      {% if items %}
+      <div class="summary-card mb-3">
+        <h4>Uložit košík na e-mail</h4>
+        <p class="text-secondary small mb-3">Když ještě nechcete dokončit objednávku, můžete zadat e-mail. V adminu se pak objeví jako kontakt z košíku.</p>
+        <form id="cartLeadForm" class="vstack gap-2">
+          <input class="form-control" type="email" name="email" placeholder="vas@email.cz" required>
+          <input class="form-control" name="name" placeholder="Jméno (volitelné)">
+          <button class="btn btn-outline-dark rounded-pill" type="submit">Uložit košík</button>
+          <div class="small" id="cartLeadMessage"></div>
+        </form>
+      </div>
+      {% endif %}
       <div class="summary-card mb-3">
         <h4>Slevový /  kód</h4>
         <form method="post" action="{{ url_for('shop.apply_coupon') }}" class="d-flex gap-2 mt-3">

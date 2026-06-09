@@ -62,7 +62,6 @@
     <!-- PRAVÁ ČÁST -->
     <div class="col-lg-4">
       <div class="info-card">
-
         <h4>Stav a finance</h4>
 
         <form method="post" class="vstack gap-3 mt-3">
@@ -75,60 +74,25 @@
           <button class="btn btn-dark rounded-pill">Uložit stav</button>
         </form>
 
-        <div class="summary-row mt-4">
-          <span>Celkem</span>
-          <strong>{{ '{:,.0f}'.format(order.total_price or 0).replace(',', ' ') }} Kč</strong>
-        </div>
+        <div class="summary-row mt-4"><span>Celkem</span><strong>{{ '{:,.0f}'.format(order.total_price or 0).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row"><span>Kód</span><strong>{{ order.coupon_code or '—' }}</strong></div>
+        <div class="summary-row"><span>Partner</span><strong>{{ order.affiliate_partner_name or '—' }}</strong></div>
+        <div class="summary-row"><span>Provize</span><strong>{{ '{:,.0f}'.format(order.affiliate_commission_amount or 0).replace(',', ' ') }} Kč</strong></div>
+        <div class="summary-row"><span>Datum platby</span><strong>{% if order.paid_at %}{{ order.paid_at.strftime('%d.%m.%Y %H:%M') }}{% else %}—{% endif %}</strong></div>
+        <div class="summary-row"><span>Dodavatel PDF</span><strong>{% if order.supplier_report_sent_at %}Odesláno {{ order.supplier_report_sent_at.strftime('%d.%m.%Y %H:%M') }}{% else %}Čeká na denní report{% endif %}</strong></div>
+        {% if order.supplier_report_batch_id %}<div class="summary-row"><span>Batch ID</span><strong>{{ order.supplier_report_batch_id }}</strong></div>{% endif %}
+        {% if order.supplier_report_message %}<p class="text-secondary small mt-3 mb-0">{{ order.supplier_report_message }}</p>{% endif %}
+      </div>
 
-        <div class="summary-row">
-          <span>Kód</span>
-          <strong>{{ order.coupon_code or '—' }}</strong>
-        </div>
-
-        <div class="summary-row">
-          <span>Partner</span>
-          <strong>{{ order.affiliate_partner_name or '—' }}</strong>
-        </div>
-
-        <div class="summary-row">
-          <span>Provize</span>
-          <strong>{{ '{:,.0f}'.format(order.affiliate_commission_amount or 0).replace(',', ' ') }} Kč</strong>
-        </div>
-
-        <div class="summary-row">
-          <span>Datum platby</span>
-          <strong>
-            {% if order.paid_at %}
-              {{ order.paid_at.strftime('%d.%m.%Y %H:%M') }}
-            {% else %}
-              —
-            {% endif %}
-          </strong>
-        </div>
-
-        <div class="summary-row">
-          <span>Dodavatel PDF</span>
-          <strong>
-            {% if order.supplier_report_sent_at %}
-              Odesláno {{ order.supplier_report_sent_at.strftime('%d.%m.%Y %H:%M') }}
-            {% else %}
-              Čeká na denní report
-            {% endif %}
-          </strong>
-        </div>
-
-        {% if order.supplier_report_batch_id %}
-        <div class="summary-row">
-          <span>Batch ID</span>
-          <strong>{{ order.supplier_report_batch_id }}</strong>
-        </div>
-        {% endif %}
-
-        {% if order.supplier_report_message %}
-        <p class="text-secondary small mt-3 mb-0">{{ order.supplier_report_message }}</p>
-        {% endif %}
-
-
+      <div class="info-card mt-4">
+        <h4>Zákazník</h4>
+        <div class="summary-row"><span>Jméno</span><strong>{{ order.customer_name }}</strong></div>
+        <div class="summary-row"><span>E-mail</span><strong><a href="mailto:{{ order.email }}">{{ order.email }}</a></strong></div>
+        <div class="summary-row"><span>Telefon</span><strong>{{ order.phone }}</strong></div>
+        <div class="summary-row"><span>Adresa</span><strong>{{ order.street }}</strong></div>
+        <div class="summary-row"><span>Město</span><strong>{{ order.city }}</strong></div>
+        <div class="summary-row"><span>PSČ</span><strong>{{ order.postal_code }}</strong></div>
+        {% if order.note %}<p class="text-secondary small mt-3 mb-0"><strong>Poznámka:</strong><br>{{ order.note }}</p>{% endif %}
       </div>
     </div>
 
