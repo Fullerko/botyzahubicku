@@ -709,6 +709,12 @@ def order_success(order_number):
     return render_template('shop/order_success.html', order=order, bank_account=setting('bank_account', ''), bank_iban=setting('bank_iban', ''))
 
 
+@shop_bp.route('/platba/<order_number>')
+def order_payment(order_number):
+    # Kratší odkaz do e-mailů. Zobrazí stejnou stránku s QR kódem a bankovními údaji.
+    return order_success(order_number)
+
+
 @shop_bp.route('/affiliate', methods=['GET', 'POST'])
 def affiliate():
     codes = Coupon.query.filter_by(active=True).order_by(Coupon.code.asc()).all()

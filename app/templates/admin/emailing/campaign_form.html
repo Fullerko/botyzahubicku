@@ -23,7 +23,15 @@
           <div class="col-12">
             <label class="form-label">HTML obsah</label>
             <textarea class="form-control" name="html_body" rows="16" placeholder="&lt;h2&gt;Ahoj {{ '{{ name }}' }}&lt;/h2&gt;&lt;p&gt;Text e-mailu...&lt;/p&gt;">{{ campaign.html_body or '' }}</textarea>
-            <div class="form-text">Proměnné: <code>{{ '{{ name }}' }}</code>, <code>{{ '{{ email }}' }}</code>, <code>{{ '{{ site_name }}' }}</code>, <code>{{ '{{ unsubscribe_url }}' }}</code></div>
+            <div class="form-text">
+              Proměnné zákazníka: <code>{{ '{{ name }}' }}</code>, <code>{{ '{{ email }}' }}</code>, <code>{{ '{{ site_name }}' }}</code>, <code>{{ '{{ unsubscribe_url }}' }}</code><br>
+              Proměnné objednávky/platby: <code>{{ '{{ payment_link }}' }}</code>, <code>{{ '{{ order_url }}' }}</code>, <code>{{ '{{ order_number }}' }}</code>, <code>{{ '{{ order_total }}' }}</code>, <code>{{ '{{ variable_symbol }}' }}</code>, <code>{{ '{{ bank_account }}' }}</code>, <code>{{ '{{ bank_iban }}' }}</code>, <code>{{ '{{ qr_image_url }}' }}</code>, <code>{{ '{{ order_items_html }}' }}</code>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="alert alert-light border rounded-4 small mb-0">
+              Pro nezaplacené objednávky použij segment <strong>Vytvořili objednávku, ale nezaplatili</strong>. Tlačítko v e-mailu může vést na <code>{{ '{{ payment_link }}' }}</code>, kde zákazník uvidí QR kód a platební údaje ke své objednávce.
+            </div>
           </div>
           <div class="col-12">
             <label class="form-label">Textová verze</label>

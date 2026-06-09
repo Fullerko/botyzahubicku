@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from email.message import EmailMessage
 from email.utils import formataddr
+from html import escape
 
 from flask import current_app, url_for
 from sqlalchemy import func, or_
@@ -48,6 +49,81 @@ def _json_dumps(value):
 
 def _now():
     return datetime.utcnow()
+
+
+def _site_base_url():
+    """Veřejná URL webu pro odkazy v e-mailech i mimo request context scheduleru."""
+    base = (setting('site_url', '') or '').strip() or (setting('domain_name', '') or '').strip() or 'botyzahubicku.cz'
+    if not base.startswith(('http://', 'https://')):
+        base = 'https://' + base.lstrip('/')
+    return base.rstrip('/')
+
+
+def _build_public_url(endpoint, **values):
+    try:
+        return url_for(endpoint, _external=True, **values)
+    except Exception:
+        try:
+            with current_app.test_request_context(base_url=_site_base_url()):
+                return url_for(endpoint, _external=True, **values)
+        except Exception:
+            return ''
+
+
+def _is_unpaid_order(order):
+    payment_status = (getattr(order, 'payment_status', '') or '').strip().lower()
+    status = (getattr(order, 'status', '') or '').strip().lower()
+    return payment_status != 'paid' and status not in {'zaplaceno', 'odeslána', 'odeslana', 'dokončena', 'dokoncena'}
+
+
+def _unpaid_order_query(email=None):
+    q = Order.query.filter(or_(Order.payment_status.is_(None), Order.payment_status != 'paid'))
+    q = q.filter(or_(Order.status.is_(None), ~Order.status.in_(['Zaplaceno', 'Odeslána', 'Dokončena'])))
+    if email:
+        q = q.filter(func.lower(Order.email) == normalize_email(email))
+    return q.order_by(Order.created_at.desc(), Order.id.desc())
+
+
+def _latest_unpaid_order(email=None):
+    return _unpaid_order_query(email=email).first()
+
+
+def _format_money(value):
+    try:
+        amount = round(float(value or 0))
+    except Exception:
+        amount = 0
+    return f"{amount:,}".replace(',', ' ') + ' Kč'
+
+
+def _order_items_text(order):
+    if not order:
+        return ''
+    lines = []
+    for item in getattr(order, 'items', []) or []:
+        details = []
+        if getattr(item, 'size', ''):
+            details.append(f"vel. {item.size}")
+        if getattr(item, 'color', ''):
+            details.append(str(item.color))
+        suffix = f" ({', '.join(details)})" if details else ''
+        lines.append(f"- {item.quantity}× {item.product_name}{suffix} – {_format_money((item.unit_price or 0) * (item.quantity or 1))}")
+    return '\n'.join(lines)
+
+
+def _order_items_html(order):
+    if not order:
+        return ''
+    rows = []
+    for item in getattr(order, 'items', []) or []:
+        details = []
+        if getattr(item, 'size', ''):
+            details.append(f"vel. {escape(str(item.size))}")
+        if getattr(item, 'color', ''):
+            details.append(escape(str(item.color)))
+        suffix = f" <span style=\"color:#777;\">({', '.join(details)})</span>" if details else ''
+        rows.append(f"<li>{int(item.quantity or 1)}× {escape(item.product_name or '')}{suffix} – {_format_money((item.unit_price or 0) * (item.quantity or 1))}</li>")
+    return '<ul>' + ''.join(rows) + '</ul>' if rows else ''
 
 
 def _suppressed_emails():
@@ -242,6 +318,9 @@ def contacts_query(segment='all', search='', include_deleted=False):
         q = q.filter(EmailContact.has_order.is_(True))
     elif segment == 'paid':
         q = q.filter(EmailContact.has_paid_order.is_(True))
+    elif segment in ('unpaid', 'pending_payment'):
+        unpaid_emails = _unpaid_order_query().with_entities(func.lower(Order.email).label('email')).subquery()
+        q = q.filter(func.lower(EmailContact.email).in_(db.session.query(unpaid_emails.c.email)))
     elif segment == 'cart':
         q = q.filter(EmailContact.has_cart.is_(True))
     elif segment == 'abandoned':
@@ -355,20 +434,49 @@ def _recount_campaign(campaign):
     return counts
 
 
-def render_body(template, contact=None, campaign=None, recipient=None):
+def render_body(template, contact=None, campaign=None, recipient=None, order=None):
     contact = contact or getattr(recipient, 'contact', None)
     email = normalize_email(getattr(recipient, 'email', '') or getattr(contact, 'email', ''))
+    if order is None:
+        order = _latest_unpaid_order(email=email)
     token = getattr(contact, 'unsubscribe_token', '') if contact else ''
-    try:
-        unsubscribe_url = url_for('emailing.unsubscribe', token=token, _external=True) if token else ''
-    except Exception:
-        unsubscribe_url = ''
+    unsubscribe_url = _build_public_url('emailing.unsubscribe', token=token) if token else ''
+
+    order_number = getattr(order, 'order_number', '') or ''
+    order_url = _build_public_url('shop.order_success', order_number=order_number) if order_number else _site_base_url()
+    payment_link = _build_public_url('shop.order_payment', order_number=order_number) if order_number else order_url
+    qr_image = getattr(order, 'qr_image', '') or ''
+    qr_image_url = _build_public_url('uploaded_file', filename=qr_image) if qr_image else ''
+
     data = {
-        'name': getattr(contact, 'name', '') or getattr(recipient, 'name', '') or email,
+        # Původní proměnné
+        'name': getattr(contact, 'name', '') or getattr(recipient, 'name', '') or getattr(order, 'customer_name', '') or email,
         'email': email,
         'site_name': setting('site_name', 'BotyZaHubicku.cz'),
         'unsubscribe_url': unsubscribe_url,
         'campaign_title': getattr(campaign, 'title', '') or '',
+
+        # Aliasy, aby fungovaly i dříve vložené šablony.
+        'shop_name': setting('site_name', 'BotyZaHubicku.cz'),
+        'unsubscribe_link': unsubscribe_url,
+
+        # Objednávka / platba. Bere se poslední nezaplacená objednávka daného e-mailu.
+        'payment_link': payment_link,
+        'order_url': order_url,
+        'order_number': order_number,
+        'order_total': _format_money(getattr(order, 'total_price', 0)) if order else '',
+        'order_total_czk': _format_money(getattr(order, 'total_price', 0)) if order else '',
+        'order_subtotal': _format_money(getattr(order, 'subtotal', 0)) if order else '',
+        'variable_symbol': getattr(order, 'variable_symbol', '') or '',
+        'payment_status': getattr(order, 'payment_status', '') or '',
+        'payment_method': getattr(order, 'payment_method', '') or '',
+        'bank_account': setting('bank_account', ''),
+        'bank_iban': setting('bank_iban', ''),
+        'qr_image_url': qr_image_url,
+        'order_items': _order_items_text(order),
+        'order_items_html': _order_items_html(order),
+        'customer_name': getattr(order, 'customer_name', '') or getattr(contact, 'name', '') or '',
+        'customer_phone': getattr(order, 'phone', '') or getattr(contact, 'phone', '') or '',
     }
     rendered = template or ''
     for key, value in data.items():
@@ -377,14 +485,14 @@ def render_body(template, contact=None, campaign=None, recipient=None):
     return rendered
 
 
-def _html_with_footer(html, contact=None, campaign=None, recipient=None):
-    body = render_body(html, contact=contact, campaign=campaign, recipient=recipient)
+def _html_with_footer(html, contact=None, campaign=None, recipient=None, order=None):
+    body = render_body(html, contact=contact, campaign=campaign, recipient=recipient, order=order)
     contact = contact or getattr(recipient, 'contact', None)
     token = getattr(contact, 'unsubscribe_token', '') if contact else ''
     unsubscribe_url = ''
     if token:
         try:
-            unsubscribe_url = url_for('emailing.unsubscribe', token=token, _external=True)
+            unsubscribe_url = _build_public_url('emailing.unsubscribe', token=token)
         except Exception:
             unsubscribe_url = ''
     if unsubscribe_url and 'unsubscribe' not in body.lower() and 'odhl' not in body.lower():
@@ -398,13 +506,13 @@ def _html_with_footer(html, contact=None, campaign=None, recipient=None):
     return body
 
 
-def _text_with_footer(text, contact=None, campaign=None, recipient=None):
-    body = render_body(text, contact=contact, campaign=campaign, recipient=recipient)
+def _text_with_footer(text, contact=None, campaign=None, recipient=None, order=None):
+    body = render_body(text, contact=contact, campaign=campaign, recipient=recipient, order=order)
     contact = contact or getattr(recipient, 'contact', None)
     token = getattr(contact, 'unsubscribe_token', '') if contact else ''
     if token:
         try:
-            unsubscribe_url = url_for('emailing.unsubscribe', token=token, _external=True)
+            unsubscribe_url = _build_public_url('emailing.unsubscribe', token=token)
         except Exception:
             unsubscribe_url = ''
         if unsubscribe_url and unsubscribe_url not in body:
@@ -498,11 +606,15 @@ def send_test_campaign_email(campaign, to_email):
     if not to_email:
         raise ValueError('Neplatný testovací e-mail.')
     attachments = _attachment_payloads(campaign)
-    dummy = type('Recipient', (), {'email': to_email, 'name': 'Test', 'contact': None})()
-    html = _html_with_footer(campaign.html_body, campaign=campaign, recipient=dummy)
-    text = _text_with_footer(campaign.text_body or re.sub(r'<[^>]+>', '', campaign.html_body or ''), campaign=campaign, recipient=dummy)
+    contact = EmailContact.query.filter_by(email=to_email).first()
+    dummy = type('Recipient', (), {'email': to_email, 'name': getattr(contact, 'name', 'Test') or 'Test', 'contact': contact})()
+    # Pro test se použije nezaplacená objednávka testovacího kontaktu; když žádná není, vezme se poslední nezaplacená objednávka jako náhled dat.
+    order = _latest_unpaid_order(email=to_email) or _latest_unpaid_order()
+    html = _html_with_footer(campaign.html_body, contact=contact, campaign=campaign, recipient=dummy, order=order)
+    text = _text_with_footer(campaign.text_body or re.sub(r'<[^>]+>', '', campaign.html_body or ''), contact=contact, campaign=campaign, recipient=dummy, order=order)
+    subject = render_body(campaign.subject, contact=contact, campaign=campaign, recipient=dummy, order=order)
     with _smtp_or_log() as (smtp, config):
-        return _send_message(smtp, config, to_email, '[TEST] ' + campaign.subject, html, text, attachments)
+        return _send_message(smtp, config, to_email, '[TEST] ' + subject, html, text, attachments)
 
 
 def send_campaign_batch(app=None, campaign_id=None, limit=None):
@@ -556,10 +668,12 @@ def send_campaign_batch(app=None, campaign_id=None, limit=None):
                         db.session.commit()
                         continue
                     try:
-                        html = _html_with_footer(campaign.html_body, contact=contact, campaign=campaign, recipient=recipient)
+                        order = _latest_unpaid_order(email=email)
+                        html = _html_with_footer(campaign.html_body, contact=contact, campaign=campaign, recipient=recipient, order=order)
                         text_source = campaign.text_body or re.sub(r'<[^>]+>', '', campaign.html_body or '')
-                        text = _text_with_footer(text_source, contact=contact, campaign=campaign, recipient=recipient)
-                        _send_message(smtp, config, email, campaign.subject, html, text, attachments)
+                        text = _text_with_footer(text_source, contact=contact, campaign=campaign, recipient=recipient, order=order)
+                        subject = render_body(campaign.subject, contact=contact, campaign=campaign, recipient=recipient, order=order)
+                        _send_message(smtp, config, email, subject, html, text, attachments)
                         recipient.status = 'sent'
                         recipient.sent_at = _now()
                         recipient.error_message = ''

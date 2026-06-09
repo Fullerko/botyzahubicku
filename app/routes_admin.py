@@ -671,6 +671,7 @@ EMAIL_SEGMENTS = [
     ('all', 'Všechny aktivní kontakty'),
     ('ordered', 'Objednali aspoň jednou'),
     ('paid', 'Objednali a zaplatili'),
+    ('unpaid', 'Vytvořili objednávku, ale nezaplatili'),
     ('cart', 'Zadali e-mail v košíku / checkoutu'),
     ('abandoned', 'Košík bez objednávky'),
     ('affiliate', 'Affiliate partneři'),
@@ -1094,6 +1095,7 @@ def settings():
         'Kontakt a footer': [
             ('contact_email', 'Kontaktní e-mail'),
             ('domain_name', 'Doména'),
+            ('site_url', 'Veřejná URL webu pro e-maily, např. https://botyzahubicku.cz'),
             ('delivery_text', 'Text dopravy'),
             ('footer_affiliate_label', 'Spodní odkaz affiliate - text'),
             ('footer_affiliate_url', 'Spodní odkaz affiliate - URL'),

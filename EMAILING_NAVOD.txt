@@ -1,0 +1,57 @@
+Emailing modul - co je přidané
+==============================
+
+Admin cesty:
+- /admin/emailing
+- /admin/emailing/contacts
+- /admin/emailing/campaigns
+- /admin/emailing/campaigns/new
+
+Co modul umí:
+- zobrazí e-mail adresy v dashboardu, seznamu objednávek a detailu objednávky
+- synchronizuje kontakty ze starých objednávek a affiliate partnerů
+- ukládá e-mail z košíku/checkoutu přes /api/cart-lead
+- umožňuje filtrování kontaktů podle objednávky, zaplacené objednávky, nezaplacené objednávky, košíku, opuštěného košíku a affiliate
+- umožňuje ruční i hromadné vypnutí, smazání nebo blacklist kontaktů
+- kampaně mají HTML/text tělo, přílohy, testovací odeslání, frontu příjemců a log chyb
+- odesílá po dávkách přes scheduler, ne v jednom dlouhém requestu
+- podporuje odhlašovací odkaz /unsubscribe/<token>
+
+Nastavení:
+- SMTP zůstává v /admin/settings v části Platba a e-mail
+- nové hodnoty jsou v /admin/settings v části Emailing rozesílka
+- pokud SMTP není nastavené, e-maily se ukládají do instance/outbox/emailing.log pro test
+
+Důležité:
+- Lidem z košíku jde psát jen tehdy, pokud zadali e-mail.
+- Pro větší objemy se doporučuje reálný SMTP/transactional provider a správně nastavený SPF/DKIM/DMARC.
+
+
+Proměnné v kampaních
+====================
+Základní:
+- {{ name }}
+- {{ email }}
+- {{ site_name }} / {{ shop_name }}
+- {{ unsubscribe_url }} / {{ unsubscribe_link }}
+
+Objednávka a platba:
+- {{ payment_link }} = odkaz na platební stránku /platba/<číslo objednávky>
+- {{ order_url }} = odkaz na detail objednávky /objednavka/<číslo objednávky>
+- {{ order_number }}
+- {{ order_total }} / {{ order_total_czk }}
+- {{ order_subtotal }}
+- {{ variable_symbol }}
+- {{ payment_status }}
+- {{ payment_method }}
+- {{ bank_account }}
+- {{ bank_iban }}
+- {{ qr_image_url }}
+- {{ order_items }} = položky jako text
+- {{ order_items_html }} = položky jako HTML seznam
+
+Pro připomínku nedokončené platby použij segment:
+- Vytvořili objednávku, ale nezaplatili
+
+Systém u každého příjemce automaticky vezme jeho poslední nezaplacenou objednávku podle e-mailu.
+Veřejnou URL pro odkazy nastavíš v /admin/settings jako `site_url`.

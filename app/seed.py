@@ -192,6 +192,7 @@ def seed_data():
         'newest_subtitle': 'Nově přidané modely a čerstvé kusy.',
         'contact_email': 'info@botyzahubicku.cz',
         'domain_name': 'botyzahubicku.cz',
+        'site_url': 'https://botyzahubicku.cz',
         'footer_affiliate_label': 'Affiliate',
         'footer_affiliate_url': '/affiliate',
         'bank_account': '2301234567/2010',
