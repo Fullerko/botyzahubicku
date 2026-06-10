@@ -153,15 +153,13 @@
                 <table class="table table-bordered align-middle size-guide-table mb-0">
                   <thead>
                     <tr>
-                      <th>Běžně nosíte EU/ČR</th>
-                      <th>Vyberte velikost produktu</th>
+                      <th>Velikost produktu</th>
                       <th>Orientační délka stélky</th>
                     </tr>
                   </thead>
                   <tbody>
                     {% for china_size, insole_length in size_guide_rows %}
                       <tr>
-                        <td>{{ china_size - 1 }}</td>
                         <td><strong>{{ china_size }}</strong></td>
                         <td>{{ insole_length }}</td>
                       </tr>
