@@ -226,4 +226,25 @@
   {% endif %}
 </section>
 <section class="container pb-5"><div class="section-header mb-3"><h2>Podobné produkty</h2></div><div class="row g-4">{% for product in related %}{% include 'components/product_card.html' %}{% endfor %}</div></section>
+
+{% endblock %}
+
+{% block tracking %}
+<script>
+  if (typeof fbq === 'function') {
+    fbq('track', 'ViewContent', {
+      content_ids: [{{ product.id|string|tojson }}],
+      contents: [{
+        id: {{ product.id|string|tojson }},
+        quantity: 1,
+        item_price: {{ ('%.2f'|format(product.price or 0)) }}
+      }],
+      content_type: 'product',
+      content_name: {{ product.name|tojson }},
+      content_category: {{ (product.category.name if product.category else '')|tojson }},
+      value: {{ ('%.2f'|format(product.price or 0)) }},
+      currency: 'CZK'
+    });
+  }
+</script>
 {% endblock %}

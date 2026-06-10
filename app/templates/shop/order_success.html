@@ -76,3 +76,14 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 {% endblock %}
+
+
+{% block tracking %}
+{% if track_purchase and meta_purchase %}
+<script>
+  if (typeof fbq === 'function') {
+    fbq('track', 'Purchase', {{ meta_purchase|tojson }});
+  }
+</script>
+{% endif %}
+{% endblock %}

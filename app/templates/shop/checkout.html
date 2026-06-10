@@ -42,3 +42,14 @@
   </div>
 </section>
 {% endblock %}
+
+
+{% block tracking %}
+{% if meta_checkout %}
+<script>
+  if (typeof fbq === 'function') {
+    fbq('track', 'InitiateCheckout', {{ meta_checkout|tojson }});
+  }
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,31 @@
+Hotovo - Meta Pixel pro BotyZaHubicku.cz
+========================================
+
+Pixel ID použité v kódu: 1665111661240710
+
+Nahraj soubory z tohoto ZIPu do kořene projektu a přepiš původní soubory ve stejných cestách.
+Potom aplikaci nasaď/redeployni a restartuj server.
+
+Změněné soubory:
+- app/templates/base.html
+- app/routes_shop.py
+- app/templates/shop/product_detail.html
+- app/templates/shop/cart.html
+- app/templates/shop/checkout.html
+- app/templates/shop/order_success.html
+- app/templates/shop/products.html
+- app/static/js/main.js
+
+Co je přidané:
+1) PageView na každé veřejné stránce přes base.html. Admin /admin jsem záměrně vynechal, aby ti vlastní administrace nešpinila data v pixelu.
+2) ViewContent na detailu produktu.
+3) AddToCart po úspěšném přidání produktu do košíku.
+4) InitiateCheckout na stránce checkoutu.
+5) Purchase pouze jednou po vytvoření objednávky, aby se při refreshi /objednavka neduplikoval nákup.
+6) Search při vyhledávání v /produkty.
+7) Lead po ručním uložení košíku na e-mail.
+
+Důležité:
+- V původním base.html chyběl renderovací blok {% block tracking %}{% endblock %}, takže události z podstránek se vůbec nemohly vykreslit.
+- Po nahrání zkontroluj přes Meta Events Manager -> Test událostí.
+- Na webu otevři anonymní okno a ve zdrojovém kódu stránky vyhledej: fbq, fbevents.js a 1665111661240710.

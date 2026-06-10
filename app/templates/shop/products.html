@@ -67,3 +67,14 @@
   </div>
 </section>
 {% endblock %}
+
+
+{% block tracking %}
+{% if meta_search %}
+<script>
+  if (typeof fbq === 'function') {
+    fbq('track', 'Search', {{ meta_search|tojson }});
+  }
+</script>
+{% endif %}
+{% endblock %}

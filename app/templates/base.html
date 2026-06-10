@@ -69,8 +69,36 @@
     gtag('config', 'G-SVQB72JKNK');
   </script>
   
+  {# Meta Pixel: ID můžeš později změnit v admin nastavení klíčem meta_pixel_id. #}
+  {% set meta_pixel_id = settings.get('meta_pixel_id', '1665111661240710') or '1665111661240710' %}
+  {% set meta_pixel_enabled = not request.path.startswith('/admin') %}
+  {% if meta_pixel_enabled %}
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+
+    fbq('init', {{ meta_pixel_id|tojson }});
+    fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
+  {% endif %}
+
 </head>
 <body>
+{% if meta_pixel_enabled %}
+<noscript>
+  <img height="1" width="1" style="display:none"
+       src="https://www.facebook.com/tr?id={{ meta_pixel_id }}&ev=PageView&noscript=1"
+       alt="" />
+</noscript>
+{% endif %}
 <div class="topbar">{{ settings.get('promo_bar', 'Doprava zdarma') }}</div>
 <nav class="navbar navbar-expand-xl bg-white border-bottom sticky-top shadow-sm">
   <div class="container d-flex align-items-center justify-content-between">
@@ -217,5 +245,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block tracking %}{% endblock %}
 </body>
 </html>

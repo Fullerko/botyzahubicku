@@ -98,7 +98,7 @@ document.addEventListener("click", async function (event) {
 });
 // Emailing: zachycení e-mailu z košíku / checkoutu pro opuštěný košík v adminu.
 async function saveCartLead(email, name = '', phone = '', messageBox = null) {
-  if (!email || !email.includes('@')) return;
+  if (!email || !email.includes('@')) return false;
   try {
     const response = await fetch('/api/cart-lead', {
       method: 'POST',
@@ -106,8 +106,9 @@ async function saveCartLead(email, name = '', phone = '', messageBox = null) {
       body: JSON.stringify({ email, name, phone })
     });
     const data = await response.json().catch(() => ({}));
+    const ok = response.ok && data.ok;
     if (messageBox) {
-      if (response.ok && data.ok) {
+      if (ok) {
         messageBox.className = 'small text-success';
         messageBox.textContent = 'Košík byl uložen k e-mailu.';
       } else {
@@ -115,11 +116,13 @@ async function saveCartLead(email, name = '', phone = '', messageBox = null) {
         messageBox.textContent = 'Košík se nepodařilo uložit.';
       }
     }
+    return ok;
   } catch (error) {
     if (messageBox) {
       messageBox.className = 'small text-danger';
       messageBox.textContent = 'Košík se nepodařilo uložit.';
     }
+    return false;
   }
 }
 
@@ -131,7 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const messageBox = document.getElementById('cartLeadMessage');
       const email = cartLeadForm.querySelector('[name="email"]')?.value || '';
       const name = cartLeadForm.querySelector('[name="name"]')?.value || '';
-      await saveCartLead(email, name, '', messageBox);
+      const saved = await saveCartLead(email, name, '', messageBox);
+      if (saved && typeof fbq === 'function') {
+        fbq('track', 'Lead', {
+          content_name: 'Uložený košík',
+          content_category: 'cart_lead'
+        });
+      }
     });
   }
 

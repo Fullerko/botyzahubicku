@@ -1,0 +1,390 @@
+diff --git a/app/routes_shop.py b/app/routes_shop.py
+index 3881869..1061438 100644
+--- a/app/routes_shop.py
++++ b/app/routes_shop.py
+@@ -22,6 +22,95 @@ AFF_COOKIE = 'bzh_affiliate_code'
+ AFF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90
+ 
+ 
++META_CURRENCY = 'CZK'
++
++
++def _money(value):
++    """Bezpečně převede cenu pro Meta Pixel payload."""
++    try:
++        return round(float(value or 0), 2)
++    except (TypeError, ValueError):
++        return 0.0
++
++
++def _meta_product_payload(product, quantity=1, value=None):
++    """Payload pro Meta Pixel produktové události."""
++    quantity = max(1, int(quantity or 1))
++    product_id = str(product.id)
++    price = _money(product.price)
++    return {
++        'content_ids': [product_id],
++        'contents': [{
++            'id': product_id,
++            'quantity': quantity,
++            'item_price': price,
++        }],
++        'content_type': 'product',
++        'content_name': product.name,
++        'content_category': product.category.name if getattr(product, 'category', None) else '',
++        'value': _money(value if value is not None else price * quantity),
++        'currency': META_CURRENCY,
++    }
++
++
++def _meta_cart_payload(items, total):
++    """Payload pro košík / zahájení objednávky."""
++    contents = []
++    content_ids = []
++    num_items = 0
++
++    for item in items:
++        product = item.get('product')
++        if not product:
++            continue
++        quantity = max(1, int(item.get('quantity') or 1))
++        product_id = str(product.id)
++        content_ids.append(product_id)
++        contents.append({
++            'id': product_id,
++            'quantity': quantity,
++            'item_price': _money(product.price),
++        })
++        num_items += quantity
++
++    return {
++        'content_ids': content_ids,
++        'contents': contents,
++        'content_type': 'product',
++        'num_items': num_items,
++        'value': _money(total),
++        'currency': META_CURRENCY,
++    }
++
++
++def _meta_order_payload(order):
++    """Payload pro Meta Pixel Purchase po vytvoření objednávky."""
++    contents = []
++    content_ids = []
++    num_items = 0
++
++    for item in order.items:
++        product_id = str(item.product_id)
++        quantity = max(1, int(item.quantity or 1))
++        content_ids.append(product_id)
++        contents.append({
++            'id': product_id,
++            'quantity': quantity,
++            'item_price': _money(item.unit_price),
++        })
++        num_items += quantity
++
++    return {
++        'content_ids': content_ids,
++        'contents': contents,
++        'content_type': 'product',
++        'num_items': num_items,
++        'value': _money(order.total_price),
++        'currency': META_CURRENCY,
++        'order_id': order.order_number,
++    }
++
++
+ def _clean_brand(value):
+     return (value or '').strip()
+ 
+@@ -489,7 +578,12 @@ def products():
+         sizes=sizes,
+         categories=categories,
+         page_title=page_title,
+-        active_category=category_slug
++        active_category=category_slug,
++        meta_search={
++            'search_string': search,
++            'content_category': page_title,
++            'currency': META_CURRENCY,
++        } if search else None
+     )
+ 
+ 
+@@ -518,6 +612,7 @@ def product_detail(slug):
+                 'color': color,
+                 'quantity': quantity
+             }
++        session['meta_add_to_cart'] = _meta_product_payload(product, quantity=quantity)
+         session.modified = True
+         flash('Produkt byl přidán do košíku.', 'success')
+         return redirect(url_for('shop.cart'))
+@@ -527,7 +622,16 @@ def product_detail(slug):
+ @shop_bp.route('/cart')
+ def cart():
+     items, subtotal, shipping, discount_amount, total = cart_detail()
+-    return render_template('shop/cart.html', items=items, subtotal=subtotal, shipping=shipping, discount_amount=discount_amount, total=total)
++    meta_add_to_cart = session.pop('meta_add_to_cart', None)
++    return render_template(
++        'shop/cart.html',
++        items=items,
++        subtotal=subtotal,
++        shipping=shipping,
++        discount_amount=discount_amount,
++        total=total,
++        meta_add_to_cart=meta_add_to_cart,
++    )
+ 
+ 
+ 
+@@ -695,18 +799,38 @@ def checkout():
+         capture_cart_lead(order.email, name=order.customer_name, phone=order.phone, session_id=request.cookies.get(current_app.config.get('SESSION_COOKIE_NAME', 'session'), ''))
+         upsert_contact_from_order(order)
+         db.session.commit()
++        session['meta_purchase_order_number'] = order.order_number
+         session['cart'] = {}
+         session.pop('coupon', None)
+         flash(f'Objednávka {order.order_number} byla úspěšně vytvořena.', 'success')
+         return redirect(url_for('shop.order_success', order_number=order.order_number))
+ 
+-    return render_template('shop/checkout.html', items=items, subtotal=subtotal, shipping=shipping, discount_amount=discount_amount, total=total, coupon_info=coupon_info, bank_account=setting('bank_account', ''), bank_iban=setting('bank_iban', ''))
++    return render_template(
++        'shop/checkout.html',
++        items=items,
++        subtotal=subtotal,
++        shipping=shipping,
++        discount_amount=discount_amount,
++        total=total,
++        coupon_info=coupon_info,
++        bank_account=setting('bank_account', ''),
++        bank_iban=setting('bank_iban', ''),
++        meta_checkout=_meta_cart_payload(items, total),
++    )
+ 
+ 
+ @shop_bp.route('/objednavka/<order_number>')
+ def order_success(order_number):
+     order = Order.query.filter_by(order_number=order_number).first_or_404()
+-    return render_template('shop/order_success.html', order=order, bank_account=setting('bank_account', ''), bank_iban=setting('bank_iban', ''))
++    track_purchase = session.pop('meta_purchase_order_number', None) == order.order_number
++    return render_template(
++        'shop/order_success.html',
++        order=order,
++        bank_account=setting('bank_account', ''),
++        bank_iban=setting('bank_iban', ''),
++        track_purchase=track_purchase,
++        meta_purchase=_meta_order_payload(order),
++    )
+ 
+ 
+ @shop_bp.route('/platba/<order_number>')
+diff --git a/app/static/js/main.js b/app/static/js/main.js
+index cc0d923..40b622c 100644
+--- a/app/static/js/main.js
++++ b/app/static/js/main.js
+@@ -98,7 +98,7 @@ document.addEventListener("click", async function (event) {
+ });
+ // Emailing: zachycení e-mailu z košíku / checkoutu pro opuštěný košík v adminu.
+ async function saveCartLead(email, name = '', phone = '', messageBox = null) {
+-  if (!email || !email.includes('@')) return;
++  if (!email || !email.includes('@')) return false;
+   try {
+     const response = await fetch('/api/cart-lead', {
+       method: 'POST',
+@@ -106,8 +106,9 @@ async function saveCartLead(email, name = '', phone = '', messageBox = null) {
+       body: JSON.stringify({ email, name, phone })
+     });
+     const data = await response.json().catch(() => ({}));
++    const ok = response.ok && data.ok;
+     if (messageBox) {
+-      if (response.ok && data.ok) {
++      if (ok) {
+         messageBox.className = 'small text-success';
+         messageBox.textContent = 'Košík byl uložen k e-mailu.';
+       } else {
+@@ -115,11 +116,13 @@ async function saveCartLead(email, name = '', phone = '', messageBox = null) {
+         messageBox.textContent = 'Košík se nepodařilo uložit.';
+       }
+     }
++    return ok;
+   } catch (error) {
+     if (messageBox) {
+       messageBox.className = 'small text-danger';
+       messageBox.textContent = 'Košík se nepodařilo uložit.';
+     }
++    return false;
+   }
+ }
+ 
+@@ -131,7 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
+       const messageBox = document.getElementById('cartLeadMessage');
+       const email = cartLeadForm.querySelector('[name="email"]')?.value || '';
+       const name = cartLeadForm.querySelector('[name="name"]')?.value || '';
+-      await saveCartLead(email, name, '', messageBox);
++      const saved = await saveCartLead(email, name, '', messageBox);
++      if (saved && typeof fbq === 'function') {
++        fbq('track', 'Lead', {
++          content_name: 'Uložený košík',
++          content_category: 'cart_lead'
++        });
++      }
+     });
+   }
+ 
+diff --git a/app/templates/base.html b/app/templates/base.html
+index 6c278bf..69049bb 100644
+--- a/app/templates/base.html
++++ b/app/templates/base.html
+@@ -69,8 +69,36 @@
+     gtag('config', 'G-SVQB72JKNK');
+   </script>
+   
++  {# Meta Pixel: ID můžeš později změnit v admin nastavení klíčem meta_pixel_id. #}
++  {% set meta_pixel_id = settings.get('meta_pixel_id', '1665111661240710') or '1665111661240710' %}
++  {% set meta_pixel_enabled = not request.path.startswith('/admin') %}
++  {% if meta_pixel_enabled %}
++  <!-- Meta Pixel Code -->
++  <script>
++    !function(f,b,e,v,n,t,s)
++    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
++    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
++    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
++    n.queue=[];t=b.createElement(e);t.async=!0;
++    t.src=v;s=b.getElementsByTagName(e)[0];
++    s.parentNode.insertBefore(t,s)}(window, document,'script',
++    'https://connect.facebook.net/en_US/fbevents.js');
++
++    fbq('init', {{ meta_pixel_id|tojson }});
++    fbq('track', 'PageView');
++  </script>
++  <!-- End Meta Pixel Code -->
++  {% endif %}
++
+ </head>
+ <body>
++{% if meta_pixel_enabled %}
++<noscript>
++  <img height="1" width="1" style="display:none"
++       src="https://www.facebook.com/tr?id={{ meta_pixel_id }}&ev=PageView&noscript=1"
++       alt="" />
++</noscript>
++{% endif %}
+ <div class="topbar">{{ settings.get('promo_bar', 'Doprava zdarma') }}</div>
+ <nav class="navbar navbar-expand-xl bg-white border-bottom sticky-top shadow-sm">
+   <div class="container d-flex align-items-center justify-content-between">
+@@ -217,5 +245,6 @@
+ 
+ <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+ <script src="{{ url_for('static', filename='js/main.js') }}"></script>
++{% block tracking %}{% endblock %}
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/app/templates/shop/cart.html b/app/templates/shop/cart.html
+index 7ea210c..f7a2190 100644
+--- a/app/templates/shop/cart.html
++++ b/app/templates/shop/cart.html
+@@ -53,3 +53,14 @@
+   </div>
+ </section>
+ {% endblock %}
++
++
++{% block tracking %}
++{% if meta_add_to_cart %}
++<script>
++  if (typeof fbq === 'function') {
++    fbq('track', 'AddToCart', {{ meta_add_to_cart|tojson }});
++  }
++</script>
++{% endif %}
++{% endblock %}
+diff --git a/app/templates/shop/checkout.html b/app/templates/shop/checkout.html
+index 395803a..9531638 100644
+--- a/app/templates/shop/checkout.html
++++ b/app/templates/shop/checkout.html
+@@ -42,3 +42,14 @@
+   </div>
+ </section>
+ {% endblock %}
++
++
++{% block tracking %}
++{% if meta_checkout %}
++<script>
++  if (typeof fbq === 'function') {
++    fbq('track', 'InitiateCheckout', {{ meta_checkout|tojson }});
++  }
++</script>
++{% endif %}
++{% endblock %}
+diff --git a/app/templates/shop/order_success.html b/app/templates/shop/order_success.html
+index d0e0bc2..8e3b60d 100644
+--- a/app/templates/shop/order_success.html
++++ b/app/templates/shop/order_success.html
+@@ -76,3 +76,14 @@ document.addEventListener("DOMContentLoaded", function () {
+ });
+ </script>
+ {% endblock %}
++
++
++{% block tracking %}
++{% if track_purchase and meta_purchase %}
++<script>
++  if (typeof fbq === 'function') {
++    fbq('track', 'Purchase', {{ meta_purchase|tojson }});
++  }
++</script>
++{% endif %}
++{% endblock %}
+diff --git a/app/templates/shop/product_detail.html b/app/templates/shop/product_detail.html
+index a86185c..56fcdd0 100644
+--- a/app/templates/shop/product_detail.html
++++ b/app/templates/shop/product_detail.html
+@@ -226,4 +226,25 @@
+   {% endif %}
+ </section>
+ <section class="container pb-5"><div class="section-header mb-3"><h2>Podobné produkty</h2></div><div class="row g-4">{% for product in related %}{% include 'components/product_card.html' %}{% endfor %}</div></section>
++
++{% endblock %}
++
++{% block tracking %}
++<script>
++  if (typeof fbq === 'function') {
++    fbq('track', 'ViewContent', {
++      content_ids: [{{ product.id|string|tojson }}],
++      contents: [{
++        id: {{ product.id|string|tojson }},
++        quantity: 1,
++        item_price: {{ ('%.2f'|format(product.price or 0)) }}
++      }],
++      content_type: 'product',
++      content_name: {{ product.name|tojson }},
++      content_category: {{ (product.category.name if product.category else '')|tojson }},
++      value: {{ ('%.2f'|format(product.price or 0)) }},
++      currency: 'CZK'
++    });
++  }
++</script>
+ {% endblock %}
+\ No newline at end of file
+diff --git a/app/templates/shop/products.html b/app/templates/shop/products.html
+index 6107706..857767e 100644
+--- a/app/templates/shop/products.html
++++ b/app/templates/shop/products.html
+@@ -67,3 +67,14 @@
+   </div>
+ </section>
+ {% endblock %}
++
++
++{% block tracking %}
++{% if meta_search %}
++<script>
++  if (typeof fbq === 'function') {
++    fbq('track', 'Search', {{ meta_search|tojson }});
++  }
++</script>
++{% endif %}
++{% endblock %}

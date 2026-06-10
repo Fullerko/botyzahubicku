@@ -22,6 +22,95 @@ AFF_COOKIE = 'bzh_affiliate_code'
 AFF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90
 
 
+META_CURRENCY = 'CZK'
+
+
+def _money(value):
+    """Bezpečně převede cenu pro Meta Pixel payload."""
+    try:
+        return round(float(value or 0), 2)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _meta_product_payload(product, quantity=1, value=None):
+    """Payload pro Meta Pixel produktové události."""
+    quantity = max(1, int(quantity or 1))
+    product_id = str(product.id)
+    price = _money(product.price)
+    return {
+        'content_ids': [product_id],
+        'contents': [{
+            'id': product_id,
+            'quantity': quantity,
+            'item_price': price,
+        }],
+        'content_type': 'product',
+        'content_name': product.name,
+        'content_category': product.category.name if getattr(product, 'category', None) else '',
+        'value': _money(value if value is not None else price * quantity),
+        'currency': META_CURRENCY,
+    }
+
+
+def _meta_cart_payload(items, total):
+    """Payload pro košík / zahájení objednávky."""
+    contents = []
+    content_ids = []
+    num_items = 0
+
+    for item in items:
+        product = item.get('product')
+        if not product:
+            continue
+        quantity = max(1, int(item.get('quantity') or 1))
+        product_id = str(product.id)
+        content_ids.append(product_id)
+        contents.append({
+            'id': product_id,
+            'quantity': quantity,
+            'item_price': _money(product.price),
+        })
+        num_items += quantity
+
+    return {
+        'content_ids': content_ids,
+        'contents': contents,
+        'content_type': 'product',
+        'num_items': num_items,
+        'value': _money(total),
+        'currency': META_CURRENCY,
+    }
+
+
+def _meta_order_payload(order):
+    """Payload pro Meta Pixel Purchase po vytvoření objednávky."""
+    contents = []
+    content_ids = []
+    num_items = 0
+
+    for item in order.items:
+        product_id = str(item.product_id)
+        quantity = max(1, int(item.quantity or 1))
+        content_ids.append(product_id)
+        contents.append({
+            'id': product_id,
+            'quantity': quantity,
+            'item_price': _money(item.unit_price),
+        })
+        num_items += quantity
+
+    return {
+        'content_ids': content_ids,
+        'contents': contents,
+        'content_type': 'product',
+        'num_items': num_items,
+        'value': _money(order.total_price),
+        'currency': META_CURRENCY,
+        'order_id': order.order_number,
+    }
+
+
 def _clean_brand(value):
     return (value or '').strip()
 
@@ -489,7 +578,12 @@ def products():
         sizes=sizes,
         categories=categories,
         page_title=page_title,
-        active_category=category_slug
+        active_category=category_slug,
+        meta_search={
+            'search_string': search,
+            'content_category': page_title,
+            'currency': META_CURRENCY,
+        } if search else None
     )
 
 
@@ -518,6 +612,7 @@ def product_detail(slug):
                 'color': color,
                 'quantity': quantity
             }
+        session['meta_add_to_cart'] = _meta_product_payload(product, quantity=quantity)
         session.modified = True
         flash('Produkt byl přidán do košíku.', 'success')
         return redirect(url_for('shop.cart'))
@@ -527,7 +622,16 @@ def product_detail(slug):
 @shop_bp.route('/cart')
 def cart():
     items, subtotal, shipping, discount_amount, total = cart_detail()
-    return render_template('shop/cart.html', items=items, subtotal=subtotal, shipping=shipping, discount_amount=discount_amount, total=total)
+    meta_add_to_cart = session.pop('meta_add_to_cart', None)
+    return render_template(
+        'shop/cart.html',
+        items=items,
+        subtotal=subtotal,
+        shipping=shipping,
+        discount_amount=discount_amount,
+        total=total,
+        meta_add_to_cart=meta_add_to_cart,
+    )
 
 
 
@@ -695,18 +799,38 @@ def checkout():
         capture_cart_lead(order.email, name=order.customer_name, phone=order.phone, session_id=request.cookies.get(current_app.config.get('SESSION_COOKIE_NAME', 'session'), ''))
         upsert_contact_from_order(order)
         db.session.commit()
+        session['meta_purchase_order_number'] = order.order_number
         session['cart'] = {}
         session.pop('coupon', None)
         flash(f'Objednávka {order.order_number} byla úspěšně vytvořena.', 'success')
         return redirect(url_for('shop.order_success', order_number=order.order_number))
 
-    return render_template('shop/checkout.html', items=items, subtotal=subtotal, shipping=shipping, discount_amount=discount_amount, total=total, coupon_info=coupon_info, bank_account=setting('bank_account', ''), bank_iban=setting('bank_iban', ''))
+    return render_template(
+        'shop/checkout.html',
+        items=items,
+        subtotal=subtotal,
+        shipping=shipping,
+        discount_amount=discount_amount,
+        total=total,
+        coupon_info=coupon_info,
+        bank_account=setting('bank_account', ''),
+        bank_iban=setting('bank_iban', ''),
+        meta_checkout=_meta_cart_payload(items, total),
+    )
 
 
 @shop_bp.route('/objednavka/<order_number>')
 def order_success(order_number):
     order = Order.query.filter_by(order_number=order_number).first_or_404()
-    return render_template('shop/order_success.html', order=order, bank_account=setting('bank_account', ''), bank_iban=setting('bank_iban', ''))
+    track_purchase = session.pop('meta_purchase_order_number', None) == order.order_number
+    return render_template(
+        'shop/order_success.html',
+        order=order,
+        bank_account=setting('bank_account', ''),
+        bank_iban=setting('bank_iban', ''),
+        track_purchase=track_purchase,
+        meta_purchase=_meta_order_payload(order),
+    )
 
 
 @shop_bp.route('/platba/<order_number>')
