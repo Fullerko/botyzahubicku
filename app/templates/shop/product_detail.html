@@ -82,7 +82,25 @@
         <span><i class="bi bi-calendar-event"></i> 8–12 dní doručení</span>
       </div>
       <form method="post" class="buy-box">
-        <div class="mb-3"><label class="form-label">Velikost</label><select class="form-select" name="size" required>{% for size_row in product.sizes %}<option value="{{ size_row.size }}">{{ size_row.size }} {% if size_row.stock <= 0 %}- vyprodáno{% endif %}</option>{% endfor %}</select></div>
+        <div class="mb-3">
+          <div class="size-guide-label-row">
+            <label class="form-label mb-0" for="productSizeSelect">Velikost</label>
+            <button
+              type="button"
+              class="size-guide-link"
+              data-bs-toggle="modal"
+              data-bs-target="#sizeGuideModal"
+              aria-controls="sizeGuideModal"
+            >
+              Jakou vybrat velikost?
+            </button>
+          </div>
+          <select class="form-select mt-2" id="productSizeSelect" name="size" required>
+            {% for size_row in product.sizes %}
+              <option value="{{ size_row.size }}">{{ size_row.size }} {% if size_row.stock <= 0 %}- vyprodáno{% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
 		{% if product.colors %}
 		  <div class="mb-3">
 			<label class="form-label">Barva</label>
@@ -98,6 +116,69 @@
         <div class="mb-3"><label class="form-label">Počet</label><input class="form-control" type="number" name="quantity" min="1" max="10" value="1"></div>
         <div class="d-grid gap-2 d-md-flex"><button class="btn btn-dark btn-lg rounded-pill px-4"><i class="bi bi-bag-plus"></i> Přidat do košíku</button><a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.checkout') }}">Přejít na objednávku</a></div>
       </form>
+
+      <div class="modal fade size-guide-modal" id="sizeGuideModal" tabindex="-1" aria-labelledby="sizeGuideModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div>
+                <h2 class="modal-title h4" id="sizeGuideModalLabel">Jakou vybrat velikost?</h2>
+                <p class="text-secondary mb-0 small">Produkty jsou z marketplace 1688, kde bývá číslování menší než u běžných EU/ČR prodejců.</p>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavřít"></button>
+            </div>
+            <div class="modal-body">
+              <div class="size-guide-alert mb-3">
+                <strong>Doporučení:</strong> vyberte o <strong>1 číslo větší</strong>, než běžně nosíte u lokálních prodejců.
+                Například pokud běžně nosíte EU 42, zvolte u nás velikost 43.
+              </div>
+
+              {% set size_guide_rows = [
+                (36, '23 cm'),
+                (37, '23,5 cm'),
+                (38, '24 cm'),
+                (39, '24,5 cm'),
+                (40, '25 cm'),
+                (41, '25,5 cm'),
+                (42, '26 cm'),
+                (43, '26,5 cm'),
+                (44, '27 cm'),
+                (45, '27,5 cm'),
+                (46, '28 cm'),
+                (47, '28,5 cm'),
+                (48, '29 cm')
+              ] %}
+
+              <div class="table-responsive">
+                <table class="table table-bordered align-middle size-guide-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Běžně nosíte EU/ČR</th>
+                      <th>Vyberte velikost produktu</th>
+                      <th>Orientační délka stélky</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for china_size, insole_length in size_guide_rows %}
+                      <tr>
+                        <td>{{ china_size - 1 }}</td>
+                        <td><strong>{{ china_size }}</strong></td>
+                        <td>{{ insole_length }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+
+              <p class="small text-secondary mt-3 mb-0">
+                Uvedené centimetry stélky jsou pouze orientační a mohou se u jednotlivých modelů mírně lišit, obvykle přibližně o 0,5 cm.
+                Pokud máte širší chodidlo nebo jste mezi velikostmi, doporučujeme zvolit větší variantu.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="description-box mt-4 w-100" style="max-width: 100%;">
         <h4>Detail produktu</h4>
         <p>{{ product.description }}</p>
