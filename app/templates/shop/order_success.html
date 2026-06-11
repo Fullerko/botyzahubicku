@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 {% block tracking %}
-{% if track_purchase and meta_purchase %}
+{% if order.payment_status == 'paid' and meta_purchase %}
 <script>
   if (typeof fbq === 'function') {
     fbq('track', 'Purchase', {{ meta_purchase|tojson }});

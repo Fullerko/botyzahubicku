@@ -822,13 +822,13 @@ def checkout():
 @shop_bp.route('/objednavka/<order_number>')
 def order_success(order_number):
     order = Order.query.filter_by(order_number=order_number).first_or_404()
-    track_purchase = session.pop('meta_purchase_order_number', None) == order.order_number
+
     return render_template(
         'shop/order_success.html',
         order=order,
         bank_account=setting('bank_account', ''),
         bank_iban=setting('bank_iban', ''),
-        track_purchase=track_purchase,
+        track_purchase=(order.payment_status == 'paid'),
         meta_purchase=_meta_order_payload(order),
     )
 
