@@ -34,7 +34,7 @@
       <div class="summary-card mb-3">
         <h4>Slevový /  kód</h4>
         <form method="post" action="{{ url_for('shop.apply_coupon') }}" class="d-flex gap-2 mt-3">
-          <input class="form-control" name="coupon_code" placeholder="">
+          <input class="form-control" name="coupon_code" placeholder="Zadej slevový kód">
           <button class="btn btn-dark rounded-pill">Použít</button>
         </form>
         {% if session.get('coupon') %}
