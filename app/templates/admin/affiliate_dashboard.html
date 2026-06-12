@@ -5,7 +5,7 @@
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
       <h1 class="h2 mb-1">Affiliate administrace</h1>
-      <p class="text-secondary mb-0">Schvalování přihlášek, správa kódů, provizí a výkonu partnerů.</p>
+      <p class="text-secondary mb-0">Správa partnerů, kódů, provizí a výkonu. Noví partneři z /affiliate jsou aktivní hned.</p>
     </div>
     <div class="d-flex gap-2">
       <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.affiliate_partner_new') }}">Nový partner</a>
@@ -20,7 +20,7 @@
   </div>
 
   <div class="info-card mb-4">
-    <h2 class="h4 mb-3">Přihlášky a partneři</h2>
+    <h2 class="h4 mb-3">Affiliate partneři</h2>
     <div class="table-responsive">
       <table class="table align-middle">
         <thead><tr><th>Partner</th><th>Status</th><th>Kódy</th><th>Objednávky</th><th>Provize</th><th></th></tr></thead>
@@ -38,7 +38,7 @@
               <form method="post" action="{{ url_for('admin.affiliate_partner_approve', partner_id=p.id) }}" class="d-inline"><button class="btn btn-sm btn-success rounded-pill">Schválit</button></form>
               {% endif %}
               {% if p.status != 'Odmítnuto' %}
-              <form method="post" action="{{ url_for('admin.affiliate_partner_reject', partner_id=p.id) }}" class="d-inline"><button class="btn btn-sm btn-outline-secondary rounded-pill">Odmítnout</button></form>
+              <form method="post" action="{{ url_for('admin.affiliate_partner_reject', partner_id=p.id) }}" class="d-inline"><button class="btn btn-sm btn-outline-secondary rounded-pill">Odebrat přístup</button></form>
               {% endif %}
               <a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('admin.affiliate_partner_edit', partner_id=p.id) }}">Upravit</a>
             </td>

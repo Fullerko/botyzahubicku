@@ -5,12 +5,13 @@ import string
 import qrcode
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required, login_user
 
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest
+from .models import AffiliatePartner, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest, User
 from .utils import get_cart, setting
 from datetime import datetime
+from werkzeug.security import generate_password_hash
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
 from .emailing_service import capture_cart_lead, upsert_contact_from_order
@@ -20,6 +21,41 @@ shop_bp = Blueprint('shop', __name__)
 
 AFF_COOKIE = 'bzh_affiliate_code'
 AFF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90
+
+
+def _affiliate_code_for_partner(partner):
+    base = ''.join(ch for ch in (partner.name or 'PARTNER').upper() if ch.isalnum())[:12] or 'PARTNER'
+    code = base
+    counter = 2
+    while Coupon.query.filter_by(code=code).first():
+        code = f'{base}{counter}'
+        counter += 1
+    return code
+
+
+def _affiliate_split_from_form(value):
+    if value == '10_0':
+        return 10, 0
+    if value == '0_10':
+        return 0, 10
+    return 5, 5
+
+
+def _ensure_affiliate_coupon(partner, preferred_split='5_5'):
+    if partner.codes:
+        return
+
+    client_percent, partner_percent = _affiliate_split_from_form(preferred_split)
+    db.session.add(Coupon(
+        code=_affiliate_code_for_partner(partner),
+        label=f'Affiliate {partner.name}',
+        description='Automaticky vytvořený affiliate kód partnera',
+        discount_percent_client=client_percent,
+        commission_percent_partner=partner_percent,
+        affiliate_partner_id=partner.id,
+        active=True,
+        max_uses=0,
+    ))
 
 
 META_CURRENCY = 'CZK'
@@ -840,21 +876,77 @@ def order_payment(order_number):
 
 
 @shop_bp.route('/affiliate', methods=['GET', 'POST'])
+@shop_bp.route('/affiliate/register', methods=['GET', 'POST'])
 def affiliate():
     codes = Coupon.query.filter_by(active=True).order_by(Coupon.code.asc()).all()
     partners = AffiliatePartner.query.order_by(AffiliatePartner.created_at.desc()).all()
+
     if request.method == 'POST':
-        partner = AffiliatePartner(
-            name=request.form.get('name', '').strip(),
-            email=request.form.get('email', '').strip(),
-            instagram=request.form.get('instagram', '').strip(),
-            note=request.form.get('note', '').strip() + f"\nPreferovaný split: {request.form.get('preferred_split', '')}",
-            status='Nová žádost',
-        )
-        db.session.add(partner)
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        instagram = request.form.get('instagram', '').strip()
+        note = request.form.get('note', '').strip()
+        preferred_split = request.form.get('preferred_split', '5_5')
+
+        if current_user.is_authenticated:
+            user = current_user
+            if not name:
+                name = user.full_name
+            email = user.email
+        else:
+            password = request.form.get('password', '')
+            password2 = request.form.get('password2', '')
+
+            if not name or not email:
+                flash('Vyplň jméno a e-mail.', 'warning')
+                return redirect(url_for('shop.affiliate'))
+            if len(password) < 6:
+                flash('Heslo musí mít alespoň 6 znaků.', 'warning')
+                return redirect(url_for('shop.affiliate'))
+            if password != password2:
+                flash('Hesla se neshodují.', 'warning')
+                return redirect(url_for('shop.affiliate'))
+
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                flash('Tento e-mail už má účet. Přihlas se a potom otevři Affiliate.', 'warning')
+                return redirect(url_for('auth.login', next=url_for('shop.affiliate')))
+
+            user = User(
+                email=email,
+                full_name=name,
+                password_hash=generate_password_hash(password),
+                is_admin=False,
+            )
+            db.session.add(user)
+
+        partner = AffiliatePartner.query.filter_by(email=user.email).first()
+        if partner:
+            partner.name = name or partner.name
+            partner.instagram = instagram or partner.instagram
+            if note:
+                partner.note = note
+            partner.status = 'Aktivní'
+        else:
+            partner = AffiliatePartner(
+                name=name or user.full_name,
+                email=user.email,
+                instagram=instagram,
+                note=(note + f"\nPreferovaný split: {preferred_split}").strip(),
+                status='Aktivní',
+            )
+            db.session.add(partner)
+
+        db.session.flush()
+        _ensure_affiliate_coupon(partner, preferred_split)
         db.session.commit()
-        flash('Žádost do affiliate programu byla odeslána.', 'success')
-        return redirect(url_for('shop.affiliate'))
+
+        if not current_user.is_authenticated:
+            login_user(user)
+
+        flash('Affiliate účet byl vytvořen a je hned aktivní.', 'success')
+        return redirect(url_for('shop.affiliate_portal'))
+
     return render_template('shop/affiliate.html', codes=codes, partners=partners)
 
 
@@ -864,7 +956,7 @@ def affiliate_portal():
     partner = AffiliatePartner.query.filter_by(email=current_user.email).first()
 
     if not partner or partner.status != 'Aktivní':
-        flash('Affiliate portál je dostupný až po schválení žádosti administrátorem.', 'warning')
+        flash('Affiliate portál je dostupný jen pro aktivní affiliate partnery.', 'warning')
         return redirect(url_for('shop.affiliate'))
 
     if request.method == 'POST':
@@ -897,11 +989,6 @@ def affiliate_portal():
 
             flash('Žádost o výběr byla odeslána.', 'success')
             return redirect(url_for('shop.affiliate_portal'))
-
-        if action == 'create_code':
-            code_value = request.form.get('code', '').strip().upper()
-        
-    
 
         if action == 'create_code':
             code_value = request.form.get('code', '').strip().upper()

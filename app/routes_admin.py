@@ -575,7 +575,7 @@ def affiliate_partner_reject(partner_id):
     partner = AffiliatePartner.query.get_or_404(partner_id)
     partner.status = 'Odmítnuto'
     db.session.commit()
-    flash('Žádost byla odmítnuta.', 'info')
+    flash('Affiliate přístup byl odebrán.', 'info')
     return redirect(url_for('admin.affiliate_dashboard'))
 
 
