@@ -407,7 +407,7 @@ def enqueue_campaign(campaign):
         ))
 
     campaign.status = 'queued'
-    campaign.total_recipients = len(contacts)
+    campaign.total_recipients = EmailCampaignRecipient.query.filter_by(campaign_id=campaign.id).count()
     campaign.sent_count = 0
     campaign.failed_count = 0
     campaign.skipped_count = 0

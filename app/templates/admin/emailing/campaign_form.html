@@ -73,6 +73,16 @@
             {% for key, label in segments %}<option value="{{ key }}" {% if campaign.segment_type == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
           </select>
         </div>
+		<div class="mb-3">
+		  <label class="form-label">Komu poslat</label>
+		  <select class="form-select" name="recipient_mode">
+			<option value="all" {% if campaign.recipient_mode == 'all' %}selected{% endif %}>Zaslat všem</option>
+			<option value="new" {% if campaign.recipient_mode == 'new' %}selected{% endif %}>Zaslat jen novým</option>
+		  </select>
+		  <div class="form-text">
+			„Zaslat jen novým“ nepřidá do fronty kontakty, které už v této kampani jednou jsou.
+		  </div>
+		</div>
         <div class="mb-3">
           <label class="form-label">Vyhledávání uvnitř segmentu</label>
           <input class="form-control" name="contact_search" value="{{ request.form.get('contact_search', request.args.get('contact_search', '')) }}" placeholder="např. seznam.cz nebo jméno">

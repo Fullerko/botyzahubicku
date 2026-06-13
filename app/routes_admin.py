@@ -706,6 +706,8 @@ def _campaign_from_form(campaign):
     campaign.html_body = request.form.get('html_body', '').strip()
     campaign.text_body = request.form.get('text_body', '').strip()
     campaign.segment_type = request.form.get('segment_type', 'all').strip() or 'all'
+    recipient_mode = request.form.get('recipient_mode', 'all').strip() or 'all'
+    campaign.recipient_mode = recipient_mode if recipient_mode in ('all', 'new') else 'all'
     campaign.batch_size = max(1, min(1000, int(request.form.get('batch_size', setting('emailing_batch_size', '50')) or 50)))
     campaign.delay_seconds = max(0, min(60, int(request.form.get('delay_seconds', setting('emailing_delay_seconds', '0')) or 0)))
 

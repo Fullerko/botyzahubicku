@@ -55,6 +55,9 @@ def ensure_schema_columns():
         'coupon': None,
         'affiliate_partner': None,
         'password_reset_token': None,
+        'email_campaign': {
+            'recipient_mode': "ALTER TABLE email_campaign ADD COLUMN recipient_mode VARCHAR(20) DEFAULT 'all'",
+        },
         'order': {
             'discount_amount': "ALTER TABLE 'order' ADD COLUMN discount_amount FLOAT DEFAULT 0",
             'coupon_code': "ALTER TABLE 'order' ADD COLUMN coupon_code VARCHAR(40) DEFAULT ''",
