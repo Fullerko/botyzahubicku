@@ -381,9 +381,22 @@ def collect_contacts_for_campaign(campaign):
 def enqueue_campaign(campaign):
     if campaign.status not in ('draft', 'queued', 'paused', 'cancelled', 'done'):
         raise ValueError('Kampaň se právě odesílá. Nejdřív ji pozastav.')
-    EmailCampaignRecipient.query.filter_by(campaign_id=campaign.id).delete()
-    db.session.flush()
-    contacts = collect_contacts_for_campaign(campaign)
+
+    mode = getattr(campaign, 'recipient_mode', 'all') or 'all'
+
+    if mode == 'all':
+        EmailCampaignRecipient.query.filter_by(campaign_id=campaign.id).delete()
+        db.session.flush()
+        contacts = collect_contacts_for_campaign(campaign)
+
+    else:
+        existing = {
+            r.contact_id
+            for r in EmailCampaignRecipient.query.filter_by(campaign_id=campaign.id).all()
+        }
+        contacts = collect_contacts_for_campaign(campaign)
+        contacts = [c for c in contacts if c.id not in existing]
+
     for contact in contacts:
         db.session.add(EmailCampaignRecipient(
             campaign_id=campaign.id,
@@ -392,6 +405,7 @@ def enqueue_campaign(campaign):
             name=contact.name or '',
             status='pending',
         ))
+
     campaign.status = 'queued'
     campaign.total_recipients = len(contacts)
     campaign.sent_count = 0
@@ -401,6 +415,7 @@ def enqueue_campaign(campaign):
     campaign.started_at = None
     campaign.completed_at = None
     campaign.last_error = ''
+
     db.session.commit()
     return len(contacts)
 

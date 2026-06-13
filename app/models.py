@@ -321,6 +321,7 @@ class EmailCampaign(db.Model):
     status = db.Column(db.String(30), default='draft', index=True)  # draft, queued, sending, paused, done, cancelled
     segment_type = db.Column(db.String(40), default='all')
     filters_json = db.Column(db.Text, default='{}')
+    recipient_mode = db.Column(db.String(20), default='all')
     selected_contact_ids = db.Column(db.Text, default='[]')
     excluded_contact_ids = db.Column(db.Text, default='[]')
     batch_size = db.Column(db.Integer, default=50)
@@ -335,6 +336,7 @@ class EmailCampaign(db.Model):
     last_error = db.Column(db.Text, default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
 
     recipients = db.relationship('EmailCampaignRecipient', backref='campaign', lazy=True, cascade='all, delete-orphan')
     attachments = db.relationship('EmailAttachment', backref='campaign', lazy=True, cascade='all, delete-orphan')
