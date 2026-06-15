@@ -1,5 +1,6 @@
 import html
 import os
+import re
 import time
 import uuid
 from datetime import datetime
@@ -224,6 +225,144 @@ def _normalize_color_key(value):
     return ' '.join(text.split())
 
 
+
+
+# Supplier-facing PDF must be understandable in English. Static labels are already
+# English; these dictionaries cover common dynamic values saved from the Czech
+# checkout/admin UI, so they do not leak into the supplier report.
+CZECH_VALUE_TRANSLATIONS = {
+    # Order statuses and payment statuses
+    'nova': 'New',
+    'nove': 'New',
+    'vytvorena': 'Created',
+    'vytvoreno': 'Created',
+    'cekajici': 'Pending',
+    'ceka na platbu': 'Waiting for payment',
+    'cekajici na platbu': 'Waiting for payment',
+    'nezaplaceno': 'Unpaid',
+    'zaplaceno': 'Paid',
+    'uhrazeno': 'Paid',
+    'odeslano': 'Shipped',
+    'vyrizeno': 'Completed',
+    'dokonceno': 'Completed',
+    'storno': 'Cancelled',
+    'stornovano': 'Cancelled',
+    'zruseno': 'Cancelled',
+    'pending': 'Pending',
+    'paid': 'Paid',
+    'unpaid': 'Unpaid',
+    'cancelled': 'Cancelled',
+    'canceled': 'Cancelled',
+
+    # Shipping methods
+    'kuryr az domu zdarma': 'Home courier delivery - free of charge',
+    'kuryr domu zdarma': 'Home courier delivery - free of charge',
+    'kuryr az domu': 'Home courier delivery',
+    'kuryr': 'Courier delivery',
+    'doprava zdarma': 'Free shipping',
+    'osobni odber': 'Personal pickup',
+    'zasilkovna': 'Packeta pickup point',
+    'balikovna': 'Balikovna pickup point',
+    'posta': 'Postal delivery',
+    'ceska posta': 'Czech Post delivery',
+
+    # Payment methods
+    'qr kod / bankovni prevod': 'QR code / bank transfer',
+    'qr kod bankovni prevod': 'QR code / bank transfer',
+    'qr platba': 'QR payment',
+    'bankovni prevod': 'Bank transfer',
+    'prevodem': 'Bank transfer',
+    'platba prevodem': 'Bank transfer',
+    'platba kartou': 'Card payment',
+    'online platba kartou': 'Online card payment',
+    'dobirka': 'Cash on delivery',
+    'hotove': 'Cash payment',
+    'hotovost': 'Cash payment',
+}
+
+PRODUCT_WORD_TRANSLATIONS = {
+    # Intended wearer / category
+    'damske': "women's", 'damska': "women's", 'damsky': "women's", 'damskych': "women's",
+    'panske': "men's", 'panska': "men's", 'pansky': "men's", 'panskych': "men's",
+    'detske': "children's", 'detska': "children's", 'detsky': "children's", 'unisex': 'unisex',
+
+    # Product types
+    'boty': 'shoes', 'obuv': 'footwear', 'tenisky': 'sneakers', 'botasky': 'sneakers',
+    'sandaly': 'sandals', 'pantofle': 'slippers', 'nazouvaky': 'slip-ons', 'mokasiny': 'loafers',
+    'kozacky': 'boots', 'kotnikove': 'ankle', 'kotnikova': 'ankle', 'kotnikovy': 'ankle',
+    'kozačky': 'boots', 'polobotky': 'low shoes', 'lodicky': 'pumps', 'lodičky': 'pumps',
+
+    # Styles / use
+    'bezecke': 'running', 'bezecka': 'running', 'sportovni': 'sports', 'elegantni': 'elegant',
+    'volnocasove': 'casual', 'vychazkove': 'casual', 'letni': 'summer', 'zimni': 'winter',
+    'jarni': 'spring', 'podzimni': 'autumn', 'pracovni': 'work', 'outdoorove': 'outdoor',
+    'turisticke': 'hiking', 'plazove': 'beach', 'vysoke': 'high-top', 'nizke': 'low-top',
+    'lehke': 'lightweight', 'pohodlne': 'comfortable', 'protiskluzove': 'non-slip',
+    'platforma': 'platform', 'platforme': 'platform', 'podpatek': 'heel', 'na podpatku': 'with heel',
+
+    # Common color word forms in product names
+    'cerne': 'black', 'cerna': 'black', 'cerny': 'black', 'black': 'black',
+    'bile': 'white', 'bila': 'white', 'bily': 'white', 'white': 'white',
+    'sede': 'gray', 'seda': 'gray', 'sedy': 'gray', 'stribrne': 'silver', 'stribrna': 'silver',
+    'zlate': 'gold', 'zlata': 'gold', 'zlaty': 'gold', 'cervene': 'red', 'cervena': 'red',
+    'modre': 'blue', 'modra': 'blue', 'zelene': 'green', 'zelena': 'green',
+    'zlute': 'yellow', 'zluta': 'yellow', 'oranzove': 'orange', 'oranzova': 'orange',
+    'ruzove': 'pink', 'ruzova': 'pink', 'fialove': 'purple', 'fialova': 'purple',
+    'hnede': 'brown', 'hneda': 'brown', 'bezove': 'beige', 'bezova': 'beige',
+    'kremove': 'cream', 'kremova': 'cream', 'khaki': 'khaki', 'multicolor': 'multicolor',
+}
+
+NOTE_PHRASE_TRANSLATIONS = [
+    ('prosím', 'please'), ('prosim', 'please'), ('děkuji', 'thank you'), ('dekuji', 'thank you'),
+    ('díky', 'thanks'), ('diky', 'thanks'), ('zavolejte', 'please call'), ('volejte', 'call'),
+    ('nevolejte', 'do not call'), ('nechat u dveří', 'leave at the door'),
+    ('nechat u dveri', 'leave at the door'), ('u dveří', 'at the door'), ('u dveri', 'at the door'),
+    ('soused', 'neighbour'), ('sousedka', 'neighbour'), ('balík', 'parcel'), ('balik', 'parcel'),
+    ('adresa', 'address'), ('doručení', 'delivery'), ('doruceni', 'delivery'),
+    ('večer', 'evening'), ('vecer', 'evening'), ('ráno', 'morning'), ('rano', 'morning'),
+]
+
+
+def _translate_known_value(value, default='-'):
+    text = _safe_text(value, default)
+    if text == default:
+        return default
+    return CZECH_VALUE_TRANSLATIONS.get(_normalize_color_key(text), text)
+
+
+def _translate_words_to_english(value):
+    text = _safe_text(value, '')
+    if not text:
+        return '-'
+    # Keep separators/spaces as they are, but translate known Czech words.
+    parts = re.split(r'(\W+)', text, flags=re.UNICODE)
+    translated = []
+    changed = False
+    for part in parts:
+        key = _normalize_color_key(part)
+        replacement = PRODUCT_WORD_TRANSLATIONS.get(key)
+        if replacement:
+            translated.append(replacement)
+            changed = True
+        elif key in COLOR_TRANSLATIONS:
+            translated.append(COLOR_TRANSLATIONS[key].lower())
+            changed = True
+        else:
+            translated.append(part)
+    result = ''.join(translated).strip()
+    return result if result else '-'
+
+
+def _translate_customer_note(value):
+    text = _safe_text(value, '')
+    if not text:
+        return 'No customer note.'
+
+    translated = text
+    for source, target in NOTE_PHRASE_TRANSLATIONS:
+        translated = re.sub(re.escape(source), target, translated, flags=re.IGNORECASE)
+    return translated
+
 def _translate_color_to_english(value):
     text = _safe_text(value, '')
     if not text or text == '-':
@@ -271,8 +410,8 @@ def _styles():
     styles.add(ParagraphStyle(
         name='Small',
         parent=styles['Normal'],
-        fontSize=7.5,
-        leading=9.5,
+        fontSize=7.2,
+        leading=9.2,
     ))
     styles.add(ParagraphStyle(
         name='Label',
@@ -348,8 +487,8 @@ def _order_shipping_block(order):
         f'Street: {_safe_text(order.street)}',
         f'City: {_safe_text(order.city)}',
         f'Postal code: {_safe_text(order.postal_code)}',
-        f'Country: Czech Republic',
-        f'Shipping method: {_safe_text(order.shipping_method)}',
+        'Country: Czech Republic',
+        f'Shipping method: {_translate_known_value(order.shipping_method)}',
     ])
 
 
@@ -358,8 +497,9 @@ def _payment_block(order):
     created_at = order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '-'
     return '\n'.join([
         f'Created at: {created_at}',
-        f'Payment method: {_safe_text(order.payment_method)}',
-        f'Payment status: {_safe_text(order.payment_status)}',
+        f'Order status: {_translate_known_value(getattr(order, "status", ""))}',
+        f'Payment method: {_translate_known_value(order.payment_method)}',
+        f'Payment status: {_translate_known_value(order.payment_status)}',
         f'Paid at: {paid_at}',
         f'Order total: {int(order.total_price or 0)} CZK',
         f'Variable symbol: {_safe_text(order.variable_symbol)}',
@@ -380,9 +520,9 @@ def _variant_for_item(item):
 def _order_item_table(order, styles):
     header = [
         _p('Photo', styles['Label']),
-        _p('Product / supplier data', styles['Label']),
+        _p('Product and supplier identifiers', styles['Label']),
         _p('Customer selection', styles['Label']),
-        _p('Product URL', styles['Label']),
+        _p('Supplier/source URL', styles['Label']),
     ]
     rows = [header]
 
@@ -390,34 +530,38 @@ def _order_item_table(order, styles):
         product = item.product
         variant = _variant_for_item(item)
 
+        translated_name = _translate_words_to_english(item.product_name)
         product_data = [
-            f'Product: {_safe_text(item.product_name)}',
+            f'Product: {translated_name}',
+        ]
+        product_data.extend([
             f'Brand: {_safe_text(product.brand if product else "")}',
             f'Internal product ID: {_safe_text(item.product_id)}',
-        ]
+            f'Store variant SKU: {_safe_text(getattr(variant, "sku", ""))}',
+            f'Supplier SKU: {_safe_text(getattr(variant, "supplier_sku", ""))}',
+            f'Supplier product code: {_safe_text(getattr(variant, "supplier_product_code", ""))}',
+            f'Supplier EAN: {_safe_text(getattr(variant, "supplier_ean", ""))}',
+        ])
 
-        supplier_color = variant.supplier_color if variant else ''
+        supplier_color = getattr(variant, 'supplier_color', '') if variant else ''
         selection = [
             f'Quantity: {item.quantity}',
             f'Size: {_safe_text(item.size)}',
-            f'Selected color: {_translate_color_to_english(item.color)}',  # Translated color
-            f'Supplier color: {_translate_color_to_english(supplier_color)}',  # Translated color
+            f'Selected color: {_translate_color_to_english(item.color)}',
+            f'Supplier color: {_translate_color_to_english(supplier_color)}',
             f'Unit price on store: {int(item.unit_price or 0)} CZK',
         ]
 
-        # Safely handle product URL
         product_url = _safe_text(product.source_url if product else '')
 
-        # Add to rows with appropriate line breaks
         rows.append([
             _product_image_flowable(product, styles),
-            _p('\n'.join(product_data), styles['Small']),  # Fixed line breaks
-            _p('\n'.join(selection), styles['Small']),  # Fixed line breaks
+            _p('\n'.join(product_data), styles['Small']),
+            _p('\n'.join(selection), styles['Small']),
             _p(product_url, styles['Small']),
         ])
 
-    # Creating the table with the rows
-    table = Table(rows, colWidths=[42 * mm, 58 * mm, 38 * mm, 47 * mm], repeatRows=1)
+    table = Table(rows, colWidths=[42 * mm, 62 * mm, 38 * mm, 43 * mm], repeatRows=1)
     table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (-1, -1), 'DejaVu'),
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
@@ -481,7 +625,7 @@ def generate_supplier_orders_pdf(orders, batch_id=None):
         summary = Table([
             [_p('Customer and shipping details', styles['Label']), _p('Payment / order details', styles['Label'])],
             [_p(_order_shipping_block(order), styles['Small']), _p(_payment_block(order), styles['Small'])],
-            [_p('Customer note / instructions', styles['Label']), _p(_safe_text(order.note), styles['Small'])],
+            [_p('Customer note / instructions', styles['Label']), _p(_translate_customer_note(order.note), styles['Small'])],
         ], colWidths=[92 * mm, 92 * mm])
         summary.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
