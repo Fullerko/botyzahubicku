@@ -7,6 +7,7 @@
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ blog_title }}{% endblock %}
 {% block og_description %}{{ blog_description }}{% endblock %}
+
 {% block structured_data %}
 <script type="application/ld+json">
 {
@@ -22,6 +23,7 @@
 }
 </script>
 {% endblock %}
+
 {% block content %}
 
 <style>
@@ -31,11 +33,13 @@
     font-weight: inherit;
     pointer-events: none;
   }
+
   .seo-product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 14px;
   }
+
   .seo-product-card {
     display: flex;
     gap: 12px;
@@ -45,11 +49,13 @@
     background: #fff;
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
+
   .seo-product-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 24px rgba(0,0,0,.08);
     border-color: rgba(0,0,0,.22);
   }
+
   .seo-product-card__image {
     width: 92px;
     min-width: 92px;
@@ -58,61 +64,146 @@
     background: #f6f7f9;
     overflow: hidden;
   }
+
   .seo-product-card__image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
+
   .seo-product-card__body {
     min-width: 0;
     flex: 1;
   }
+
   .seo-product-card__title {
     display: block;
     line-height: 1.2;
     margin: 2px 0 4px;
   }
+
   .seo-product-card__desc {
     color: #6c757d;
     font-size: .875rem;
     line-height: 1.35;
+  }
+
+  .blog-sidebar-sticky {
+    position: sticky;
+    top: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-height: calc(100vh - 130px);
+    overflow-y: auto;
+    padding-bottom: 12px;
+  }
+
+  .blog-sidebar-sticky::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .blog-sidebar-sticky::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,.18);
+    border-radius: 999px;
+  }
+
+  .sidebar-product-link {
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    background: #fff;
+  }
+
+  .sidebar-product-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    border-color: rgba(0,0,0,.22) !important;
+  }
+
+  .sidebar-category-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .sidebar-category-list .btn {
+    white-space: nowrap;
+  }
+
+  @media (max-width: 991.98px) {
+    .blog-sidebar-sticky {
+      position: static;
+      max-height: none;
+      overflow: visible;
+      margin-top: 24px;
+    }
   }
 </style>
 
 <section class="py-5">
   <div class="container">
     <div class="row g-5">
+
       <article class="col-lg-8">
         <a href="{{ url_for('shop.blog') }}" class="btn btn-outline-dark rounded-pill mb-4">← Blog</a>
         <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Nákupní průvodce</span>
+
         <h1 class="display-6 fw-bold mt-3">{{ post.title }}</h1>
-        {% if blog_description %}<p class="text-muted fs-5">{{ blog_description }}</p>{% endif %}
-        <div class="info-card mt-4 seo-content">{{ post.content | safe }}</div>
+
+        {% if blog_description %}
+          <p class="text-muted fs-5">{{ blog_description }}</p>
+        {% endif %}
+
+        <div class="info-card mt-4 seo-content">
+          {{ post.content | safe }}
+        </div>
       </article>
+
       <aside class="col-lg-4">
-        {% if related_products %}
-        <div class="info-card sticky-top" style="top: 110px;">
-          <h2 class="h4 mb-3">Doporučené produkty z článku</h2>
-          <div class="vstack gap-3">
-            {% for product in related_products[:6] %}
-            <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="d-flex gap-3 text-decoration-none text-dark border rounded-4 p-2">
-              <img src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}" style="width:72px;height:72px;object-fit:cover;border-radius:14px;">
-              <span><strong class="d-block">{{ product.name }}</strong><span class="text-secondary">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</span></span>
-            </a>
-            {% endfor %}
+        <div class="blog-sidebar-sticky">
+
+          {% if related_products %}
+          <div class="info-card">
+            <h2 class="h4 mb-3">Doporučené produkty z článku</h2>
+
+            <div class="vstack gap-3">
+              {% for product in related_products[:6] %}
+              <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="sidebar-product-link d-flex gap-3 text-decoration-none text-dark border rounded-4 p-2">
+                <img
+                  src="{{ image_url(product.image) }}"
+                  alt="{{ product.image_alt or product.name }}"
+                  style="width:72px;height:72px;object-fit:cover;border-radius:14px;"
+                  loading="lazy"
+                >
+                <span>
+                  <strong class="d-block">{{ product.name }}</strong>
+                  <span class="text-secondary">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</span>
+                </span>
+              </a>
+              {% endfor %}
+            </div>
           </div>
-        </div>
-        {% endif %}
-        {% if related_categories %}
-        <div class="info-card mt-4">
-          <h2 class="h5">Související kategorie</h2>
-          <div class="d-flex gap-2 flex-wrap mt-3">
-          {% for category in related_categories %}<a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('shop.category_landing', slug=category.slug) }}">{{ category.name }}</a>{% endfor %}
+          {% endif %}
+
+          {% if related_categories %}
+          <div class="info-card">
+            <h2 class="h5 mb-0">Související kategorie</h2>
+
+            <div class="sidebar-category-list">
+              {% for category in related_categories %}
+              <a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('shop.category_landing', slug=category.slug) }}">
+                {{ category.name }}
+              </a>
+              {% endfor %}
+            </div>
           </div>
+          {% endif %}
+
         </div>
-        {% endif %}
       </aside>
+
     </div>
   </div>
 </section>
+
 {% endblock %}
