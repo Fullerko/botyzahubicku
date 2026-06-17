@@ -4,7 +4,10 @@
 <section class="container py-5">
   <div class="section-header mb-4">
     <div><h1 class="h2 mb-1">SEO automat S+ drafty</h1><p class="text-secondary mb-0">Generuje product-aware blogy a landing pages: reálné produkty, ceny, doporučení, FAQ a produktové karty. Textové prokliky v odstavcích se nepoužívají.</p></div>
-    <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-dark rounded-pill">Nastavení automatu</a>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-dark rounded-pill">Nová landing page</a>
+      <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-dark rounded-pill">Nastavení automatu</a>
+    </div>
   </div>
 
   <form method="POST" class="info-card mb-4">
@@ -43,8 +46,23 @@
     </table></div>
   </div>
 
+  <div class="info-card mb-4 border border-info">
+    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+      <div>
+        <h2 class="h4 mb-1">Rychlá oprava 404: /k/bile-tenisky</h2>
+        <p class="text-secondary mb-0">Vytvoří nebo aktualizuje landing page Bílé tenisky, vygeneruje obsah podle reálných produktů, publikuje ji a zapne odkaz /k/bile-tenisky.</p>
+      </div>
+      <form method="POST" action="{{ url_for('admin.seo_category_create_bile_tenisky') }}">
+        <button class="btn btn-info rounded-pill">Vytvořit /k/bile-tenisky</button>
+      </form>
+    </div>
+  </div>
+
   <div class="info-card">
-    <h2 class="h4 mb-3">Landing pages / kategorie</h2>
+    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+      <h2 class="h4 mb-0">Landing pages / kategorie</h2>
+      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-sm btn-dark rounded-pill">+ Nová landing page</a>
+    </div>
     <div class="table-responsive"><table class="table align-middle mb-0">
       <thead><tr><th>Název</th><th>Skóre</th><th>Publikováno</th><th>Keyword</th><th>URL</th><th>Akce</th></tr></thead>
       <tbody>

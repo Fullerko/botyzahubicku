@@ -1131,6 +1131,110 @@ def seo_blog_action(post_id, action):
     return redirect(url_for('admin.seo_dashboard'))
 
 
+
+
+@admin_bp.route('/seo/category/new', methods=['GET', 'POST'])
+@admin_required
+def seo_category_new():
+    category = Category(
+        name='',
+        slug='',
+        description='',
+        meta_description='',
+        seo_title='',
+        seo_target_keyword='',
+        seo_product_rules='{}',
+        seo_quality_score=0,
+        seo_generated=True,
+        seo_published=False,
+        show_in_menu=False,
+    )
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        slug = request.form.get('slug', '').strip()
+        if not name:
+            flash('Vyplň název landing page.', 'warning')
+            return render_template('admin/seo_category_form.html', category=category, is_new=True)
+
+        category.name = name
+        category.slug = unique_slug(Category, slug or name)
+        category.seo_title = request.form.get('seo_title', '').strip()
+        category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip() or name.lower()
+        category.meta_description = request.form.get('meta_description', '').strip()
+        category.seo_product_rules = request.form.get('seo_product_rules', '').strip() or '{}'
+        category.description = request.form.get('description', '').strip()
+        category.show_in_menu = bool(request.form.get('show_in_menu'))
+        category.seo_generated = True
+        category.seo_published = False
+
+        db.session.add(category)
+        db.session.flush()
+
+        # Když není ručně vložený SEO text, vytvoří se product-aware obsah z reálných produktů.
+        if not category.description:
+            regenerate_category_content(category)
+
+        action = request.form.get('action', 'save')
+        if action == 'publish':
+            category.seo_published = True
+        elif action == 'draft':
+            category.seo_published = False
+
+        db.session.commit()
+        flash(f'Landing page /k/{category.slug} byla vytvořena.', 'success')
+        return redirect(url_for('admin.seo_category_edit', category_id=category.id))
+
+    return render_template('admin/seo_category_form.html', category=category, is_new=True)
+
+
+@admin_bp.route('/seo/category/bile-tenisky/create', methods=['POST'])
+@admin_required
+def seo_category_create_bile_tenisky():
+    rules = {
+        'slug': 'bile-tenisky',
+        'title': 'Bílé tenisky',
+        'keyword': 'bílé tenisky',
+        'colors': ['bíl', 'bil', 'white'],
+        'terms': ['tenisky', 'sneaker'],
+        'intent': 'color',
+    }
+
+    category = Category.query.filter_by(slug='bile-tenisky').first()
+    if not category:
+        category = Category(
+            name='Bílé tenisky',
+            slug='bile-tenisky',
+            description='',
+            meta_description='',
+            seo_title='Bílé tenisky | doporučené modely a ceny | BotyZaHubicku.cz',
+            seo_target_keyword='bílé tenisky',
+            seo_product_rules=json.dumps(rules, ensure_ascii=False),
+            seo_quality_score=0,
+            seo_generated=True,
+            seo_published=True,
+            show_in_menu=True,
+        )
+        db.session.add(category)
+        db.session.flush()
+    else:
+        category.name = 'Bílé tenisky'
+        category.seo_title = category.seo_title or 'Bílé tenisky | doporučené modely a ceny | BotyZaHubicku.cz'
+        category.seo_target_keyword = category.seo_target_keyword or 'bílé tenisky'
+        category.seo_product_rules = json.dumps(rules, ensure_ascii=False)
+        category.seo_generated = True
+        category.seo_published = True
+        category.show_in_menu = True
+
+    regenerate_category_content(category)
+    category.seo_published = True
+    category.show_in_menu = True
+    db.session.commit()
+
+    flash('Landing page /k/bile-tenisky byla vytvořena a publikována.', 'success')
+    return redirect(url_for('admin.seo_category_edit', category_id=category.id))
+
+
 @admin_bp.route('/seo/category/<int:category_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def seo_category_edit(category_id):
