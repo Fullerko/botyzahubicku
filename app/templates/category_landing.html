@@ -404,8 +404,8 @@
             <div class="text-secondary small">{{ product.brand }}</div>
             <strong class="seo-product-card__title">{{ product.name }}</strong>
             <div class="seo-product-card__desc">
-              {{ (product.short_description or product.description or 'Produkt vhodný pro běžné nošení a aktuální výběr v této kategorii.')|striptags|truncate(135, True, '') }}
-            </div>
+			  {{ (product.short_description or product.description or 'Produkt vhodný pro běžné nošení a aktuální výběr v této kategorii.')|striptags|truncate(220, False, '…') }}
+			</div>
             <div class="d-flex align-items-end justify-content-between gap-2 mt-3">
               <div>
                 <strong>{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</strong>
