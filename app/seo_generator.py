@@ -91,9 +91,51 @@ def _lower(value):
     return _strip_accents(value).casefold()
 
 
+def _tokens(value):
+    return re.findall(r'[a-z0-9]+', _lower(value))
+
+
+def _term_in_text(text, needle):
+    """Bezpečné matchování keywordů.
+
+    Nepoužíváme prosté `needle in text`, protože krátké kořeny jako `bil`
+    se pak chytají ve slovech typu `stabilita` nebo `oblibeny`.
+    Jednoslovné výrazy proto musí začínat na hranici tokenu.
+    """
+    needle = _lower(needle).strip()
+    if not needle:
+        return False
+
+    normalized_text = _lower(text)
+
+    if ' ' in needle:
+        return needle in normalized_text
+
+    for token in _tokens(normalized_text):
+        if token == needle:
+            return True
+        if len(needle) >= 3 and token.startswith(needle):
+            return True
+    return False
+
+
 def _contains_any(text, needles):
-    text = _lower(text)
-    return any(_lower(needle) in text for needle in (needles or []) if str(needle or '').strip())
+    return any(_term_in_text(text, needle) for needle in (needles or []) if str(needle or '').strip())
+
+
+def _product_color_text(product):
+    """Text používaný pouze pro barvu.
+
+    Barvu nebereme z dlouhého popisu nebo obecných SEO textů, protože tam se
+    často objeví formulace typu `u světlých modelů...`, což pak špatně
+    zařadí černý nebo šedý produkt do bílé landing page.
+    """
+    return _lower(' '.join([
+        product.name or '',
+        product.slug or '',
+        product.image_alt or '',
+        product.colors or '',
+    ]))
 
 
 def _product_own_text(product):
@@ -324,7 +366,7 @@ def _product_passes_hard_filters(product, rules):
         return False
 
     colors = rules.get('colors') or []
-    if colors and not _contains_any(own_text, colors):
+    if colors and not _contains_any(_product_color_text(product), colors):
         return False
 
     groups = rules.get('required_groups') or []
@@ -354,7 +396,7 @@ def _has_hard_filters(rules):
 
 def _term_match_count(product, rules):
     text = _product_own_text(product)
-    return sum(1 for term in (rules.get('terms') or []) if _lower(term) in text)
+    return sum(1 for term in (rules.get('terms') or []) if _term_in_text(text, term))
 
 
 def _score_product(product, rules):
@@ -379,7 +421,7 @@ def _score_product(product, rules):
     if rules.get('min_price') is not None:
         score += 12 if _price(product) >= float(rules.get('min_price')) else -50
 
-    if rules.get('colors') and _contains_any(text, rules.get('colors')):
+    if rules.get('colors') and _contains_any(_product_color_text(product), rules.get('colors')):
         score += 40
 
     for group in rules.get('required_groups') or []:
@@ -504,11 +546,12 @@ def _product_names(products, limit=3):
 
 def _product_reason(product):
     text = _product_text(product)
+    color_text = _product_color_text(product)
     if 'sport' in text or 'beh' in text or 'running' in text:
         return 'vhodné pro sportovnější styl a aktivnější nošení'
-    if 'bil' in text or 'white' in text:
+    if _contains_any(color_text, ['bila', 'bile', 'bily', 'white', 'cream', 'smetan']):
         return 'čistý vzhled a snadné kombinování s outfitem'
-    if 'cern' in text or 'black' in text:
+    if _contains_any(color_text, ['cerna', 'cerne', 'cerny', 'black']):
         return 'univerzální tmavá barva a jednodušší údržba'
     if 'zimn' in text or 'winter' in text or 'zateplen' in text:
         return 'praktičtější volba do chladnějšího počasí'
