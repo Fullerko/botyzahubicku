@@ -1,82 +1,240 @@
 {% extends 'base.html' %}
-{% block title %}SEO automat | Admin{% endblock %}
+{% block title %}SEO obsah | Admin{% endblock %}
 {% block content %}
 <section class="container py-5">
   <div class="section-header mb-4">
-    <div><h1 class="h2 mb-1">SEO automat S+ drafty</h1><p class="text-secondary mb-0">Generuje blogy a landing pages z reálných produktů, cen, dostupnosti, doporučení a FAQ.</p></div>
+    <div>
+      <h1 class="h2 mb-1">SEO obsah</h1>
+      <p class="text-secondary mb-0">Ruční správa blogů a landing pages. Automatické generování je vypnuté.</p>
+    </div>
     <div class="d-flex gap-2 flex-wrap">
-      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-dark rounded-pill">Nová landing page</a>
-      <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-dark rounded-pill">Nastavení automatu</a>
+      <a href="{{ url_for('admin.seo_blog_new') }}" class="btn btn-dark rounded-pill">Nový blog článek</a>
+      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-outline-dark rounded-pill">Nová landing page</a>
     </div>
   </div>
 
-  <form method="POST" class="info-card mb-4">
-    <h2 class="h4 mb-3">Vygenerovat nové drafty teď</h2>
-    <div class="row g-3 align-items-end">
-      <div class="col-md-3"><label class="form-label fw-semibold">Blogy</label><input type="number" min="0" max="50" name="blog_count" value="3" class="form-control"></div>
-      <div class="col-md-3"><label class="form-label fw-semibold">Landing pages</label><input type="number" min="0" max="50" name="landing_count" value="3" class="form-control"></div>
-      <div class="col-md-3 form-check pt-4"><input class="form-check-input" type="checkbox" name="auto_publish" id="auto_publish"><label class="form-check-label" for="auto_publish">Rovnou publikovat jen při skóre 80+</label></div>
-      <div class="col-md-3"><button type="submit" class="btn btn-dark rounded-pill w-100">Generovat S+ drafty</button></div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="info-card h-100">
+        <div class="text-secondary small">Publikované blogy</div>
+        <div class="h3 mb-0">{{ published_blogs|length }}</div>
+      </div>
     </div>
-    <p class="small text-secondary mt-3 mb-0">Bezpečný režim: i při auto-publish se nepublikují stránky s málo produkty nebo nízkým skóre.</p>
-  </form>
-
-  <form method="POST" action="{{ url_for('admin.seo_regenerate_all') }}" class="info-card mb-4 border border-warning">
-    <h2 class="h4 mb-2">Přegenerovat starší obsah</h2>
-    <p class="text-secondary mb-3">Použij to po změně produktů nebo po úpravě pravidel. Přepočítá výběry, počty, ceny i texty podle aktuálních dat.</p>
-    <button class="btn btn-warning rounded-pill">Přegenerovat všechny generované blogy a landing pages</button>
-  </form>
+    <div class="col-md-3">
+      <div class="info-card h-100">
+        <div class="text-secondary small">Blog drafty</div>
+        <div class="h3 mb-0">{{ draft_blogs|length }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="info-card h-100">
+        <div class="text-secondary small">Publikované landing pages</div>
+        <div class="h3 mb-0">{{ published_categories|length }}</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="info-card h-100">
+        <div class="text-secondary small">Landing drafty</div>
+        <div class="h3 mb-0">{{ draft_categories|length }}</div>
+      </div>
+    </div>
+  </div>
 
   <div class="info-card mb-4">
-    <h2 class="h4 mb-3">Blog drafty / články</h2>
-    <div class="table-responsive"><table class="table align-middle mb-0">
-      <thead><tr><th>Název</th><th>Skóre</th><th>Status</th><th>Keyword</th><th>URL</th><th>Akce</th></tr></thead>
-      <tbody>
-      {% for post in blog_posts %}
-      <tr>
-        <td><strong>{{ post.title }}</strong><div class="small text-secondary">{{ post.meta_description }}</div></td>
-        <td><span class="badge rounded-pill {% if post.quality_score >= 80 %}text-bg-success{% elif post.quality_score >= 60 %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ post.quality_score or 0 }}/100</span></td>
-        <td><span class="badge rounded-pill {% if post.status == 'published' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ post.status }}</span></td>
-        <td class="small">{{ post.target_keyword or '—' }}</td>
-        <td>{% if post.status == 'published' %}<a href="{{ url_for('shop.blog_dynamic', slug=post.slug) }}" target="_blank">/blog/{{ post.slug }}</a>{% else %}/blog/{{ post.slug }}{% endif %}</td>
-        <td class="d-flex gap-2 flex-wrap"><a href="{{ url_for('admin.seo_blog_edit', post_id=post.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Upravit</a><form method="POST" action="{{ url_for('admin.seo_blog_action', post_id=post.id, action='regenerate') }}"><button class="btn btn-sm btn-warning rounded-pill">Přegenerovat</button></form>{% if post.status != 'published' %}<form method="POST" action="{{ url_for('admin.seo_blog_action', post_id=post.id, action='publish') }}"><button class="btn btn-sm btn-success rounded-pill">Publikovat</button></form>{% else %}<form method="POST" action="{{ url_for('admin.seo_blog_action', post_id=post.id, action='draft') }}"><button class="btn btn-sm btn-outline-secondary rounded-pill">Draft</button></form>{% endif %}</td>
-      </tr>
-      {% else %}<tr><td colspan="6" class="text-secondary">Zatím nejsou žádné generované blogy.</td></tr>{% endfor %}
-      </tbody>
-    </table></div>
-  </div>
-
-
-  <div class="info-card mb-4 border border-info">
-    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+    <div class="d-flex justify-content-between gap-3 align-items-start flex-wrap">
       <div>
-        <h2 class="h4 mb-1">Vytvořit vlastní landing page</h2>
-        <p class="text-secondary mb-0">Zadej název typu „Zimní boty“, „Bílé tenisky“, „Levné boty do 499 Kč“ nebo „Dámské sportovní tenisky“. Systém z názvu, slug, keywordu a popisku odvodí produktový filtr.</p>
+        <h2 class="h4 mb-1">Prompt pro ChatGPT</h2>
+        <p class="text-secondary mb-0">Zkopíruj do nového chatu. Obsahuje zadání, styl webu a seznam už hotových témat, aby se neopakovaly články.</p>
       </div>
-      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-info rounded-pill">Nová landing page</a>
+      <button class="btn btn-outline-dark rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#chatgptPromptBox" aria-expanded="false" aria-controls="chatgptPromptBox">
+        Rozkliknout prompt
+      </button>
+    </div>
+
+    <div class="collapse mt-4" id="chatgptPromptBox">
+      <textarea id="chatgptPrompt" class="form-control font-monospace" rows="28" readonly>Jsi SEO copywriter a e-commerce specialista pro BotyZaHubicku.cz, český e-shop s obuví.
+
+Úkol:
+Napiš S+ tier SEO obsah pro nový blog článek nebo landing page. Obsah má být ručně použitelný v adminu webu BotyZaHubicku.cz.
+
+Požadavky:
+- Piš česky.
+- Cíl je organická návštěvnost z Google a prodej bot.
+- Text má mít přibližně 2000 slov, pokud téma dovolí.
+- Obsah musí být praktický, prodejní, ale ne laciný.
+- Piš pro zákazníka, ne jako interní SEO poznámky.
+- Nepiš věty typu "toto je SEO stránka", "klikací jsou karty", "systém automaticky" apod.
+- Nedávej modré textové odkazy do odstavců.
+- Produkty doporučuj jako produktové karty v HTML, ne jako proklikávací text v běžné větě.
+- Pokud nemáš přesné slugy produktů, dej produktové sekce jako jasně označené placeholdery, které později doplním.
+- Nepiš nepravdivá čísla, počty produktů ani cenové rozpětí, pokud je nedodám. Napiš raději obecně nebo použij placeholder.
+- Výstup vrať jako čisté HTML bez markdownu.
+- Používej strukturu: úvod, jak vybrat, doporučení podle použití/ceny, chyby při výběru, údržba, FAQ, finální doporučení.
+- FAQ napiš jako HTML accordion kompatibilní s Bootstrapem.
+- Meta title a meta description napiš zvlášť před HTML obsahem.
+
+Téma, které chci napsat:
+[DOPLŇ TÉMA]
+
+Typ obsahu:
+[DOPLŇ: blog článek / landing page]
+
+Cílový keyword:
+[DOPLŇ KEYWORD]
+
+Produkty / značky / ceny, které můžeš použít:
+[DOPLŇ PRODUKTY NEBO NAPIŠ, ŽE MÁŠ NAVRHNOUT STRUKTURU BEZ KONKRÉTNÍCH PRODUKTŮ]
+
+Už existující blog články na webu - neopakuj stejná témata:
+{% for post in blog_posts %}- {{ post.title }}{% if post.status == 'published' %} (/blog/{{ post.slug }}){% else %} (draft: /blog/{{ post.slug }}){% endif %}
+{% else %}- Zatím žádné uložené blog články.
+{% endfor %}
+
+Už existující landing pages/kategorie - neopakuj stejný záměr:
+{% for category in categories %}- {{ category.name }} (/k/{{ category.slug }}){% if not category.seo_published %} [draft]{% endif %}
+{% else %}- Zatím žádné uložené landing pages.
+{% endfor %}
+
+Výstup:
+1) Meta title
+2) Meta description
+3) Doporučený slug
+4) Target keyword
+5) Hotový HTML obsah</textarea>
+
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <button type="button" class="btn btn-dark rounded-pill" onclick="navigator.clipboard.writeText(document.getElementById('chatgptPrompt').value)">Zkopírovat prompt</button>
+        <span class="text-secondary small align-self-center">Seznam článků a landing pages se načítá přímo z aktuální databáze.</span>
+      </div>
     </div>
   </div>
 
-<div class="info-card">
-    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
-      <h2 class="h4 mb-0">Landing pages / kategorie</h2>
-      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-sm btn-dark rounded-pill">+ Nová landing page</a>
+  <div class="info-card mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h2 class="h4 mb-0">Blog články</h2>
+      <a href="{{ url_for('admin.seo_blog_new') }}" class="btn btn-sm btn-dark rounded-pill">Nový blog článek</a>
     </div>
-    <div class="table-responsive"><table class="table align-middle mb-0">
-      <thead><tr><th>Název</th><th>Skóre</th><th>Publikováno</th><th>Keyword</th><th>URL</th><th>Akce</th></tr></thead>
-      <tbody>
-      {% for category in categories %}
-      <tr>
-        <td><strong>{{ category.name }}</strong><div class="small text-secondary">{{ category.meta_description or (category.description|striptags|truncate(100)) }}</div></td>
-        <td><span class="badge rounded-pill {% if category.seo_quality_score >= 80 %}text-bg-success{% elif category.seo_quality_score >= 60 %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ category.seo_quality_score or 0 }}/100</span></td>
-        <td><span class="badge rounded-pill {% if category.seo_published %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ 'ano' if category.seo_published else 'draft' }}</span></td>
-        <td class="small">{{ category.seo_target_keyword or '—' }}</td>
-        <td>{% if category.seo_published %}<a href="{{ url_for('shop.category_landing', slug=category.slug) }}" target="_blank">/k/{{ category.slug }}</a>{% else %}/k/{{ category.slug }}{% endif %}</td>
-        <td class="d-flex gap-2 flex-wrap"><a href="{{ url_for('admin.seo_category_edit', category_id=category.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Upravit</a><form method="POST" action="{{ url_for('admin.seo_category_action', category_id=category.id, action='regenerate') }}"><button class="btn btn-sm btn-warning rounded-pill">Přegenerovat</button></form>{% if not category.seo_published %}<form method="POST" action="{{ url_for('admin.seo_category_action', category_id=category.id, action='publish') }}"><button class="btn btn-sm btn-success rounded-pill">Publikovat</button></form>{% else %}<form method="POST" action="{{ url_for('admin.seo_category_action', category_id=category.id, action='draft') }}"><button class="btn btn-sm btn-outline-secondary rounded-pill">Draft</button></form>{% endif %}</td>
-      </tr>
-      {% else %}<tr><td colspan="6" class="text-secondary">Zatím nejsou žádné kategorie.</td></tr>{% endfor %}
-      </tbody>
-    </table></div>
+
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Název</th>
+            <th>Status</th>
+            <th>Keyword</th>
+            <th>URL</th>
+            <th>Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for post in blog_posts %}
+          <tr>
+            <td>
+              <strong>{{ post.title }}</strong>
+              {% if post.meta_description %}<div class="small text-secondary">{{ post.meta_description }}</div>{% endif %}
+            </td>
+            <td>
+              <span class="badge rounded-pill {% if post.status == 'published' %}text-bg-success{% else %}text-bg-secondary{% endif %}">
+                {{ post.status }}
+              </span>
+            </td>
+            <td class="small">{{ post.target_keyword or '—' }}</td>
+            <td>
+              {% if post.status == 'published' %}
+                <a href="{{ url_for('shop.blog_dynamic', slug=post.slug) }}" target="_blank">/blog/{{ post.slug }}</a>
+              {% else %}
+                /blog/{{ post.slug }}
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('admin.seo_blog_edit', post_id=post.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Upravit</a>
+                {% if post.status != 'published' %}
+                  <form method="POST" action="{{ url_for('admin.seo_blog_action', post_id=post.id, action='publish') }}">
+                    <button class="btn btn-sm btn-success rounded-pill">Publikovat</button>
+                  </form>
+                {% else %}
+                  <form method="POST" action="{{ url_for('admin.seo_blog_action', post_id=post.id, action='draft') }}">
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill">Draft</button>
+                  </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin.seo_blog_action', post_id=post.id, action='delete') }}" onsubmit="return confirm('Smazat blog článek?')">
+                  <button class="btn btn-sm btn-outline-danger rounded-pill">Smazat</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-secondary">Zatím nejsou uložené žádné blog články.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h2 class="h4 mb-0">Landing pages</h2>
+      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-sm btn-dark rounded-pill">Nová landing page</a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Název</th>
+            <th>Status</th>
+            <th>Keyword</th>
+            <th>URL</th>
+            <th>Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for category in categories %}
+          <tr>
+            <td>
+              <strong>{{ category.name }}</strong>
+              {% if category.meta_description %}<div class="small text-secondary">{{ category.meta_description }}</div>{% endif %}
+            </td>
+            <td>
+              <span class="badge rounded-pill {% if category.seo_published %}text-bg-success{% else %}text-bg-secondary{% endif %}">
+                {% if category.seo_published %}published{% else %}draft{% endif %}
+              </span>
+            </td>
+            <td class="small">{{ category.seo_target_keyword or '—' }}</td>
+            <td>
+              {% if category.seo_published %}
+                <a href="{{ url_for('shop.category_landing', slug=category.slug) }}" target="_blank">/k/{{ category.slug }}</a>
+              {% else %}
+                /k/{{ category.slug }}
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('admin.seo_category_edit', category_id=category.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Upravit</a>
+                {% if not category.seo_published %}
+                  <form method="POST" action="{{ url_for('admin.seo_category_action', category_id=category.id, action='publish') }}">
+                    <button class="btn btn-sm btn-success rounded-pill">Publikovat</button>
+                  </form>
+                {% else %}
+                  <form method="POST" action="{{ url_for('admin.seo_category_action', category_id=category.id, action='draft') }}">
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill">Draft</button>
+                  </form>
+                {% endif %}
+                {% if category.seo_generated %}
+                  <form method="POST" action="{{ url_for('admin.seo_category_action', category_id=category.id, action='delete') }}" onsubmit="return confirm('Smazat landing page?')">
+                    <button class="btn btn-sm btn-outline-danger rounded-pill">Smazat</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-secondary">Zatím nejsou uložené žádné landing pages.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 {% endblock %}

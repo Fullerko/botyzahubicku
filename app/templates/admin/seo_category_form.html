@@ -2,53 +2,89 @@
 {% block title %}{% if is_new %}Nová landing page{% else %}Upravit landing page{% endif %}{% endblock %}
 {% block content %}
 <section class="container py-5">
-  <a href="{{ url_for('admin.seo_dashboard') }}" class="btn btn-outline-dark rounded-pill mb-4">← SEO automat</a>
-  <h1 class="h2 mb-4">{% if is_new %}Nová landing page{% else %}Upravit landing page{% endif %}</h1>
+  <a href="{{ url_for('admin.seo_dashboard') }}" class="btn btn-outline-dark rounded-pill mb-4">← SEO obsah</a>
+
+  <div class="section-header mb-4">
+    <div>
+      <h1 class="h2 mb-1">{% if is_new %}Nová landing page{% else %}Upravit landing page{% endif %}</h1>
+      <p class="text-secondary mb-0">Ruční landing page. Obsah vkládej jako hotové HTML z ChatGPT nebo vlastní text.</p>
+    </div>
+  </div>
+
+  <div class="info-card mb-4">
+    <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+      <div>
+        <h2 class="h5 mb-1">Prompt pro ChatGPT pro landing page</h2>
+        <p class="text-secondary mb-0">Použij pro vytvoření dlouhé ruční landing page bez interních SEO poznámek.</p>
+      </div>
+      <button class="btn btn-outline-dark rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#landingPromptBox">
+        Rozkliknout
+      </button>
+    </div>
+    <div class="collapse mt-3" id="landingPromptBox">
+      <textarea class="form-control font-monospace" rows="16" readonly>Napiš S+ tier SEO landing page pro BotyZaHubicku.cz, český e-shop s obuví.
+
+Téma / H1: {{ category.name or '[DOPLŇ NÁZEV LANDING PAGE]' }}
+Target keyword: {{ category.seo_target_keyword or '[DOPLŇ KEYWORD]' }}
+
+Požadavky:
+- Přibližně 2000 slov.
+- Česky, prakticky, prodejně, bez interních SEO poznámek.
+- Výstup jako čisté HTML bez markdownu.
+- Nepiš nepravdivé počty produktů ani cenové rozpětí, pokud je nedodám.
+- Nepoužívej modré textové odkazy v odstavcích.
+- Struktura: úvod, jak vybrat, podle čeho porovnávat, doporučení podle použití/ceny, chyby při nákupu, údržba, FAQ, finální doporučení.
+- Produktové doporučení piš jako sekci pro produktové karty nebo jako placeholder, který doplním v adminu.
+- BotyZaHubicku.cz prodává dostupnou obuv, tenisky, sportovní, městské, pánské, dámské a sezónní boty.</textarea>
+    </div>
+  </div>
 
   <form method="POST" class="info-card">
     <div class="row g-3">
       <div class="col-md-8">
         <label class="form-label fw-semibold">Název stránky / H1</label>
-        <input name="name" value="{{ category.name }}" class="form-control" placeholder="Např. Zimní boty, Bílé tenisky, Levné boty do 499 Kč">
-        <div class="form-text">Podle názvu se automaticky odvodí produktový filtr.</div>
+        <input name="name" value="{{ category.name }}" class="form-control" placeholder="Např. Bílé tenisky, Dámské tenisky, Levné boty do 499 Kč">
       </div>
       <div class="col-md-4">
-        <label class="form-label fw-semibold">Skóre</label>
-        <input value="{{ category.seo_quality_score or 0 }}/100" class="form-control" disabled>
+        <label class="form-label fw-semibold">Stav</label>
+        <input value="{% if category.seo_published %}Publikováno{% else %}Draft{% endif %}" class="form-control" disabled>
       </div>
     </div>
 
     <div class="mb-3 mt-3">
       <label class="form-label fw-semibold">Slug</label>
-      <input name="slug" value="{{ category.slug }}" class="form-control" placeholder="např. zimni-boty nebo bile-tenisky">
-      <div class="form-text">Z toho vznikne URL: <code>/k/slug</code>. Když necháš prázdné u nové stránky, slug se vytvoří z názvu.</div>
+      <input name="slug" value="{{ category.slug }}" class="form-control" placeholder="např. bile-tenisky">
+      <div class="form-text">URL bude <code>/k/slug</code>. Když necháš prázdné u nové stránky, slug se vytvoří z názvu.</div>
     </div>
 
     <div class="mb-3">
       <label class="form-label fw-semibold">Target keyword / hlavní dotaz</label>
-      <input name="seo_target_keyword" value="{{ category.seo_target_keyword }}" class="form-control" placeholder="např. zimní boty, bílé tenisky, levné boty do 499 Kč">
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label fw-semibold">Meta description / krátký popisek</label>
-      <textarea name="meta_description" rows="2" class="form-control" placeholder="Krátký popis pro Google a horní část stránky">{{ category.meta_description }}</textarea>
+      <input name="seo_target_keyword" value="{{ category.seo_target_keyword }}" class="form-control" placeholder="např. bílé tenisky, levné dámské tenisky do 500 Kč">
     </div>
 
     <div class="mb-3">
       <label class="form-label fw-semibold">SEO title</label>
-      <input name="seo_title" value="{{ category.seo_title }}" class="form-control" placeholder="Může zůstat prázdné, systém doplní při generování">
+      <input name="seo_title" value="{{ category.seo_title }}" class="form-control" placeholder="Např. Bílé tenisky | BotyZaHubicku.cz">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Meta description</label>
+      <textarea name="meta_description" rows="2" class="form-control" placeholder="Krátký popis pro Google">{{ category.meta_description }}</textarea>
     </div>
 
     <div class="mb-3">
       <label class="form-label fw-semibold">Product rules JSON</label>
       <textarea name="seo_product_rules" rows="6" class="form-control">{{ category.seo_product_rules }}</textarea>
-      <div class="form-text">Můžeš nechat <code>{}</code>. Systém si pravidla odvodí z názvu, slug, keywordu a popisku. Ručně lze použít JSON s <code>gender</code>, <code>colors</code>, <code>max_price</code>, <code>required_terms_any</code>.</div>
+      <div class="form-text">
+        Volitelné. Když necháš <code>{}</code>, filtr produktů se odvodí z názvu/slug/keywordu.
+        Ručně můžeš použít např. <code>{"colors":["white"],"required_terms_any":["tenisky"]}</code>.
+      </div>
     </div>
 
     <div class="mb-3">
-      <label class="form-label fw-semibold">Text stránky HTML</label>
-      <textarea name="description" rows="22" class="form-control">{{ category.description }}</textarea>
-      <div class="form-text">U nové stránky může zůstat prázdné. Systém vygeneruje obsah podle reálných produktů. Po změně názvu/keywordu použij „Přegenerovat obsah“.</div>
+      <label class="form-label fw-semibold">Obsah landing page HTML</label>
+      <textarea name="description" rows="28" class="form-control" placeholder="Vlož hotový HTML obsah z ChatGPT nebo vlastní ruční text.">{{ category.description }}</textarea>
+      <div class="form-text">Tady se už nic automaticky nepřepisuje. Počty/ceny a produktový výpis na veřejné stránce se počítají dynamicky z katalogu.</div>
     </div>
 
     <div class="form-check mb-4">
@@ -57,10 +93,12 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-      <button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit</button>
-      <button name="action" value="regenerate_content" class="btn btn-warning rounded-pill">Přegenerovat obsah</button>
+      <button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit jako draft</button>
       <button name="action" value="publish" class="btn btn-dark rounded-pill">Uložit a publikovat</button>
       <button name="action" value="draft" class="btn btn-outline-secondary rounded-pill">Vrátit do draftu</button>
+      {% if not is_new and category.seo_published %}
+        <a href="{{ url_for('shop.category_landing', slug=category.slug) }}" target="_blank" class="btn btn-outline-dark rounded-pill">Otevřít stránku</a>
+      {% endif %}
     </div>
   </form>
 </section>

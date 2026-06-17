@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 
-{% set page_title = (category.seo_title if category.seo_title else category.name ~ ' | BotyZaHubicku.cz') %}
-{% if stats.price_min and stats.price_max %}
-  {% set page_description = (category.meta_description if category.meta_description else category.name ~ ': aktuální výběr ' ~ stats.count ~ ' produktů. Ceny od ' ~ (stats.price_min|int|string) ~ ' Kč do ' ~ (stats.price_max|int|string) ~ ' Kč.') %}
-{% else %}
-  {% set page_description = (category.meta_description if category.meta_description else category.name ~ ': aktuální výběr produktů podle ceny, dostupnosti a použití.') %}
-{% endif %}
+{% set page_title = (category.seo_title or (category.name ~ ' | BotyZaHubicku.cz')) %}
+{% set fallback_description = category.name ~ ': aktuální výběr produktů podle ceny, dostupnosti a katalogových dat.' %}
+{% set page_description = category.meta_description or fallback_description %}
 
 {% block title %}{{ page_title }}{% endblock %}
 {% block meta_description %}{{ page_description }}{% endblock %}
@@ -20,7 +17,7 @@
   "name": {{ category.name|tojson }},
   "numberOfItems": {{ products|length }},
   "itemListElement": [
-    {% for product in products[:30] %}
+    {% for product in products[:20] %}
     {
       "@type": "ListItem",
       "position": {{ loop.index }},
@@ -37,52 +34,95 @@
 {% block content %}
 
 <style>
-  .landing-hero { padding: 52px 0 28px; }
-  .landing-stats-card {
+  .landing-hero {
+    padding: 52px 0 28px;
+  }
+
+  .landing-stats-card,
+  .landing-content-card {
     background: #fff;
     border: 1px solid rgba(0,0,0,.08);
     border-radius: 24px;
-    padding: 22px;
-    box-shadow: 0 18px 60px rgba(15, 23, 42, .08);
+    box-shadow: 0 18px 60px rgba(15, 23, 42, .06);
   }
+
+  .landing-stats-card {
+    padding: 22px;
+  }
+
   .landing-stat-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 18px;
   }
-  .landing-stat-label { color: #6b7280; font-size: .875rem; }
-  .landing-stat-value { font-weight: 900; font-size: 1.35rem; }
-  .landing-content-card {
+
+  .landing-stat-label {
+    color: #6b7280;
+    font-size: .875rem;
+  }
+
+  .landing-stat-value {
+    font-weight: 900;
+    font-size: 1.35rem;
+  }
+
+  .landing-brand-list,
+  .landing-related-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .landing-brand-pill,
+  .landing-related-pill {
+    display: inline-flex;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 999px;
+    padding: 7px 11px;
     background: #fff;
-    border: 1px solid rgba(0,0,0,.08);
-    border-radius: 24px;
+    font-size: .875rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: #111827;
+  }
+
+  .landing-related-pill:hover {
+    background: #111827;
+    color: #fff;
+  }
+
+  .landing-content-card {
     padding: 28px;
-    box-shadow: 0 18px 60px rgba(15, 23, 42, .06);
   }
-  .landing-highlight {
-    background: #f8fafc;
-    border: 1px solid rgba(0,0,0,.08);
-    border-radius: 18px;
-    padding: 18px;
-    margin: 22px 0;
+
+  .landing-manual-content {
+    font-size: 1rem;
+    line-height: 1.75;
   }
-  .landing-mini-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin: 22px 0;
+
+  .landing-manual-content h2 {
+    margin-top: 1.6rem;
+    margin-bottom: .75rem;
+    font-weight: 900;
   }
-  .landing-mini-card {
-    background: #f8fafc;
-    border: 1px solid rgba(0,0,0,.08);
-    border-radius: 18px;
-    padding: 16px;
+
+  .landing-manual-content h3 {
+    margin-top: 1.2rem;
+    margin-bottom: .5rem;
+    font-weight: 800;
   }
+
+  .landing-manual-content p:last-child {
+    margin-bottom: 0;
+  }
+
   .seo-product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 18px;
   }
+
   .seo-product-card {
     display: flex;
     flex-direction: column;
@@ -95,12 +135,14 @@
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     min-height: 100%;
   }
+
   .seo-product-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 28px rgba(0,0,0,.10);
     border-color: rgba(0,0,0,.25);
     color: inherit;
   }
+
   .seo-product-card__image {
     width: 100%;
     height: 180px;
@@ -109,46 +151,41 @@
     overflow: hidden;
     margin-bottom: 12px;
   }
-  .seo-product-card__image img { width: 100%; height: 100%; object-fit: cover; }
-  .seo-product-card__title { display: block; line-height: 1.25; margin: 4px 0 8px; }
+
+  .seo-product-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .seo-product-card__title {
+    display: block;
+    line-height: 1.25;
+    margin: 4px 0 8px;
+  }
+
   .seo-product-card__desc {
     color: #6c757d;
     font-size: .9rem;
     line-height: 1.45;
     flex: 1;
   }
-  .landing-pill-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .landing-pill {
-    display: inline-flex;
-    border: 1px solid rgba(0,0,0,.15);
-    border-radius: 999px;
-    padding: 7px 11px;
-    background: #fff;
-    color: inherit;
-    text-decoration: none;
-    font-size: .875rem;
-    font-weight: 700;
-  }
-  .landing-pill:hover { background: #111827; color: #fff; border-color: #111827; }
-  .landing-product-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-  .landing-product-table th,
-  .landing-product-table td {
-    padding: 12px;
-    border-bottom: 1px solid rgba(0,0,0,.08);
-    vertical-align: top;
-  }
-  .landing-product-table th { color: #6b7280; font-size: .875rem; font-weight: 700; }
 
   @media (max-width: 991.98px) {
-    .landing-hero { padding-top: 28px; }
-    .landing-stat-grid { grid-template-columns: 1fr 1fr; }
-    .landing-mini-grid { grid-template-columns: 1fr; }
+    .landing-hero {
+      padding-top: 28px;
+    }
+
+    .landing-stat-grid {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 </style>
 
 <section class="landing-hero">
   <div class="container">
     <div class="row align-items-start g-4">
+
       <div class="col-lg-7">
         <nav class="small text-muted mb-3">
           <a href="{{ url_for('shop.index') }}" class="text-muted">Domů</a>
@@ -163,18 +200,18 @@
         {% if products %}
           <p class="text-muted fs-5">
             Aktuálně {{ stats.count }} produktů.
-            Ceny od {{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč
-            do {{ '{:,.0f}'.format(stats.price_max).replace(',', ' ') }} Kč.
+            {% if stats.price_min and stats.price_max %}
+              Ceny od {{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč
+              do {{ '{:,.0f}'.format(stats.price_max).replace(',', ' ') }} Kč.
+            {% endif %}
           </p>
         {% else %}
-          <p class="text-muted fs-5">
-            Aktuálně nejsou dostupné odpovídající produkty.
-          </p>
+          <p class="text-muted fs-5">Aktuálně nejsou v této landing page přiřazené odpovídající produkty.</p>
         {% endif %}
 
         <div class="d-flex gap-2 flex-wrap">
           <a href="#produkty" class="btn btn-dark rounded-pill">Zobrazit produkty</a>
-          <a href="#jak-vybrat" class="btn btn-outline-dark rounded-pill">Jak vybrat</a>
+          <a href="#obsah" class="btn btn-outline-dark rounded-pill">Jak vybrat</a>
         </div>
       </div>
 
@@ -187,7 +224,7 @@
             </div>
             <div>
               <div class="landing-stat-label">Skladem</div>
-              <div class="landing-stat-value">{{ stats.stock_count }}</div>
+              <div class="landing-stat-value">{{ stats.stock_count or stats.in_stock or 0 }}</div>
             </div>
             <div>
               <div class="landing-stat-label">Cena od</div>
@@ -204,17 +241,18 @@
           </div>
 
           {% if stats.brands %}
-            <div class="mt-3">
-              <div class="landing-stat-label">Značky</div>
-              <div class="landing-pill-list">
-                {% for brand in stats.brands %}
-                  <span class="landing-pill">{{ brand }}</span>
-                {% endfor %}
-              </div>
+          <div class="mt-3">
+            <div class="landing-stat-label">Značky</div>
+            <div class="landing-brand-list">
+              {% for brand in stats.brands[:8] %}
+                <span class="landing-brand-pill">{{ brand }}</span>
+              {% endfor %}
             </div>
+          </div>
           {% endif %}
         </div>
       </div>
+
     </div>
   </div>
 </section>
@@ -222,170 +260,28 @@
 <section class="pb-5">
   <div class="container">
 
-    <div class="landing-content-card mb-4">
-      <p>
-        <strong>{{ category.name }}</strong> jsou aktuální výběr produktů z nabídky BotyZaHubicku.cz.
-        Výběr se automaticky přizpůsobuje tomu, jaké produkty jsou právě v katalogu, jaké mají ceny,
-        dostupnost, barvu, určení a popisy.
-      </p>
-
-      <h2 id="jak-vybrat">Jak vybrat {{ category.name|lower }}</h2>
-
-      {% if products %}
-        <p>
-          V tomto výběru je momentálně <strong>{{ stats.count }}</strong> produktů.
-          {% if stats.price_min and stats.price_max and stats.price_min != stats.price_max %}
-            Ceny se pohybují od <strong>{{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč</strong>
-            do <strong>{{ '{:,.0f}'.format(stats.price_max).replace(',', ' ') }} Kč</strong>.
-          {% elif stats.price_min %}
-            Doporučené modely začínají na ceně <strong>{{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč</strong>.
-          {% endif %}
-          Při výběru se zaměřte hlavně na správnou velikost, pohodlí, materiál, podrážku a způsob nošení.
-        </p>
-
-        <div class="landing-mini-grid">
-          <div class="landing-mini-card">
-            <div class="text-secondary small">Nejlevnější model</div>
-            {% if stats.cheapest_product %}
-              <strong>{{ stats.cheapest_product.name }}</strong>
-              <div>{{ '{:,.0f}'.format(stats.cheapest_product.price).replace(',', ' ') }} Kč</div>
-            {% else %}
-              <strong>—</strong>
-              <div>zatím nedostupné</div>
-            {% endif %}
-          </div>
-          <div class="landing-mini-card">
-            <div class="text-secondary small">Cenové rozpětí</div>
-            <strong>{{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }}–{{ '{:,.0f}'.format(stats.price_max).replace(',', ' ') }} Kč</strong>
-            <div>podle modelu a dostupnosti</div>
-          </div>
-          <div class="landing-mini-card">
-            <div class="text-secondary small">Dostupnost</div>
-            <strong>{{ stats.stock_count }} skladem</strong>
-            <div>z aktuálního výběru</div>
-          </div>
+    <div id="obsah" class="landing-content-card mb-4">
+      {% if category.description %}
+        <div class="landing-manual-content">
+          {{ category.description | safe }}
         </div>
       {% else %}
-        <p>
-          Pro tuto landing page nejsou zatím nalezené odpovídající produkty.
-          Zkontrolujte, jestli produkty obsahují relevantní barvu, kategorii, pohlaví,
-          cenu nebo klíčová slova v názvu, popisu, poli barvy nebo SEO keywords.
-        </p>
+        <div class="landing-manual-content">
+          <p><strong>{{ category.name }}</strong> jsou výběr produktů z aktuální nabídky BotyZaHubicku.cz. Při výběru sledujte hlavně velikost, pohodlí, cenu, dostupnost a způsob nošení.</p>
+          <h2>Jak vybrat {{ category.name|lower }}</h2>
+          <p>Nejdřív si ujasněte, k čemu mají boty sloužit. Na každodenní nošení se hodí pohodlné modely s příjemnou podrážkou, do města zase univerzální vzhled, který se snadno kombinuje s běžným oblečením.</p>
+        </div>
       {% endif %}
-
-      <h2>Podle čeho porovnávat modely</h2>
-      <p>
-        Začněte účelem použití. Na každodenní nošení je nejdůležitější pohodlí a správná velikost.
-        Do města se hodí univerzální vzhled a snadná kombinovatelnost s oblečením.
-        U sportovnějších modelů sledujte stabilitu, lehkost a konstrukci podrážky.
-        U levnějších produktů vždy porovnejte nejen cenu, ale i dostupné velikosti a popis.
-      </p>
-
-      <div class="landing-highlight">
-        <strong>Doporučení:</strong>
-        {% if products %}
-          Pokud chcete vybrat rychle, začněte od modelů s nejlepší cenou a ověřte dostupnou velikost.
-          Produktové karty níže vedou přímo na detail konkrétního produktu.
-        {% else %}
-          Nejdřív doplňte k produktům relevantní barvu, kategorii nebo klíčová slova, aby je systém dokázal správně zařadit.
-        {% endif %}
-      </div>
-
-      <h2>Na co si dát pozor před objednávkou</h2>
-      <ul>
-        <li>zkontrolujte dostupnou velikost u konkrétního produktu,</li>
-        <li>porovnejte cenu, materiál, podrážku a účel nošení,</li>
-        <li>u světlých modelů počítejte s častější údržbou,</li>
-        <li>u zimních a sportovních modelů řešte hlavně praktičnost a pohodlí,</li>
-        <li>nevybírejte pouze podle fotky bez kontroly popisu.</li>
-      </ul>
-
-      {% if products|length >= 3 %}
-      <h2>Rychlé porovnání vybraných modelů</h2>
-      <div class="table-responsive">
-        <table class="landing-product-table">
-          <thead>
-            <tr>
-              <th>Model</th>
-              <th>Značka</th>
-              <th>Cena</th>
-              <th>Pro koho dává smysl</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for product in products[:5] %}
-            <tr>
-              <td><a href="{{ url_for('shop.product_detail', slug=product.slug) }}">{{ product.name }}</a></td>
-              <td>{{ product.brand }}</td>
-              <td><strong>{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</strong></td>
-              <td>{{ (product.short_description or 'Vhodné pro zákazníky, kteří hledají praktický model z této kategorie.')|striptags|truncate(95, True, '') }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      <h2>Časté otázky k výběru</h2>
-      <div class="accordion" id="seoFaq">
-        <div class="accordion-item">
-          <h3 class="accordion-header">
-            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-              Jak vybrat správnou velikost?
-            </button>
-          </h3>
-          <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#seoFaq">
-            <div class="accordion-body">
-              Změřte délku chodidla večer, kdy je noha nejvíce zatížená, a nechte malou rezervu přibližně 0,5 až 1 cm.
-              U každého produktu vždy kontrolujte dostupné velikosti.
-            </div>
-          </div>
-        </div>
-
-        <div class="accordion-item">
-          <h3 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-              Kolik stojí {{ category.name|lower }}?
-            </button>
-          </h3>
-          <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#seoFaq">
-            <div class="accordion-body">
-              {% if stats.price_min and stats.price_max %}
-                Aktuální ceny se pohybují od {{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč
-                do {{ '{:,.0f}'.format(stats.price_max).replace(',', ' ') }} Kč.
-              {% else %}
-                Cena se zobrazí automaticky, jakmile budou dostupné odpovídající produkty.
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <div class="accordion-item">
-          <h3 class="accordion-header">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-              Aktualizuje se výběr produktů automaticky?
-            </button>
-          </h3>
-          <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#seoFaq">
-            <div class="accordion-body">
-              Ano. Výběr produktů se počítá z aktuálního katalogu. Pokud přidáte nový odpovídající produkt,
-              stránka ho automaticky zahrne podle názvu, ceny, barvy, popisu, kategorie, pohlaví nebo klíčových slov.
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div id="produkty" class="landing-content-card">
+    <div id="produkty" class="landing-content-card mb-4">
       <div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
         <div>
           <h2 class="mb-1">Aktuální produkty</h2>
           {% if products %}
             <p class="text-muted mb-0">
               Zobrazeno {{ stats.count }} produktů.
-              {% if stats.price_min %}
-                Cena od {{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč.
-              {% endif %}
+              {% if stats.price_min %}Cena od {{ '{:,.0f}'.format(stats.price_min).replace(',', ' ') }} Kč.{% endif %}
             </p>
           {% else %}
             <p class="text-muted mb-0">Zatím nejsou dostupné odpovídající produkty.</p>
@@ -404,8 +300,8 @@
             <div class="text-secondary small">{{ product.brand }}</div>
             <strong class="seo-product-card__title">{{ product.name }}</strong>
             <div class="seo-product-card__desc">
-			  {{ (product.short_description or product.description or 'Produkt vhodný pro běžné nošení a aktuální výběr v této kategorii.')|striptags|truncate(220, False, '…') }}
-			</div>
+              {{ (product.short_description or product.description or 'Produkt vhodný pro aktuální výběr v této kategorii.')|striptags|truncate(220, False, '…') }}
+            </div>
             <div class="d-flex align-items-end justify-content-between gap-2 mt-3">
               <div>
                 <strong>{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</strong>
@@ -423,18 +319,18 @@
       </div>
       {% else %}
         <div class="alert alert-light border rounded-4 mb-0">
-          V této chvíli nejsou nalezené produkty odpovídající této landing page.
+          Nejsou nalezené produkty odpovídající této landing page. Zkontrolujte u produktů barvu, název, popis, kategorii nebo SEO klíčová slova.
         </div>
       {% endif %}
     </div>
 
     {% if related_categories %}
-    <div class="landing-content-card mt-4">
+    <div class="landing-content-card">
       <h2 class="h4 mb-2">Související kategorie</h2>
-      <p class="text-muted mb-3">Další výběry, které se tematicky hodí k této stránce.</p>
-      <div class="landing-pill-list">
+      <p class="text-secondary mb-0">Další výběry, které mohou zákazníkům dávat smysl.</p>
+      <div class="landing-related-list">
         {% for related in related_categories %}
-          <a class="landing-pill" href="{{ url_for('shop.category_landing', slug=related.slug) }}">{{ related.name }}</a>
+          <a class="landing-related-pill" href="{{ url_for('shop.category_landing', slug=related.slug) }}">{{ related.name }}</a>
         {% endfor %}
       </div>
     </div>

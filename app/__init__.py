@@ -147,23 +147,6 @@ Sitemap: {sitemap}
     app.register_blueprint(emailing_bp)
     app.register_blueprint(analytics_bp)
 
-
-    import click
-    from flask.cli import with_appcontext
-
-    @click.command('seo-generate-daily')
-    @click.option('--blogs', default=10, help='Počet blog draftů.')
-    @click.option('--landing-pages', default=10, help='Počet landing page draftů.')
-    @click.option('--publish', is_flag=True, help='Rovnou publikovat místo draftu.')
-    @with_appcontext
-    def seo_generate_daily(blogs, landing_pages, publish):
-        from .seo_generator import generate_daily_seo_content
-        result = generate_daily_seo_content(blog_count=blogs, landing_count=landing_pages, auto_publish=publish)
-        click.echo(f"Created blogs: {result.get('blogs', 0)}")
-        click.echo(f"Created landing pages: {result.get('landing_pages', 0)}")
-
-    app.cli.add_command(seo_generate_daily)
-
     with app.app_context():
         from . import models
         from . import analytics
@@ -178,8 +161,7 @@ Sitemap: {sitemap}
         from .emailing_scheduler import start_emailing_scheduler
         start_emailing_scheduler(app)
 
-        from .seo_scheduler import start_seo_generator_scheduler
-        start_seo_generator_scheduler(app)
+        # SEO auto generator removed: content is managed manually in /admin/seo.
 
         zimni = Category.query.filter_by(slug='zimni').first()
         if not zimni:

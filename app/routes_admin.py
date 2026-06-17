@@ -12,7 +12,7 @@ from .utils import admin_required, save_image, set_setting, setting, unique_slug
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from .emailing_service import contacts_query, enqueue_campaign, ensure_suppression, retry_failed_recipients, send_campaign_batch, send_test_campaign_email, sync_existing_contacts
-from .seo_generator import generate_daily_seo_content, regenerate_all_generated_content, regenerate_blog_content, regenerate_category_content, infer_product_rules
+from .seo_generator import infer_product_rules
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -1060,28 +1060,87 @@ def emailing_attachment_delete(attachment_id):
     return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign_id))
 
 
-@admin_bp.route('/seo', methods=['GET', 'POST'])
+
+@admin_bp.route('/seo')
 @admin_required
 def seo_dashboard():
+    """Manual SEO content dashboard.
+
+    Automatické generování je záměrně vypnuté. Tato stránka slouží jen pro
+    ruční správu blogů, landing pages a promptů pro externí tvorbu obsahu.
+    """
+    blog_posts = BlogPost.query.order_by(BlogPost.created_at.desc()).limit(200).all()
+    categories = Category.query.order_by(Category.id.desc()).limit(200).all()
+
+    published_blogs = [post for post in blog_posts if post.status == 'published']
+    draft_blogs = [post for post in blog_posts if post.status != 'published']
+    published_categories = [
+        category for category in categories
+        if bool(getattr(category, 'seo_published', True))
+    ]
+    draft_categories = [
+        category for category in categories
+        if not bool(getattr(category, 'seo_published', True))
+    ]
+
+    return render_template(
+        'admin/seo_dashboard.html',
+        blog_posts=blog_posts,
+        categories=categories,
+        published_blogs=published_blogs,
+        draft_blogs=draft_blogs,
+        published_categories=published_categories,
+        draft_categories=draft_categories,
+    )
+
+
+@admin_bp.route('/seo/blog/new', methods=['GET', 'POST'])
+@admin_required
+def seo_blog_new():
+    post = BlogPost(
+        title='',
+        slug='',
+        seo_title='',
+        target_keyword='',
+        meta_description='',
+        related_product_ids='[]',
+        content='',
+        status='draft',
+        seo_generated=False,
+        quality_score=0,
+    )
+
     if request.method == 'POST':
-        blog_count = max(0, min(50, _int_form('blog_count', 10)))
-        landing_count = max(0, min(50, _int_form('landing_count', 10)))
-        auto_publish = bool(request.form.get('auto_publish'))
-        result = generate_daily_seo_content(blog_count=blog_count, landing_count=landing_count, auto_publish=auto_publish)
-        flash(f"Vygenerováno: {result.get('blogs', 0)} blog draftů a {result.get('landing_pages', 0)} landing pages. Nízká kvalita nepublikována: {result.get('skipped_low_quality_publish', 0)}.", 'success')
+        title = request.form.get('title', '').strip()
+        if not title:
+            flash('Vyplň název blog článku.', 'warning')
+            return render_template('admin/seo_blog_form.html', post=post, is_new=True)
+
+        slug = request.form.get('slug', '').strip()
+        post.title = title
+        post.slug = unique_slug(BlogPost, slug or title)
+        post.seo_title = request.form.get('seo_title', '').strip()
+        post.target_keyword = request.form.get('target_keyword', '').strip()
+        post.meta_description = request.form.get('meta_description', '').strip()
+        post.related_product_ids = request.form.get('related_product_ids', '').strip() or '[]'
+        post.content = request.form.get('content', '').strip()
+        post.seo_generated = False
+        post.quality_score = 0
+
+        action = request.form.get('action', 'save')
+        if action == 'publish':
+            post.status = 'published'
+            post.published_at = datetime.utcnow()
+        else:
+            post.status = 'draft'
+            post.published_at = None
+
+        db.session.add(post)
+        db.session.commit()
+        flash('Blog článek byl vytvořen.', 'success')
         return redirect(url_for('admin.seo_dashboard'))
 
-    blog_posts = BlogPost.query.order_by(BlogPost.created_at.desc()).limit(100).all()
-    categories = Category.query.order_by(Category.id.desc()).limit(150).all()
-    return render_template('admin/seo_dashboard.html', blog_posts=blog_posts, categories=categories)
-
-
-@admin_bp.route('/seo/regenerate-all', methods=['POST'])
-@admin_required
-def seo_regenerate_all():
-    result = regenerate_all_generated_content()
-    flash(f"Přegenerováno: {result.get('blogs', 0)} blogů a {result.get('landing_pages', 0)} landing pages.", 'success')
-    return redirect(url_for('admin.seo_dashboard'))
+    return render_template('admin/seo_blog_form.html', post=post, is_new=True)
 
 
 @admin_bp.route('/seo/blog/<int:post_id>/edit', methods=['GET', 'POST'])
@@ -1090,12 +1149,14 @@ def seo_blog_edit(post_id):
     post = BlogPost.query.get_or_404(post_id)
     if request.method == 'POST':
         post.title = request.form.get('title', '').strip() or post.title
-        post.slug = request.form.get('slug', '').strip() or post.slug
+        post.slug = unique_slug(BlogPost, request.form.get('slug', '').strip() or post.title, current_id=post.id)
         post.seo_title = request.form.get('seo_title', '').strip()
         post.target_keyword = request.form.get('target_keyword', '').strip()
         post.meta_description = request.form.get('meta_description', '').strip()
         post.related_product_ids = request.form.get('related_product_ids', '').strip() or '[]'
         post.content = request.form.get('content', '').strip()
+        post.seo_generated = False
+
         action = request.form.get('action', 'save')
         if action == 'publish':
             post.status = 'published'
@@ -1103,16 +1164,19 @@ def seo_blog_edit(post_id):
         elif action == 'draft':
             post.status = 'draft'
             post.published_at = None
+
         db.session.commit()
         flash('Blog článek byl uložen.', 'success')
         return redirect(url_for('admin.seo_dashboard'))
-    return render_template('admin/seo_blog_form.html', post=post)
+
+    return render_template('admin/seo_blog_form.html', post=post, is_new=False)
 
 
 @admin_bp.route('/seo/blog/<int:post_id>/<action>', methods=['POST'])
 @admin_required
 def seo_blog_action(post_id, action):
     post = BlogPost.query.get_or_404(post_id)
+
     if action == 'publish':
         post.status = 'published'
         post.published_at = post.published_at or datetime.utcnow()
@@ -1121,16 +1185,14 @@ def seo_blog_action(post_id, action):
         post.status = 'draft'
         post.published_at = None
         flash('Blog článek byl vrácen do draftu.', 'info')
-    elif action == 'regenerate':
-        regenerate_blog_content(post)
-        flash('Blog článek byl přegenerován podle aktuálních produktových dat.', 'success')
     elif action == 'delete':
         db.session.delete(post)
         flash('Blog článek byl smazán.', 'info')
+    else:
+        flash('Neznámá akce.', 'warning')
+
     db.session.commit()
     return redirect(url_for('admin.seo_dashboard'))
-
-
 
 
 @admin_bp.route('/seo/category/new', methods=['GET', 'POST'])
@@ -1152,97 +1214,101 @@ def seo_category_new():
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
-        slug = request.form.get('slug', '').strip()
         if not name:
             flash('Vyplň název landing page.', 'warning')
             return render_template('admin/seo_category_form.html', category=category, is_new=True)
 
+        slug = request.form.get('slug', '').strip()
         category.name = name
         category.slug = unique_slug(Category, slug or name)
         category.seo_title = request.form.get('seo_title', '').strip()
-        category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip() or name.lower()
+        category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
+        category.description = request.form.get('description', '').strip()
+        category.show_in_menu = bool(request.form.get('show_in_menu'))
+        category.seo_generated = True
+        category.seo_quality_score = 0
+
         raw_rules = request.form.get('seo_product_rules', '').strip()
         if raw_rules and raw_rules != '{}':
             category.seo_product_rules = raw_rules
         else:
-            category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
-        category.description = request.form.get('description', '').strip()
-        category.show_in_menu = bool(request.form.get('show_in_menu'))
-        category.seo_generated = True
-        category.seo_published = False
-
-        db.session.add(category)
-        db.session.flush()
-
-        # Když není ručně vložený SEO text, vytvoří se product-aware obsah z reálných produktů.
-        if not category.description:
-            regenerate_category_content(category)
+            category.seo_product_rules = json.dumps(
+                infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description),
+                ensure_ascii=False
+            )
 
         action = request.form.get('action', 'save')
-        if action == 'publish':
-            category.seo_published = True
-        elif action == 'draft':
-            category.seo_published = False
+        category.seo_published = action == 'publish'
 
+        db.session.add(category)
         db.session.commit()
         flash(f'Landing page /k/{category.slug} byla vytvořena.', 'success')
-        return redirect(url_for('admin.seo_category_edit', category_id=category.id))
+        return redirect(url_for('admin.seo_dashboard'))
 
     return render_template('admin/seo_category_form.html', category=category, is_new=True)
-
 
 
 @admin_bp.route('/seo/category/<int:category_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def seo_category_edit(category_id):
     category = Category.query.get_or_404(category_id)
+
     if request.method == 'POST':
         category.name = request.form.get('name', '').strip() or category.name
-        category.slug = request.form.get('slug', '').strip() or category.slug
+        category.slug = unique_slug(Category, request.form.get('slug', '').strip() or category.name, current_id=category.id)
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
+        category.description = request.form.get('description', '').strip()
+        category.show_in_menu = bool(request.form.get('show_in_menu'))
+        category.seo_generated = True
+
         raw_rules = request.form.get('seo_product_rules', '').strip()
         if raw_rules and raw_rules != '{}':
             category.seo_product_rules = raw_rules
         else:
-            category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
-        category.description = request.form.get('description', '').strip()
-        category.show_in_menu = bool(request.form.get('show_in_menu'))
+            category.seo_product_rules = json.dumps(
+                infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description),
+                ensure_ascii=False
+            )
+
         action = request.form.get('action', 'save')
-        if action == 'regenerate_content':
-            category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
-            regenerate_category_content(category)
         if action == 'publish':
             category.seo_published = True
         elif action == 'draft':
             category.seo_published = False
+
         db.session.commit()
         flash('Landing page byla uložena.', 'success')
         return redirect(url_for('admin.seo_dashboard'))
-    return render_template('admin/seo_category_form.html', category=category)
+
+    return render_template('admin/seo_category_form.html', category=category, is_new=False)
 
 
 @admin_bp.route('/seo/category/<int:category_id>/<action>', methods=['POST'])
 @admin_required
 def seo_category_action(category_id, action):
     category = Category.query.get_or_404(category_id)
+
     if action == 'publish':
         category.seo_published = True
         flash('Landing page byla publikována.', 'success')
     elif action == 'draft':
         category.seo_published = False
         flash('Landing page byla vrácena do draftu.', 'info')
-    elif action == 'regenerate':
-        category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
-        regenerate_category_content(category)
-        flash('Landing page byla přegenerována podle názvu, slug, keywordu, popisku a aktuálních produktů.', 'success')
     elif action == 'delete' and getattr(category, 'seo_generated', False):
         db.session.delete(category)
-        flash('Generovaná landing page byla smazána.', 'info')
+        flash('Landing page byla smazána.', 'info')
+    elif action == 'delete':
+        flash('Tuto kategorii nejde bezpečně smazat přes SEO sekci.', 'warning')
+    else:
+        flash('Neznámá akce.', 'warning')
+
     db.session.commit()
     return redirect(url_for('admin.seo_dashboard'))
+
+
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])
@@ -1314,15 +1380,6 @@ def settings():
             ('emailing_batch_size', 'Počet e-mailů v jedné dávce'),
             ('emailing_delay_seconds', 'Pauza mezi e-maily v dávce (sekundy)'),
             ('emailing_max_attachment_mb', 'Maximální velikost jedné přílohy v MB'),
-        ],
-        'SEO automat': [
-            ('seo_generator_enabled', 'Zapnout denní SEO generátor (1 nebo 0)'),
-            ('seo_generator_hour', 'Hodina generování 0–23'),
-            ('seo_generator_minute', 'Minuta generování 0–59'),
-            ('seo_generator_timezone', 'Časové pásmo'),
-            ('seo_generate_blogs_per_day', 'Počet blog draftů denně'),
-            ('seo_generate_categories_per_day', 'Počet landing page draftů denně'),
-            ('seo_auto_publish', 'Automaticky publikovat bez kontroly (1 nebo 0)'),
         ],
     }
 

@@ -843,110 +843,31 @@ def _topic_for_blog(post):
     return infer_product_rules(title=title, keyword=keyword), ''
 
 
+
 def regenerate_category_content(category):
-    topic = _topic_for_category(category)
-    products = products_for_landing_category(category, limit=None)
-    title = topic.get('title') or category.name
-    content = _landing_content(title, topic, products)
-    score = _quality_score(products, content)
-    category.description = content
-    category.meta_description = _meta_description_for(title, products)[:320]
-    category.seo_title = category.seo_title or f"{title} | ceny a výběr | BotyZaHubicku.cz"
-    category.seo_target_keyword = topic.get('keyword') or category.seo_target_keyword or title.lower()
-    category.seo_product_rules = json.dumps(topic, ensure_ascii=False)
-    category.seo_quality_score = score
-    category.seo_last_generated_at = datetime.utcnow()
-    category.seo_generated = True
+    """Manual SEO mode.
+
+    Automatic content generation has been disabled. The function remains for
+    backward compatibility only and does not overwrite manual content.
+    """
     return category
 
 
 def regenerate_blog_content(post):
-    rules, category_slug = _topic_for_blog(post)
-    products = select_products_for_rules(rules, limit=12)
-    content = _blog_content(post.title, rules, products, category_slug)
-    score = _quality_score(products, content)
-    post.content = content
-    post.meta_description = _meta_description_for(post.title, products)[:320]
-    post.related_product_ids = json.dumps([p.id for p in products[:8]], ensure_ascii=False)
-    post.quality_score = score
-    post.seo_generated = True
+    """Manual SEO mode.
+
+    Automatic content generation has been disabled. The function remains for
+    backward compatibility only and does not overwrite manual content.
+    """
     return post
 
 
 def regenerate_all_generated_content():
-    result = {'blogs': 0, 'landing_pages': 0}
-    for post in BlogPost.query.filter_by(seo_generated=True).all():
-        regenerate_blog_content(post)
-        result['blogs'] += 1
-    for category in Category.query.filter_by(seo_generated=True).all():
-        regenerate_category_content(category)
-        result['landing_pages'] += 1
-    db.session.commit()
-    return result
+    """Manual SEO mode: no automatic rewrite of existing content."""
+    return {'blogs': 0, 'landing_pages': 0}
 
 
 def generate_daily_seo_content(blog_count=10, landing_count=10, auto_publish=False):
-    created = {'blogs': 0, 'landing_pages': 0, 'skipped_low_quality_publish': 0}
-    min_quality_to_publish = 80
+    """Manual SEO mode: daily automatic generation is disabled."""
+    return {'blogs': 0, 'landing_pages': 0, 'skipped_low_quality_publish': 0, 'disabled': True}
 
-    for topic in LANDING_TOPICS:
-        if created['landing_pages'] >= landing_count:
-            break
-        slug = topic['slug']
-        if _already_done_category(slug):
-            continue
-        products = select_products_for_rules(topic, limit=None)
-        content = _landing_content(topic['title'], topic, products)
-        score = _quality_score(products, content)
-        publish_now = bool(auto_publish and score >= min_quality_to_publish and len(products) >= 2)
-        if auto_publish and not publish_now:
-            created['skipped_low_quality_publish'] += 1
-
-        category = Category(
-            name=topic['title'],
-            slug=slug,
-            description=content,
-            meta_description=_meta_description_for(topic['title'], products)[:320],
-            seo_title=f"{topic['title']} | ceny a výběr | BotyZaHubicku.cz",
-            seo_target_keyword=topic['keyword'],
-            seo_product_rules=json.dumps(topic, ensure_ascii=False),
-            seo_quality_score=score,
-            seo_last_generated_at=datetime.utcnow(),
-            seo_generated=True,
-            seo_published=publish_now,
-            show_in_menu=False,
-        )
-        db.session.add(category)
-        created['landing_pages'] += 1
-
-    for title, rules, category_slug in BLOG_TOPICS:
-        if created['blogs'] >= blog_count:
-            break
-        if _already_done_blog(title):
-            continue
-
-        products = select_products_for_rules(rules, limit=12)
-        content = _blog_content(title, rules, products, category_slug)
-        score = _quality_score(products, content)
-        status = 'published' if (auto_publish and score >= min_quality_to_publish and len(products) >= 2) else 'draft'
-        if auto_publish and status != 'published':
-            created['skipped_low_quality_publish'] += 1
-
-        post = BlogPost(
-            slug=unique_slug(BlogPost, title),
-            title=title,
-            seo_title=f"{title} | BotyZaHubicku.cz",
-            target_keyword=title.lower(),
-            meta_description=_meta_description_for(title, products)[:320],
-            related_product_ids=json.dumps([p.id for p in products[:8]], ensure_ascii=False),
-            quality_score=score,
-            content=content,
-            status=status,
-            seo_generated=True,
-            published_at=datetime.utcnow() if status == 'published' else None,
-        )
-        db.session.add(post)
-        created['blogs'] += 1
-
-    db.session.commit()
-    return created

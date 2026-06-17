@@ -1,21 +1,95 @@
 {% extends 'base.html' %}
-{% block title %}Upravit SEO blog{% endblock %}
+{% block title %}{% if is_new %}Nový blog článek{% else %}Upravit blog článek{% endif %}{% endblock %}
 {% block content %}
 <section class="container py-5">
-  <a href="{{ url_for('admin.seo_dashboard') }}" class="btn btn-outline-dark rounded-pill mb-4">← SEO automat</a>
-  <h1 class="h2 mb-4">Upravit blog článek</h1>
+  <a href="{{ url_for('admin.seo_dashboard') }}" class="btn btn-outline-dark rounded-pill mb-4">← SEO obsah</a>
+
+  <div class="section-header mb-4">
+    <div>
+      <h1 class="h2 mb-1">{% if is_new %}Nový blog článek{% else %}Upravit blog článek{% endif %}</h1>
+      <p class="text-secondary mb-0">Ruční blog článek. Obsah vkládej jako hotové HTML z ChatGPT nebo vlastní text.</p>
+    </div>
+  </div>
+
+  <div class="info-card mb-4">
+    <div class="d-flex justify-content-between gap-3 flex-wrap align-items-start">
+      <div>
+        <h2 class="h5 mb-1">Prompt pro ChatGPT pro blog</h2>
+        <p class="text-secondary mb-0">Použij pro vytvoření dlouhého ručního článku bez interních SEO poznámek.</p>
+      </div>
+      <button class="btn btn-outline-dark rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#blogPromptBox">
+        Rozkliknout
+      </button>
+    </div>
+    <div class="collapse mt-3" id="blogPromptBox">
+      <textarea class="form-control font-monospace" rows="16" readonly>Napiš S+ tier SEO blog článek pro BotyZaHubicku.cz, český e-shop s obuví.
+
+Téma / H1: {{ post.title or '[DOPLŇ NÁZEV ČLÁNKU]' }}
+Target keyword: {{ post.target_keyword or '[DOPLŇ KEYWORD]' }}
+
+Požadavky:
+- Přibližně 2000 slov.
+- Česky, prakticky, prodejně, bez interních SEO poznámek.
+- Výstup jako čisté HTML bez markdownu.
+- Nepiš nepravdivé počty produktů ani cenové rozpětí, pokud je nedodám.
+- Produkty doporučuj jako produktové karty nebo jako jasný placeholder, ne jako modré textové odkazy v běžných odstavcích.
+- Struktura: úvod, rychlé doporučení, podle čeho vybírat, konkrétní modely, chyby při výběru, údržba/styling podle tématu, FAQ, finální doporučení.
+- FAQ napiš jako Bootstrap accordion.
+- BotyZaHubicku.cz prodává dostupnou obuv, tenisky, sportovní, městské, pánské, dámské a sezónní boty.</textarea>
+    </div>
+  </div>
+
   <form method="POST" class="info-card">
     <div class="row g-3">
-      <div class="col-md-8"><label class="form-label fw-semibold">Title / H1</label><input name="title" value="{{ post.title }}" class="form-control"></div>
-      <div class="col-md-4"><label class="form-label fw-semibold">Skóre</label><input value="{{ post.quality_score or 0 }}/100" class="form-control" disabled></div>
+      <div class="col-md-8">
+        <label class="form-label fw-semibold">Title / H1</label>
+        <input name="title" value="{{ post.title }}" class="form-control" placeholder="Např. Bílé tenisky: jak je nosit, čistit a které vybrat">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Stav</label>
+        <input value="{{ post.status or 'draft' }}" class="form-control" disabled>
+      </div>
     </div>
-    <div class="mb-3 mt-3"><label class="form-label fw-semibold">SEO title</label><input name="seo_title" value="{{ post.seo_title }}" class="form-control"></div>
-    <div class="mb-3"><label class="form-label fw-semibold">Slug</label><input name="slug" value="{{ post.slug }}" class="form-control"></div>
-    <div class="mb-3"><label class="form-label fw-semibold">Target keyword</label><input name="target_keyword" value="{{ post.target_keyword }}" class="form-control"></div>
-    <div class="mb-3"><label class="form-label fw-semibold">Meta description</label><textarea name="meta_description" rows="2" class="form-control">{{ post.meta_description }}</textarea></div>
-    <div class="mb-3"><label class="form-label fw-semibold">Related product IDs JSON</label><textarea name="related_product_ids" rows="2" class="form-control">{{ post.related_product_ids }}</textarea></div>
-    <div class="mb-3"><label class="form-label fw-semibold">Obsah HTML</label><textarea name="content" rows="28" class="form-control">{{ post.content }}</textarea></div>
-    <div class="d-flex gap-2 flex-wrap"><button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit</button><button name="action" value="publish" class="btn btn-dark rounded-pill">Uložit a publikovat</button><button name="action" value="draft" class="btn btn-outline-secondary rounded-pill">Vrátit do draftu</button></div>
+
+    <div class="mb-3 mt-3">
+      <label class="form-label fw-semibold">Slug</label>
+      <input name="slug" value="{{ post.slug }}" class="form-control" placeholder="např. bile-tenisky-jak-je-nosit">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">SEO title</label>
+      <input name="seo_title" value="{{ post.seo_title }}" class="form-control">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Target keyword</label>
+      <input name="target_keyword" value="{{ post.target_keyword }}" class="form-control">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Meta description</label>
+      <textarea name="meta_description" rows="2" class="form-control">{{ post.meta_description }}</textarea>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Related product IDs JSON</label>
+      <textarea name="related_product_ids" rows="2" class="form-control">{{ post.related_product_ids }}</textarea>
+      <div class="form-text">Volitelné. Např. <code>[1,2,3]</code>. Když necháš prázdné nebo <code>[]</code>, sidebar vybírá produkty podle keywordu.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Obsah HTML</label>
+      <textarea name="content" rows="32" class="form-control" placeholder="Vlož hotový HTML obsah článku.">{{ post.content }}</textarea>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+      <button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit jako draft</button>
+      <button name="action" value="publish" class="btn btn-dark rounded-pill">Uložit a publikovat</button>
+      <button name="action" value="draft" class="btn btn-outline-secondary rounded-pill">Vrátit do draftu</button>
+      {% if not is_new and post.status == 'published' %}
+        <a href="{{ url_for('shop.blog_dynamic', slug=post.slug) }}" target="_blank" class="btn btn-outline-dark rounded-pill">Otevřít článek</a>
+      {% endif %}
+    </div>
   </form>
 </section>
 {% endblock %}
