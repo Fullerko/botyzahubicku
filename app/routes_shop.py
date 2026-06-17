@@ -1118,6 +1118,9 @@ def category_landing(slug):
         "avg_price": product_stats.get("avg_price"),
         "average_price": product_stats.get("avg_price"),
         "brands": product_stats.get("brands", []),
+        "cheapest_product": product_stats.get("cheapest_product"),
+        "cheapest_name": product_stats.get("cheapest_name", ""),
+        "cheapest_price": product_stats.get("cheapest_price"),
     }
 
     return render_template(

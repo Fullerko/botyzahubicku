@@ -96,12 +96,14 @@ def _contains_any(text, needles):
     return any(_lower(needle) in text for needle in (needles or []) if str(needle or '').strip())
 
 
-def _product_text(product):
-    category_bits = []
-    if getattr(product, 'category', None):
-        category_bits.extend([product.category.name or '', product.category.slug or ''])
-    for category in getattr(product, 'categories', []) or []:
-        category_bits.extend([category.name or '', category.slug or ''])
+def _product_own_text(product):
+    """Text patřící přímo produktu.
+
+    Důležité: nepřidáváme sem název landing/kategorie, protože by to rozbilo
+    filtry typu /k/bile-tenisky. Produkt černé barvy, který je omylem
+    přiřazený do kategorie Bílé tenisky, nesmí projít jen proto, že kategorie
+    obsahuje slovo "bílé".
+    """
     return _lower(' '.join([
         product.name or '',
         product.slug or '',
@@ -115,6 +117,17 @@ def _product_text(product):
         product.image_alt or '',
         product.colors or '',
         product.specifications or '',
+    ]))
+
+
+def _product_text(product):
+    category_bits = []
+    if getattr(product, 'category', None):
+        category_bits.extend([product.category.name or '', product.category.slug or ''])
+    for category in getattr(product, 'categories', []) or []:
+        category_bits.extend([category.name or '', category.slug or ''])
+    return _lower(' '.join([
+        _product_own_text(product),
         ' '.join(category_bits),
     ]))
 
@@ -291,15 +304,18 @@ def _product_assigned_to_category(product, category):
 
 def _product_passes_hard_filters(product, rules):
     rules = _as_rules(rules)
-    text = _product_text(product)
+    # Tvrdé filtry se kontrolují pouze proti datům produktu, ne proti názvu
+    # landing page/kategorie. Jinak by např. černý produkt přiřazený do
+    # kategorie Bílé tenisky prošel jen kvůli slovu "bílé" v kategorii.
+    own_text = _product_own_text(product)
 
     gender = _lower(rules.get('gender'))
     if gender:
         product_gender = _lower(getattr(product, 'gender', ''))
         if gender == 'unisex':
-            if product_gender and 'unisex' not in product_gender and 'unisex' not in text:
+            if product_gender and 'unisex' not in product_gender and 'unisex' not in own_text:
                 return False
-        elif gender not in product_gender and gender not in text:
+        elif gender not in product_gender and gender not in own_text:
             return False
 
     if rules.get('max_price') is not None and _price(product) > float(rules.get('max_price')):
@@ -308,17 +324,17 @@ def _product_passes_hard_filters(product, rules):
         return False
 
     colors = rules.get('colors') or []
-    if colors and not _contains_any(text, colors):
+    if colors and not _contains_any(own_text, colors):
         return False
 
     groups = rules.get('required_groups') or []
     if groups:
         for group in groups:
-            if not _contains_any(text, group):
+            if not _contains_any(own_text, group):
                 return False
     else:
         required = rules.get('required_terms_any') or []
-        if required and not _contains_any(text, required):
+        if required and not _contains_any(own_text, required):
             return False
 
     return True
@@ -337,13 +353,13 @@ def _has_hard_filters(rules):
 
 
 def _term_match_count(product, rules):
-    text = _product_text(product)
+    text = _product_own_text(product)
     return sum(1 for term in (rules.get('terms') or []) if _lower(term) in text)
 
 
 def _score_product(product, rules):
     rules = _as_rules(rules)
-    text = _product_text(product)
+    text = _product_own_text(product)
     score = 0
 
     gender = _lower(rules.get('gender'))
@@ -549,6 +565,11 @@ def build_product_stats(products):
     products = list(products or [])
     prices = [float(p.price or 0) for p in products if p.price is not None]
     brands = sorted({(p.brand or '').strip() for p in products if (p.brand or '').strip()})
+    cheapest_product = None
+    if products:
+        priced_products = [p for p in products if p.price is not None]
+        if priced_products:
+            cheapest_product = min(priced_products, key=lambda p: (float(p.price or 0), p.name or ''))
     if not prices:
         return {
             'count': len(products),
@@ -557,6 +578,9 @@ def build_product_stats(products):
             'avg_price': None,
             'brands': brands,
             'in_stock': len([p for p in products if p.stock and p.stock > 0]),
+            'cheapest_product': cheapest_product,
+            'cheapest_name': cheapest_product.name if cheapest_product else '',
+            'cheapest_price': float(cheapest_product.price or 0) if cheapest_product else None,
         }
     return {
         'count': len(products),
@@ -565,6 +589,9 @@ def build_product_stats(products):
         'avg_price': sum(prices) / len(prices),
         'brands': brands,
         'in_stock': len([p for p in products if p.stock and p.stock > 0]),
+        'cheapest_product': cheapest_product,
+        'cheapest_name': cheapest_product.name if cheapest_product else '',
+        'cheapest_price': float(cheapest_product.price or 0) if cheapest_product else None,
     }
 
 

@@ -246,8 +246,13 @@
         <div class="landing-mini-grid">
           <div class="landing-mini-card">
             <div class="text-secondary small">Nejlevnější model</div>
-            <strong>{{ products[0].name }}</strong>
-            <div>{{ '{:,.0f}'.format(products[0].price).replace(',', ' ') }} Kč</div>
+            {% if stats.cheapest_product %}
+              <strong>{{ stats.cheapest_product.name }}</strong>
+              <div>{{ '{:,.0f}'.format(stats.cheapest_product.price).replace(',', ' ') }} Kč</div>
+            {% else %}
+              <strong>—</strong>
+              <div>zatím nedostupné</div>
+            {% endif %}
           </div>
           <div class="landing-mini-card">
             <div class="text-secondary small">Cenové rozpětí</div>
