@@ -1,17 +1,61 @@
 {% extends "base.html" %}
-{% block title %}{{ post.title }} | Blog BotyZaHubicku.cz{% endblock %}
-{% block meta_description %}{{ post.meta_description or (post.content|striptags|truncate(160)) }}{% endblock %}
+{% set blog_title = post.seo_title or (post.title ~ ' | Blog BotyZaHubicku.cz') %}
+{% set blog_description = post.meta_description or (post.content|striptags|truncate(160, True, '')) %}
+{% block title %}{{ blog_title }}{% endblock %}
+{% block meta_description %}{{ blog_description }}{% endblock %}
 {% block canonical_url %}{{ url_for('shop.blog_dynamic', slug=post.slug, _external=True) }}{% endblock %}
 {% block og_type %}article{% endblock %}
+{% block og_title %}{{ blog_title }}{% endblock %}
+{% block og_description %}{{ blog_description }}{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": {{ post.title|tojson }},
+  "description": {{ blog_description|tojson }},
+  "datePublished": {{ (post.published_at or post.created_at).isoformat()|tojson }},
+  "dateModified": {{ post.created_at.isoformat()|tojson }},
+  "author": {"@type":"Organization","name":"BotyZaHubicku.cz"},
+  "publisher": {"@type":"Organization","name":"BotyZaHubicku.cz"},
+  "mainEntityOfPage": {{ url_for('shop.blog_dynamic', slug=post.slug, _external=True)|tojson }}
+}
+</script>
+{% endblock %}
 {% block content %}
 <section class="py-5">
-  <div class="container" style="max-width: 920px;">
-    <a href="{{ url_for('shop.blog') }}" class="btn btn-outline-dark rounded-pill mb-4">← Blog</a>
-    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Blog</span>
-    <h1 class="display-6 fw-bold mt-3">{{ post.title }}</h1>
-    {% if post.meta_description %}<p class="text-muted fs-5">{{ post.meta_description }}</p>{% endif %}
-    <div class="info-card mt-4 seo-content">
-      {{ post.content | safe }}
+  <div class="container">
+    <div class="row g-5">
+      <article class="col-lg-8">
+        <a href="{{ url_for('shop.blog') }}" class="btn btn-outline-dark rounded-pill mb-4">← Blog</a>
+        <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Nákupní průvodce</span>
+        <h1 class="display-6 fw-bold mt-3">{{ post.title }}</h1>
+        {% if blog_description %}<p class="text-muted fs-5">{{ blog_description }}</p>{% endif %}
+        <div class="info-card mt-4 seo-content">{{ post.content | safe }}</div>
+      </article>
+      <aside class="col-lg-4">
+        {% if related_products %}
+        <div class="info-card sticky-top" style="top: 110px;">
+          <h2 class="h4 mb-3">Doporučené produkty z článku</h2>
+          <div class="vstack gap-3">
+            {% for product in related_products[:6] %}
+            <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="d-flex gap-3 text-decoration-none text-dark border rounded-4 p-2">
+              <img src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}" style="width:72px;height:72px;object-fit:cover;border-radius:14px;">
+              <span><strong class="d-block">{{ product.name }}</strong><span class="text-secondary">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</span></span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if related_categories %}
+        <div class="info-card mt-4">
+          <h2 class="h5">Související kategorie</h2>
+          <div class="d-flex gap-2 flex-wrap mt-3">
+          {% for category in related_categories %}<a class="btn btn-sm btn-outline-dark rounded-pill" href="{{ url_for('shop.category_landing', slug=category.slug) }}">{{ category.name }}</a>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </aside>
     </div>
   </div>
 </section>

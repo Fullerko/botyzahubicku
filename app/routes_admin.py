@@ -1068,7 +1068,7 @@ def seo_dashboard():
         landing_count = max(0, min(50, _int_form('landing_count', 10)))
         auto_publish = bool(request.form.get('auto_publish'))
         result = generate_daily_seo_content(blog_count=blog_count, landing_count=landing_count, auto_publish=auto_publish)
-        flash(f"Vygenerováno: {result.get('blogs', 0)} blog draftů a {result.get('landing_pages', 0)} landing pages.", 'success')
+        flash(f"Vygenerováno: {result.get('blogs', 0)} blog draftů a {result.get('landing_pages', 0)} landing pages. Nízká kvalita nepublikována: {result.get('skipped_low_quality_publish', 0)}.", 'success')
         return redirect(url_for('admin.seo_dashboard'))
 
     blog_posts = BlogPost.query.order_by(BlogPost.created_at.desc()).limit(100).all()
@@ -1083,7 +1083,10 @@ def seo_blog_edit(post_id):
     if request.method == 'POST':
         post.title = request.form.get('title', '').strip() or post.title
         post.slug = request.form.get('slug', '').strip() or post.slug
+        post.seo_title = request.form.get('seo_title', '').strip()
+        post.target_keyword = request.form.get('target_keyword', '').strip()
         post.meta_description = request.form.get('meta_description', '').strip()
+        post.related_product_ids = request.form.get('related_product_ids', '').strip() or '[]'
         post.content = request.form.get('content', '').strip()
         action = request.form.get('action', 'save')
         if action == 'publish':
@@ -1124,7 +1127,10 @@ def seo_category_edit(category_id):
     if request.method == 'POST':
         category.name = request.form.get('name', '').strip() or category.name
         category.slug = request.form.get('slug', '').strip() or category.slug
+        category.seo_title = request.form.get('seo_title', '').strip()
+        category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
+        category.seo_product_rules = request.form.get('seo_product_rules', '').strip() or '{}'
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         action = request.form.get('action', 'save')

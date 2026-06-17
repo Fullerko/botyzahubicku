@@ -4,7 +4,7 @@ import random
 import string
 import qrcode
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for, jsonify
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
 
 from . import db
@@ -477,7 +477,11 @@ def blog10():
 @shop_bp.route('/blog/<slug>')
 def blog_dynamic(slug):
     post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
-    return render_template('blog_detail.html', post=post)
+    from .seo_generator import products_for_blog_post, visible_related_categories
+    related_products = products_for_blog_post(post, limit=8)
+    related_categories = visible_related_categories(limit=8)
+    return render_template('blog_detail.html', post=post, related_products=related_products, related_categories=related_categories)
+
 
 
 @shop_bp.route('/obchodni-podminky')
@@ -1086,24 +1090,17 @@ def category_landing(slug):
     if getattr(category, 'seo_generated', False) and not getattr(category, 'seo_published', True):
         abort(404)
 
-    products = Product.query.filter_by(category_id=category.id, active=True).order_by(Product.created_at.desc()).all()
-    if not products:
-        keywords = [part for part in category.slug.replace('-', ' ').split() if len(part) > 2]
-        q = Product.query.filter_by(active=True)
-        filters = []
-        for keyword in keywords:
-            filters.append(Product.name.ilike(f'%{keyword}%'))
-            filters.append(Product.short_description.ilike(f'%{keyword}%'))
-            filters.append(Product.description.ilike(f'%{keyword}%'))
-            filters.append(Product.seo_keywords.ilike(f'%{keyword}%'))
-        if filters:
-            products = q.filter(db.or_(*filters)).order_by(Product.created_at.desc()).limit(24).all()
-    if not products:
-        products = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).limit(24).all()
+    from .seo_generator import products_for_landing_category, build_product_stats, build_product_groups, visible_related_categories
+    products = products_for_landing_category(category, limit=48)
+    product_stats = build_product_stats(products)
+    product_groups = build_product_groups(products)
+    related_categories = visible_related_categories(current_id=category.id, limit=10)
 
-    related_categories = Category.query.filter(
-        Category.id != category.id,
-        db.or_(Category.seo_published.is_(True), Category.seo_generated.is_(False))
-    ).order_by(Category.name.asc()).limit(8).all()
-
-    return render_template('category_landing.html', category=category, products=products, related_categories=related_categories)
+    return render_template(
+        'category_landing.html',
+        category=category,
+        products=products,
+        product_stats=product_stats,
+        product_groups=product_groups,
+        related_categories=related_categories,
+    )

@@ -1,42 +1,108 @@
 {% extends "base.html" %}
-{% block title %}{{ category.name }} | BotyZaHubicku.cz{% endblock %}
-{% block meta_description %}{{ category.meta_description or (category.description|striptags|truncate(160)) }}{% endblock %}
+{% set category_title = category.seo_title or (category.name ~ ' | BotyZaHubicku.cz') %}
+{% set category_description = category.meta_description or (category.description|striptags|truncate(160, True, '')) %}
+{% block title %}{{ category_title }}{% endblock %}
+{% block meta_description %}{{ category_description }}{% endblock %}
 {% block canonical_url %}{{ url_for('shop.category_landing', slug=category.slug, _external=True) }}{% endblock %}
+{% block og_title %}{{ category_title }}{% endblock %}
+{% block og_description %}{{ category_description }}{% endblock %}
+{% block structured_data %}
+{% if products %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": {{ category.name|tojson }},
+  "description": {{ category_description|tojson }},
+  "url": {{ url_for('shop.category_landing', slug=category.slug, _external=True)|tojson }},
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {% for product in products[:12] %}
+      {
+        "@type": "ListItem",
+        "position": {{ loop.index }},
+        "url": {{ url_for('shop.product_detail', slug=product.slug, _external=True)|tojson }},
+        "name": {{ product.name|tojson }}
+      }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }
+}
+</script>
+{% endif %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"Jak vybrat správnou velikost?","acceptedAnswer":{"@type":"Answer","text":"Změřte délku chodidla a u bot nechte rezervu přibližně 0,5 až 1 cm. Potom zkontrolujte dostupné velikosti u konkrétního produktu."}},
+    {"@type":"Question","name":"Kolik stojí {{ category.name }}?","acceptedAnswer":{"@type":"Answer","text":"Cena se liší podle modelu, značky a dostupnosti. Na stránce jsou zobrazené aktuální ceny produktů."}},
+    {"@type":"Question","name":"Jsou produkty skladem?","acceptedAnswer":{"@type":"Answer","text":"Dostupnost kontrolujte vždy u konkrétního produktu a velikosti."}}
+  ]
+}
+</script>
+{% endblock %}
 {% block content %}
 <section class="py-5">
   <div class="container">
-    <div class="mb-4">
-      <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Kategorie</span>
-      <h1 class="display-6 fw-bold mt-3">{{ category.name }}</h1>
-      {% if category.meta_description %}<p class="text-muted fs-5">{{ category.meta_description }}</p>{% endif %}
+    <nav class="small text-secondary mb-3" aria-label="Breadcrumb">
+      <a href="{{ url_for('shop.index') }}" class="text-secondary">Domů</a> / <a href="{{ url_for('shop.products') }}" class="text-secondary">Produkty</a> / {{ category.name }}
+    </nav>
+
+    <div class="row g-4 align-items-start mb-5">
+      <div class="col-lg-8">
+        <span class="badge bg-warning text-dark rounded-pill px-3 py-2">SEO výběr</span>
+        <h1 class="display-6 fw-bold mt-3 mb-3">{{ category.name }}</h1>
+        {% if category_description %}<p class="lead text-secondary">{{ category_description }}</p>{% endif %}
+        <div class="d-flex gap-2 flex-wrap mt-3">
+          <a href="#produkty" class="btn btn-dark rounded-pill">Zobrazit produkty</a>
+          <a href="#poradce" class="btn btn-outline-dark rounded-pill">Jak vybrat</a>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="info-card h-100">
+          <div class="row g-3 text-center">
+            <div class="col-6"><div class="text-secondary small">Produktů</div><strong class="fs-4">{{ product_stats.count }}</strong></div>
+            <div class="col-6"><div class="text-secondary small">Skladem</div><strong class="fs-4">{{ product_stats.in_stock }}</strong></div>
+            <div class="col-6"><div class="text-secondary small">Cena od</div><strong>{{ '{:,.0f}'.format(product_stats.min_price or 0).replace(',', ' ') if product_stats.min_price else '—' }} Kč</strong></div>
+            <div class="col-6"><div class="text-secondary small">Cena do</div><strong>{{ '{:,.0f}'.format(product_stats.max_price or 0).replace(',', ' ') if product_stats.max_price else '—' }} Kč</strong></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     {% if category.description %}
-    <div class="info-card mb-5 seo-content">
+    <div class="info-card mb-5 seo-content" id="poradce">
       {{ category.description | safe }}
     </div>
     {% endif %}
 
-    <div class="section-header mb-3">
-      <h2 class="h3 mb-1">Doporučené produkty</h2>
-      <p class="text-secondary mb-0">Vybrané produkty související s touto kategorií.</p>
+    {% if product_groups.discounted %}
+    <div class="info-card mb-5">
+      <div class="section-header mb-3"><h2 class="h3 mb-1">Nejlepší slevy v této kategorii</h2><p class="text-secondary mb-0">Produkty s původní cenou a aktuální slevou.</p></div>
+      <div class="row g-4">
+        {% for product in product_groups.discounted %}{% include 'components/product_card.html' %}{% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="section-header mb-3" id="produkty">
+      <div><h2 class="h3 mb-1">Doporučené produkty</h2><p class="text-secondary mb-0">Seřazeno podle shody s kategorií, ceny, dostupnosti a relevanci popisu.</p></div>
+      <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.products') }}">Všechny produkty</a>
     </div>
 
     {% if products %}
     <div class="row g-4">
-      {% for product in products %}
-        {% include 'components/product_card.html' %}
-      {% endfor %}
+      {% for product in products %}{% include 'components/product_card.html' %}{% endfor %}
     </div>
     {% else %}
-    <div class="info-card text-center py-5">
-      <p class="mb-0 text-secondary">V této kategorii zatím nejsou produkty.</p>
-    </div>
+    <div class="info-card text-center py-5"><p class="mb-0 text-secondary">V této kategorii zatím nejsou produkty.</p></div>
     {% endif %}
 
     {% if related_categories %}
     <div class="info-card mt-5">
-      <h2 class="h4">Související kategorie</h2>
+      <h2 class="h4">Související výběry</h2>
       <div class="d-flex gap-2 flex-wrap mt-3">
         {% for related in related_categories %}
           <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.category_landing', slug=related.slug) }}">{{ related.name }}</a>

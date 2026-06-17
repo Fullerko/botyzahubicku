@@ -31,6 +31,11 @@ def ensure_schema_columns():
             'image_url': "ALTER TABLE category ADD COLUMN image_url VARCHAR(500) DEFAULT ''",
             'description': "ALTER TABLE category ADD COLUMN description TEXT DEFAULT ''",
             'meta_description': "ALTER TABLE category ADD COLUMN meta_description VARCHAR(320) DEFAULT ''",
+            'seo_title': "ALTER TABLE category ADD COLUMN seo_title VARCHAR(200) DEFAULT ''",
+            'seo_target_keyword': "ALTER TABLE category ADD COLUMN seo_target_keyword VARCHAR(160) DEFAULT ''",
+            'seo_product_rules': "ALTER TABLE category ADD COLUMN seo_product_rules TEXT DEFAULT '{}'",
+            'seo_quality_score': "ALTER TABLE category ADD COLUMN seo_quality_score INTEGER DEFAULT 0",
+            'seo_last_generated_at': "ALTER TABLE category ADD COLUMN seo_last_generated_at DATETIME",
             'show_in_menu': "ALTER TABLE category ADD COLUMN show_in_menu BOOLEAN DEFAULT 1",
             'seo_generated': "ALTER TABLE category ADD COLUMN seo_generated BOOLEAN DEFAULT 0",
             'seo_published': "ALTER TABLE category ADD COLUMN seo_published BOOLEAN DEFAULT 1",
@@ -60,6 +65,12 @@ def ensure_schema_columns():
         'password_reset_token': None,
         'email_campaign': {
             'recipient_mode': "ALTER TABLE email_campaign ADD COLUMN recipient_mode VARCHAR(20) DEFAULT 'all'",
+        },
+        'blog_post': {
+            'seo_title': "ALTER TABLE blog_post ADD COLUMN seo_title VARCHAR(220) DEFAULT ''",
+            'target_keyword': "ALTER TABLE blog_post ADD COLUMN target_keyword VARCHAR(160) DEFAULT ''",
+            'related_product_ids': "ALTER TABLE blog_post ADD COLUMN related_product_ids TEXT DEFAULT '[]'",
+            'quality_score': "ALTER TABLE blog_post ADD COLUMN quality_score INTEGER DEFAULT 0",
         },
         'order': {
             'discount_amount': "ALTER TABLE 'order' ADD COLUMN discount_amount FLOAT DEFAULT 0",
@@ -248,6 +259,8 @@ def seed_data():
         'seo_generate_blogs_per_day': '10',
         'seo_generate_categories_per_day': '10',
         'seo_auto_publish': '0',
+        'seo_min_quality_to_publish': '80',
+        'seo_min_products_per_landing': '3',
     }
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():

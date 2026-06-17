@@ -5,19 +5,18 @@
   <a href="{{ url_for('admin.seo_dashboard') }}" class="btn btn-outline-dark rounded-pill mb-4">← SEO automat</a>
   <h1 class="h2 mb-4">Upravit landing page / kategorii</h1>
   <form method="POST" class="info-card">
-    <div class="mb-3"><label class="form-label fw-semibold">Název</label><input name="name" value="{{ category.name }}" class="form-control"></div>
+    <div class="row g-3">
+      <div class="col-md-8"><label class="form-label fw-semibold">Název / H1</label><input name="name" value="{{ category.name }}" class="form-control"></div>
+      <div class="col-md-4"><label class="form-label fw-semibold">Skóre</label><input value="{{ category.seo_quality_score or 0 }}/100" class="form-control" disabled></div>
+    </div>
+    <div class="mb-3 mt-3"><label class="form-label fw-semibold">SEO title</label><input name="seo_title" value="{{ category.seo_title }}" class="form-control"></div>
     <div class="mb-3"><label class="form-label fw-semibold">Slug</label><input name="slug" value="{{ category.slug }}" class="form-control"></div>
+    <div class="mb-3"><label class="form-label fw-semibold">Target keyword</label><input name="seo_target_keyword" value="{{ category.seo_target_keyword }}" class="form-control"></div>
     <div class="mb-3"><label class="form-label fw-semibold">Meta description</label><textarea name="meta_description" rows="2" class="form-control">{{ category.meta_description }}</textarea></div>
-    <div class="mb-3"><label class="form-label fw-semibold">SEO text HTML</label><textarea name="description" rows="22" class="form-control">{{ category.description }}</textarea></div>
-    <div class="form-check mb-4">
-      <input class="form-check-input" type="checkbox" name="show_in_menu" id="show_in_menu" {% if category.show_in_menu %}checked{% endif %}>
-      <label class="form-check-label" for="show_in_menu">Zobrazit v menu</label>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit</button>
-      <button name="action" value="publish" class="btn btn-dark rounded-pill">Uložit a publikovat</button>
-      <button name="action" value="draft" class="btn btn-outline-secondary rounded-pill">Vrátit do draftu</button>
-    </div>
+    <div class="mb-3"><label class="form-label fw-semibold">Product rules JSON</label><textarea name="seo_product_rules" rows="5" class="form-control">{{ category.seo_product_rules }}</textarea><div class="form-text">Generátor podle toho vybírá produkty: gender, barva, cena, termíny.</div></div>
+    <div class="mb-3"><label class="form-label fw-semibold">SEO text HTML</label><textarea name="description" rows="28" class="form-control">{{ category.description }}</textarea></div>
+    <div class="form-check mb-4"><input class="form-check-input" type="checkbox" name="show_in_menu" id="show_in_menu" {% if category.show_in_menu %}checked{% endif %}><label class="form-check-label" for="show_in_menu">Zobrazit v menu</label></div>
+    <div class="d-flex gap-2 flex-wrap"><button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit</button><button name="action" value="publish" class="btn btn-dark rounded-pill">Uložit a publikovat</button><button name="action" value="draft" class="btn btn-outline-secondary rounded-pill">Vrátit do draftu</button></div>
   </form>
 </section>
 {% endblock %}
