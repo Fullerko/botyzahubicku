@@ -3,6 +3,7 @@ import re
 import unicodedata
 from datetime import datetime
 from html import escape
+from urllib.parse import quote_plus
 
 from . import db
 from .models import BlogPost, Category, Product
@@ -420,10 +421,21 @@ def _render_product_cards(products, title='Doporučené modely', subtitle=''):
 '''
 
 
-def _category_button(category_slug, label='Zobrazit celou kategorii'):
+def _category_button(category_slug, label='Zobrazit produkty'):
+    """Vrátí bezpečné CTA bez rizika 404.
+
+    Pokud související landing page ještě neexistuje nebo není publikovaná,
+    tlačítko vede raději na vyhledávání produktů.
+    """
     if not category_slug:
         return '<a class="btn btn-outline-dark rounded-pill" href="/produkty">Zobrazit produkty</a>'
-    return f'<a class="btn btn-outline-dark rounded-pill" href="/k/{escape(category_slug)}">{escape(label)}</a>'
+
+    category = Category.query.filter_by(slug=category_slug).first()
+    if category and bool(getattr(category, 'seo_published', True)):
+        return f'<a class="btn btn-outline-dark rounded-pill" href="/k/{escape(category.slug)}">{escape(label)}</a>'
+
+    search_term = str(category_slug or '').replace('-', ' ')
+    return f'<a class="btn btn-outline-dark rounded-pill" href="/produkty?search={quote_plus(search_term)}">{escape(label)}</a>'
 
 
 def build_product_stats(products):
@@ -458,7 +470,7 @@ def _render_product_table(products, title='Doporučené modely'):
     return _render_product_cards(
         products,
         title=title,
-        subtitle='Klikací jsou celé produktové karty, ne textové odkazy v odstavcích.'
+        subtitle='Vybrané produkty s aktuální cenou a dostupností.'
     )
 
 
@@ -499,7 +511,7 @@ def _landing_content(title, rules, products):
     cheap_models = _product_names(groups['cheapest'][:3])
 
     return f'''
-<p><strong>{escape(title)}</strong> jsou výběrová stránka pro zákazníky, kteří nechtějí procházet celý katalog ručně a chtějí rychle najít modely podle konkrétního záměru. Stránka kombinuje reálné produkty z e-shopu, aktuální ceny, doporučení podle použití a praktický návod, podle čeho vybírat.</p>
+<p><strong>{escape(title)}</strong> jsou určené pro zákazníky, kteří chtějí rychle najít vhodné modely podle konkrétního záměru, ceny a dostupnosti. Níže najdete aktuální výběr produktů, doporučení podle použití a praktický návod, podle čeho vybírat.</p>
 
 <div class="row g-3 my-4">
   <div class="col-md-3"><div class="border rounded-4 p-3 h-100"><div class="text-secondary small">Vybrané produkty</div><strong class="fs-4">{count}</strong></div></div>
@@ -510,10 +522,10 @@ def _landing_content(title, rules, products):
 
 <h2>Jak vybrat {escape(title.lower())}</h2>
 <p>Nejdřív si ujasněte, k čemu mají boty sloužit. Pro každodenní nošení je nejdůležitější pohodlí, měkčí došlap a univerzální vzhled. Pro město se vyplatí volit odolnější podrážku a barvu, která se snadno kombinuje. U levnějších modelů sledujte hlavně poměr ceny, vzhledu a dostupných velikostí.</p>
-<p>{price_sentence} Pokud chcete co nejrychlejší výběr, začněte u modelů jako {featured_models}. Pro nejnižší cenu dávají smysl hlavně {cheap_models}. Konkrétní proklik najdete níže v produktových kartách.</p>
+<p>{price_sentence} Pokud chcete co nejrychlejší výběr, začněte u modelů jako {featured_models}. Pro nejnižší cenu dávají smysl hlavně {cheap_models}. Konkrétní modely najdete níže v přehledném výběru.</p>
 
 <h2>Doporučení podle ceny a použití</h2>
-<p>U této stránky je cílem vybrat boty, které dávají smysl nejen podle názvu kategorie, ale i podle reálné nabídky. Proto jsou nahoře produkty se silnější shodou: sedí záměr vyhledávání, cena, popis produktu, značka nebo dostupnost. Níže najdete konkrétní modely a jejich hlavní důvod zařazení.</p>
+<p>U této stránky je cílem vybrat boty, které dávají smysl nejen podle názvu kategorie, ale i podle reálné nabídky. Proto jsou nahoře produkty se silnější shodou: odpovídají kategorii, ceně, popisu produktu, značce nebo dostupnosti. Níže najdete konkrétní modely a jejich hlavní důvod zařazení.</p>
 {_render_product_table(groups['featured'], 'Nejlepší výběr v této kategorii')}
 {_render_product_table(groups['cheapest'], 'Nejlevnější relevantní modely')}
 
@@ -536,16 +548,16 @@ def _blog_content(title, rules, products, category_slug):
     stats = build_product_stats(products)
     groups = build_product_groups(products)
     intro_products = _product_names(groups['featured'][:3])
-    category_cta = _category_button(category_slug, 'Zobrazit související kategorii')
+    category_cta = _category_button(category_slug, 'Zobrazit produkty')
     price_sentence = ''
     if stats['min_price'] is not None:
         price_sentence = f" V doporučeném výběru ceny začínají zhruba na {_format_price(stats['min_price'])}."
 
     return f'''
-<p>Tenhle průvodce řeší praktický výběr podle reálné nabídky e-shopu, ne jen obecné rady. Cílem je rychle poznat, které boty dávají smysl podle ceny, stylu, velikosti a způsobu nošení.{price_sentence}</p>
+<p>Tenhle průvodce pomáhá rychle vybrat boty podle ceny, stylu, velikosti a způsobu nošení.{price_sentence}</p>
 
 <h2>Rychlé doporučení</h2>
-<p>Pokud chcete vybrat bez dlouhého porovnávání, začněte u modelů jako {intro_products}. Konkrétní produkty najdete níže jako karty s obrázkem, cenou a tlačítkem detailu.</p>
+<p>Pokud chcete vybrat bez dlouhého porovnávání, začněte u modelů jako {intro_products}. Níže najdete konkrétní modely s aktuální cenou a dostupností.</p>
 <div class="my-3">{category_cta}</div>
 
 <h2>Podle čeho vybírat</h2>
@@ -566,7 +578,7 @@ def _blog_content(title, rules, products, category_slug):
 </ul>
 
 <h2>Finální doporučení</h2>
-<p>Nejlepší volba je model, který sedí účelu, ceně i velikosti. Pro rychlý výběr otevřete související kategorii, porovnejte dostupné velikosti a začněte od produktů s nejlepším poměrem cena/vzhled.</p>
+<p>Nejlepší volba je model, který sedí účelu, ceně i velikosti. Při výběru porovnejte dostupné velikosti, materiál, cenu a celkový vzhled.</p>
 <div class="my-3">{category_cta}</div>
 {_faq_html(title, products)}
 '''

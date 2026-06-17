@@ -1080,7 +1080,7 @@ def seo_dashboard():
 @admin_required
 def seo_regenerate_all():
     result = regenerate_all_generated_content()
-    flash(f"Přegenerováno do card-only verze: {result.get('blogs', 0)} blogů a {result.get('landing_pages', 0)} landing pages.", 'success')
+    flash(f"Přegenerováno: {result.get('blogs', 0)} blogů a {result.get('landing_pages', 0)} landing pages.", 'success')
     return redirect(url_for('admin.seo_dashboard'))
 
 

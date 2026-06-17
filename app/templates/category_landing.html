@@ -108,7 +108,6 @@
 
     <div class="row g-4 align-items-start mb-5">
       <div class="col-lg-8">
-        <span class="badge bg-warning text-dark rounded-pill px-3 py-2">SEO výběr</span>
         <h1 class="display-6 fw-bold mt-3 mb-3">{{ category.name }}</h1>
         {% if category_description %}<p class="lead text-secondary">{{ category_description }}</p>{% endif %}
         <div class="d-flex gap-2 flex-wrap mt-3">
@@ -144,7 +143,7 @@
     {% endif %}
 
     <div class="section-header mb-3" id="produkty">
-      <div><h2 class="h3 mb-1">Doporučené produkty</h2><p class="text-secondary mb-0">Seřazeno podle shody s kategorií, ceny, dostupnosti a relevanci popisu.</p></div>
+      <div><h2 class="h3 mb-1">Doporučené produkty</h2><p class="text-secondary mb-0">Seřazeno podle shody s kategorií, ceny a dostupnosti.</p></div>
       <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.products') }}">Všechny produkty</a>
     </div>
 

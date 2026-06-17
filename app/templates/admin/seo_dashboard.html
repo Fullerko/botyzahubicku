@@ -3,7 +3,7 @@
 {% block content %}
 <section class="container py-5">
   <div class="section-header mb-4">
-    <div><h1 class="h2 mb-1">SEO automat S+ drafty</h1><p class="text-secondary mb-0">Generuje product-aware blogy a landing pages: reálné produkty, ceny, doporučení, FAQ a produktové karty. Textové prokliky v odstavcích se nepoužívají.</p></div>
+    <div><h1 class="h2 mb-1">SEO automat S+ drafty</h1><p class="text-secondary mb-0">Generuje blogy a landing pages z reálných produktů, cen, dostupnosti, doporučení a FAQ.</p></div>
     <div class="d-flex gap-2 flex-wrap">
       <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-dark rounded-pill">Nová landing page</a>
       <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-dark rounded-pill">Nastavení automatu</a>
@@ -22,8 +22,8 @@
   </form>
 
   <form method="POST" action="{{ url_for('admin.seo_regenerate_all') }}" class="info-card mb-4 border border-warning">
-    <h2 class="h4 mb-2">Přegenerovat starší obsah do card-only verze</h2>
-    <p class="text-secondary mb-3">Použij to, pokud už máš články s proklikávacím textem. Obsah se přepíše tak, aby prokliky byly hlavně přes produktové karty s obrázkem, cenou a tlačítkem detailu.</p>
+    <h2 class="h4 mb-2">Přegenerovat starší obsah</h2>
+    <p class="text-secondary mb-3">Použij to, pokud chceš přepsat starší automaticky generované články a landing pages do aktuální čistší verze.</p>
     <button class="btn btn-warning rounded-pill">Přegenerovat všechny generované blogy a landing pages</button>
   </form>
 
