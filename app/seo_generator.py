@@ -186,8 +186,72 @@ def _product_url(product):
     return f"/produkt/{escape(product.slug or '')}"
 
 
-def _product_link(product):
-    return f'<a href="{_product_url(product)}"><strong>{escape(product.name)}</strong></a> za <strong>{_format_price(product.price)}</strong>'
+def _image_src(product):
+    image = (getattr(product, 'image', '') or 'default-product.svg').strip()
+    if image.startswith(('http://', 'https://')):
+        return escape(image)
+    return f"/uploads/{escape(image)}"
+
+
+def _product_plain(product):
+    return f"{escape(product.name)} za {escape(_format_price(product.price))}"
+
+
+def _product_names(products, limit=3):
+    names = [_product_plain(p) for p in (products or [])[:limit]]
+    return ', '.join(names) if names else 'vybrané modely z aktuální nabídky'
+
+
+def _product_reason(product):
+    reason = 'dobrá volba na každodenní nošení'
+    text = _product_text(product)
+    if 'sport' in text or 'běh' in text or 'beh' in text:
+        reason = 'vhodné pro sportovnější styl a aktivnější nošení'
+    elif 'bíl' in text or 'bil' in text or 'white' in text:
+        reason = 'čistý vzhled, snadno se kombinuje s outfitem'
+    elif 'čern' in text or 'cern' in text or 'black' in text:
+        reason = 'univerzální barva, která se snadno udržuje'
+    elif product.original_price and product.original_price > product.price:
+        reason = f'sleva přibližně {product.discount_percent} %, dobrý poměr cena/výkon'
+    return reason
+
+
+def _render_product_cards(products, title='Doporučené modely', subtitle=''):
+    cards = []
+    for product in (products or [])[:6]:
+        old_price = ''
+        if product.original_price and product.original_price > product.price:
+            old_price = f'<div class="text-secondary small text-decoration-line-through">{_format_price(product.original_price)}</div>'
+        short = escape((product.short_description or _product_reason(product) or '')[:140])
+        cards.append(f'''
+<a href="{_product_url(product)}" class="seo-product-card text-decoration-none text-dark" aria-label="Zobrazit produkt {escape(product.name)}">
+  <div class="seo-product-card__image"><img src="{_image_src(product)}" alt="{escape(product.image_alt or product.name)}" loading="lazy"></div>
+  <div class="seo-product-card__body">
+    <div class="text-secondary small">{escape(product.brand or '')}</div>
+    <strong class="seo-product-card__title">{escape(product.name)}</strong>
+    <div class="seo-product-card__desc">{short}</div>
+    <div class="d-flex align-items-end justify-content-between gap-2 mt-2">
+      <div><strong>{_format_price(product.price)}</strong>{old_price}</div>
+      <span class="btn btn-sm btn-dark rounded-pill">Detail</span>
+    </div>
+  </div>
+</a>''')
+    if not cards:
+        return ''
+    subtitle_html = f'<p class="text-secondary mb-3">{escape(subtitle)}</p>' if subtitle else ''
+    return f'''
+<section class="seo-product-section my-4">
+  <h2>{escape(title)}</h2>
+  {subtitle_html}
+  <div class="seo-product-grid">{''.join(cards)}</div>
+</section>
+'''
+
+
+def _category_button(category_slug, label='Zobrazit celou kategorii'):
+    if not category_slug:
+        return '<a class="btn btn-outline-dark rounded-pill" href="/produkty">Zobrazit produkty</a>'
+    return f'<a class="btn btn-outline-dark rounded-pill" href="/k/{escape(category_slug)}">{escape(label)}</a>'
 
 
 def build_product_stats(products):
@@ -219,33 +283,11 @@ def build_product_groups(products):
 
 
 def _render_product_table(products, title='Doporučené modely'):
-    rows = []
-    for product in products[:6]:
-        reason = 'dobrá volba na každodenní nošení'
-        text = _product_text(product)
-        if 'sport' in text or 'běh' in text:
-            reason = 'vhodné pro sportovnější styl a aktivnější nošení'
-        elif 'bíl' in text or 'white' in text:
-            reason = 'čistý vzhled, snadno se kombinuje s outfitem'
-        elif product.original_price and product.original_price > product.price:
-            reason = f'sleva přibližně {product.discount_percent} %, dobrý poměr cena/výkon'
-        rows.append(
-            '<tr>'
-            f'<td>{_product_link(product)}</td>'
-            f'<td>{escape(product.brand or "")}</td>'
-            f'<td>{_format_price(product.price)}</td>'
-            f'<td>{escape(reason)}</td>'
-            '</tr>'
-        )
-    if not rows:
-        return ''
-    return f'''
-<h2>{escape(title)}</h2>
-<div class="table-responsive"><table class="table align-middle">
-<thead><tr><th>Model</th><th>Značka</th><th>Cena</th><th>Proč dává smysl</th></tr></thead>
-<tbody>{''.join(rows)}</tbody>
-</table></div>
-'''
+    return _render_product_cards(
+        products,
+        title=title,
+        subtitle='Klikací jsou celé produktové karty, ne textové odkazy v odstavcích.'
+    )
 
 
 def _faq_html(title, products):
@@ -268,7 +310,7 @@ def _quality_score(products, content):
     if len(products) >= 3: score += 20
     if len(products) >= 8: score += 10
     if len(content) >= 3500: score += 15
-    if '<table' in content: score += 10
+    if 'seo-product-card' in content: score += 10
     if 'Časté otázky' in content: score += 10
     return min(100, score)
 
@@ -281,8 +323,8 @@ def _landing_content(title, rules, products):
     price_sentence = 'Cenové rozpětí se bude odvíjet od aktuální nabídky.'
     if stats['min_price'] is not None and stats['max_price'] is not None:
         price_sentence = f"Aktuálně vybrané modely začínají přibližně na {_format_price(stats['min_price'])} a nejdražší doporučené kusy jsou kolem {_format_price(stats['max_price'])}."
-    featured_links = ', '.join(_product_link(p) for p in groups['featured'][:3]) or 'aktuálně dostupné produkty z nabídky'
-    cheap_links = ', '.join(_product_link(p) for p in groups['cheapest'][:3]) or featured_links
+    featured_models = _product_names(groups['featured'][:3])
+    cheap_models = _product_names(groups['cheapest'][:3])
 
     return f'''
 <p><strong>{escape(title)}</strong> jsou výběrová stránka pro zákazníky, kteří nechtějí procházet celý katalog ručně a chtějí rychle najít modely podle konkrétního záměru. Stránka kombinuje reálné produkty z e-shopu, aktuální ceny, doporučení podle použití a praktický návod, podle čeho vybírat.</p>
@@ -296,7 +338,7 @@ def _landing_content(title, rules, products):
 
 <h2>Jak vybrat {escape(title.lower())}</h2>
 <p>Nejdřív si ujasněte, k čemu mají boty sloužit. Pro každodenní nošení je nejdůležitější pohodlí, měkčí došlap a univerzální vzhled. Pro město se vyplatí volit odolnější podrážku a barvu, která se snadno kombinuje. U levnějších modelů sledujte hlavně poměr ceny, vzhledu a dostupných velikostí.</p>
-<p>{price_sentence} Pokud chcete co nejrychlejší výběr, začněte u těchto modelů: {featured_links}. Pro nejnižší cenu dávají smysl hlavně: {cheap_links}.</p>
+<p>{price_sentence} Pokud chcete co nejrychlejší výběr, začněte u modelů jako {featured_models}. Pro nejnižší cenu dávají smysl hlavně {cheap_models}. Konkrétní proklik najdete níže v produktových kartách.</p>
 
 <h2>Doporučení podle ceny a použití</h2>
 <p>U této stránky je cílem vybrat boty, které dávají smysl nejen podle názvu kategorie, ale i podle reálné nabídky. Proto jsou nahoře produkty se silnější shodou: sedí záměr vyhledávání, cena, popis produktu, značka nebo dostupnost. Níže najdete konkrétní modely a jejich hlavní důvod zařazení.</p>
@@ -321,8 +363,8 @@ def _landing_content(title, rules, products):
 def _blog_content(title, rules, products, category_slug):
     stats = build_product_stats(products)
     groups = build_product_groups(products)
-    intro_products = ', '.join(_product_link(p) for p in groups['featured'][:3]) or 'aktuálně dostupné produkty z nabídky'
-    category_link = f'<a href="/k/{escape(category_slug)}">související kategorii</a>' if category_slug else '<a href="/produkty">produkty</a>'
+    intro_products = _product_names(groups['featured'][:3])
+    category_cta = _category_button(category_slug, 'Zobrazit související kategorii')
     price_sentence = ''
     if stats['min_price'] is not None:
         price_sentence = f" V doporučeném výběru ceny začínají zhruba na {_format_price(stats['min_price'])}."
@@ -331,7 +373,8 @@ def _blog_content(title, rules, products, category_slug):
 <p>Tenhle průvodce řeší praktický výběr podle reálné nabídky e-shopu, ne jen obecné rady. Cílem je rychle poznat, které boty dávají smysl podle ceny, stylu, velikosti a způsobu nošení.{price_sentence}</p>
 
 <h2>Rychlé doporučení</h2>
-<p>Pokud chcete vybrat bez dlouhého porovnávání, začněte tady: {intro_products}. Kompletní výběr najdete v kategorii {category_link}.</p>
+<p>Pokud chcete vybrat bez dlouhého porovnávání, začněte u modelů jako {intro_products}. Konkrétní produkty najdete níže jako karty s obrázkem, cenou a tlačítkem detailu.</p>
+<div class="my-3">{category_cta}</div>
 
 <h2>Podle čeho vybírat</h2>
 <p>U bot na každodenní nošení sledujte hlavně pohodlí, stabilitu podrážky, dostupné velikosti a to, jestli se model hodí k vašemu běžnému oblečení. U levnějších bot je dobré porovnat nejen cenu, ale i popis, materiál a to, jestli produkt odpovídá způsobu nošení.</p>
@@ -351,7 +394,8 @@ def _blog_content(title, rules, products, category_slug):
 </ul>
 
 <h2>Finální doporučení</h2>
-<p>Nejlepší volba je model, který sedí účelu, ceně i velikosti. Pro rychlý výběr přejděte na {category_link}, porovnejte dostupné velikosti a začněte od produktů s nejlepším poměrem cena/vzhled.</p>
+<p>Nejlepší volba je model, který sedí účelu, ceně i velikosti. Pro rychlý výběr otevřete související kategorii, porovnejte dostupné velikosti a začněte od produktů s nejlepším poměrem cena/vzhled.</p>
+<div class="my-3">{category_cta}</div>
 {_faq_html(title, products)}
 '''
 
@@ -396,6 +440,73 @@ def visible_related_categories(current_id=None, limit=8):
     q = q.filter(db.or_(Category.seo_published.is_(True), Category.seo_generated.is_(False)))
     return q.order_by(Category.name.asc()).limit(limit).all()
 
+
+
+def _topic_for_category(category):
+    slug = getattr(category, 'slug', '') or ''
+    for topic in LANDING_TOPICS:
+        if topic.get('slug') == slug:
+            return topic
+    rules = _as_rules(getattr(category, 'seo_product_rules', '') or '')
+    if rules:
+        return rules
+    return {
+        'slug': slug,
+        'title': getattr(category, 'name', '') or slug.replace('-', ' ').title(),
+        'keyword': getattr(category, 'seo_target_keyword', '') or (getattr(category, 'name', '') or slug.replace('-', ' ')).lower(),
+        'terms': [part for part in slug.replace('-', ' ').split() if len(part) > 2],
+    }
+
+
+def _topic_for_blog(post):
+    title = getattr(post, 'title', '') or ''
+    for topic_title, rules, category_slug in BLOG_TOPICS:
+        if topic_title == title:
+            return rules, category_slug
+    keyword = getattr(post, 'target_keyword', '') or title
+    return {'terms': [part for part in keyword.replace('-', ' ').split() if len(part) > 2]}, ''
+
+
+def regenerate_category_content(category):
+    topic = _topic_for_category(category)
+    products = select_products_for_rules(topic, limit=36)
+    title = topic.get('title') or category.name
+    content = _landing_content(title, topic, products)
+    score = _quality_score(products, content)
+    category.description = content
+    category.meta_description = _meta_description_for(title, products)[:320]
+    category.seo_title = category.seo_title or f"{title} | doporučené modely a ceny | BotyZaHubicku.cz"
+    category.seo_target_keyword = topic.get('keyword') or category.seo_target_keyword or title.lower()
+    category.seo_product_rules = json.dumps(topic, ensure_ascii=False)
+    category.seo_quality_score = score
+    category.seo_last_generated_at = datetime.utcnow()
+    category.seo_generated = True
+    return category
+
+
+def regenerate_blog_content(post):
+    rules, category_slug = _topic_for_blog(post)
+    products = select_products_for_rules(rules, limit=12)
+    content = _blog_content(post.title, rules, products, category_slug)
+    score = _quality_score(products, content)
+    post.content = content
+    post.meta_description = _meta_description_for(post.title, products)[:320]
+    post.related_product_ids = json.dumps([p.id for p in products[:8]], ensure_ascii=False)
+    post.quality_score = score
+    post.seo_generated = True
+    return post
+
+
+def regenerate_all_generated_content():
+    result = {'blogs': 0, 'landing_pages': 0}
+    for post in BlogPost.query.filter_by(seo_generated=True).all():
+        regenerate_blog_content(post)
+        result['blogs'] += 1
+    for category in Category.query.filter_by(seo_generated=True).all():
+        regenerate_category_content(category)
+        result['landing_pages'] += 1
+    db.session.commit()
+    return result
 
 def generate_daily_seo_content(blog_count=10, landing_count=10, auto_publish=False):
     created = {'blogs': 0, 'landing_pages': 0, 'skipped_low_quality_publish': 0}

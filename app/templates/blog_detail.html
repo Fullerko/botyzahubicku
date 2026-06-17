@@ -23,6 +23,62 @@
 </script>
 {% endblock %}
 {% block content %}
+
+<style>
+  .seo-content a:not(.btn):not(.seo-product-card) {
+    color: inherit;
+    text-decoration: none;
+    font-weight: inherit;
+    pointer-events: none;
+  }
+  .seo-product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .seo-product-card {
+    display: flex;
+    gap: 12px;
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 18px;
+    padding: 10px;
+    background: #fff;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .seo-product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0,0,0,.08);
+    border-color: rgba(0,0,0,.22);
+  }
+  .seo-product-card__image {
+    width: 92px;
+    min-width: 92px;
+    height: 92px;
+    border-radius: 16px;
+    background: #f6f7f9;
+    overflow: hidden;
+  }
+  .seo-product-card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .seo-product-card__body {
+    min-width: 0;
+    flex: 1;
+  }
+  .seo-product-card__title {
+    display: block;
+    line-height: 1.2;
+    margin: 2px 0 4px;
+  }
+  .seo-product-card__desc {
+    color: #6c757d;
+    font-size: .875rem;
+    line-height: 1.35;
+  }
+</style>
+
 <section class="py-5">
   <div class="container">
     <div class="row g-5">

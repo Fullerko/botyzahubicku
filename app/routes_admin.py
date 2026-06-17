@@ -12,7 +12,7 @@ from .utils import admin_required, save_image, set_setting, setting, unique_slug
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from .emailing_service import contacts_query, enqueue_campaign, ensure_suppression, retry_failed_recipients, send_campaign_batch, send_test_campaign_email, sync_existing_contacts
-from .seo_generator import generate_daily_seo_content
+from .seo_generator import generate_daily_seo_content, regenerate_all_generated_content, regenerate_blog_content, regenerate_category_content
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -1076,6 +1076,14 @@ def seo_dashboard():
     return render_template('admin/seo_dashboard.html', blog_posts=blog_posts, categories=categories)
 
 
+@admin_bp.route('/seo/regenerate-all', methods=['POST'])
+@admin_required
+def seo_regenerate_all():
+    result = regenerate_all_generated_content()
+    flash(f"Přegenerováno do card-only verze: {result.get('blogs', 0)} blogů a {result.get('landing_pages', 0)} landing pages.", 'success')
+    return redirect(url_for('admin.seo_dashboard'))
+
+
 @admin_bp.route('/seo/blog/<int:post_id>/edit', methods=['GET', 'POST'])
 @admin_required
 def seo_blog_edit(post_id):
@@ -1113,6 +1121,9 @@ def seo_blog_action(post_id, action):
         post.status = 'draft'
         post.published_at = None
         flash('Blog článek byl vrácen do draftu.', 'info')
+    elif action == 'regenerate':
+        regenerate_blog_content(post)
+        flash('Blog článek byl přegenerován do verze s produktovými kartami místo textových odkazů.', 'success')
     elif action == 'delete':
         db.session.delete(post)
         flash('Blog článek byl smazán.', 'info')
@@ -1154,6 +1165,9 @@ def seo_category_action(category_id, action):
     elif action == 'draft':
         category.seo_published = False
         flash('Landing page byla vrácena do draftu.', 'info')
+    elif action == 'regenerate':
+        regenerate_category_content(category)
+        flash('Landing page byla přegenerována do verze s produktovými kartami místo textových odkazů.', 'success')
     elif action == 'delete' and getattr(category, 'seo_generated', False):
         db.session.delete(category)
         flash('Generovaná landing page byla smazána.', 'info')
