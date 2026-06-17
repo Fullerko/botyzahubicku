@@ -4,7 +4,7 @@ import random
 import string
 import qrcode
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify
+from flask import Blueprint, current_app, abort, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
 
 from . import db
@@ -1083,24 +1083,49 @@ def affiliate_portal():
     }
     return render_template('shop/affiliate_portal.html', partner=partner, coupons=coupons, orders=orders, stats=stats)
 
-
 @shop_bp.route('/k/<slug>')
 def category_landing(slug):
+    """Dynamická SEO landing page.
+
+    Produkty, počty, ceny a související kategorie se počítají vždy z aktuální DB.
+    Žádná čísla ani výpis produktů nejsou natvrdo uložené v textu kategorie.
+    """
     category = Category.query.filter_by(slug=slug).first_or_404()
-    if getattr(category, 'seo_generated', False) and not getattr(category, 'seo_published', True):
+
+    if hasattr(category, "seo_published") and not category.seo_published:
         abort(404)
 
-    from .seo_generator import products_for_landing_category, build_product_stats, build_product_groups, visible_related_categories
+    from .seo_generator import (
+        build_product_stats,
+        infer_product_rules_for_category,
+        products_for_landing_category,
+        visible_related_categories,
+    )
+
     products = products_for_landing_category(category, limit=None)
     product_stats = build_product_stats(products)
-    product_groups = build_product_groups(products)
+    rules = infer_product_rules_for_category(category)
     related_categories = visible_related_categories(current_id=category.id, limit=10)
 
+    stats = {
+        "count": product_stats.get("count", len(products)),
+        "stock_count": product_stats.get("in_stock", 0),
+        "in_stock": product_stats.get("in_stock", 0),
+        "price_min": product_stats.get("min_price"),
+        "price_max": product_stats.get("max_price"),
+        "min_price": product_stats.get("min_price"),
+        "max_price": product_stats.get("max_price"),
+        "avg_price": product_stats.get("avg_price"),
+        "average_price": product_stats.get("avg_price"),
+        "brands": product_stats.get("brands", []),
+    }
+
     return render_template(
-        'category_landing.html',
+        "category_landing.html",
         category=category,
         products=products,
-        product_stats=product_stats,
-        product_groups=product_groups,
+        stats=stats,
+        rules=rules,
+        intent=rules,
         related_categories=related_categories,
     )
