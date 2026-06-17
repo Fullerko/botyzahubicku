@@ -1091,7 +1091,7 @@ def category_landing(slug):
         abort(404)
 
     from .seo_generator import products_for_landing_category, build_product_stats, build_product_groups, visible_related_categories
-    products = products_for_landing_category(category, limit=48)
+    products = products_for_landing_category(category, limit=None)
     product_stats = build_product_stats(products)
     product_groups = build_product_groups(products)
     related_categories = visible_related_categories(current_id=category.id, limit=10)

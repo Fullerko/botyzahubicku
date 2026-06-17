@@ -118,7 +118,7 @@
       <div class="col-lg-4">
         <div class="info-card h-100">
           <div class="row g-3 text-center">
-            <div class="col-6"><div class="text-secondary small">Produktů</div><strong class="fs-4">{{ product_stats.count }}</strong></div>
+            <div class="col-6"><div class="text-secondary small">Vybráno</div><strong class="fs-4">{{ product_stats.count }}</strong></div>
             <div class="col-6"><div class="text-secondary small">Skladem</div><strong class="fs-4">{{ product_stats.in_stock }}</strong></div>
             <div class="col-6"><div class="text-secondary small">Cena od</div><strong>{{ '{:,.0f}'.format(product_stats.min_price or 0).replace(',', ' ') if product_stats.min_price else '—' }} Kč</strong></div>
             <div class="col-6"><div class="text-secondary small">Cena do</div><strong>{{ '{:,.0f}'.format(product_stats.max_price or 0).replace(',', ' ') if product_stats.max_price else '—' }} Kč</strong></div>
@@ -143,7 +143,7 @@
     {% endif %}
 
     <div class="section-header mb-3" id="produkty">
-      <div><h2 class="h3 mb-1">Doporučené produkty</h2><p class="text-secondary mb-0">Seřazeno podle shody s kategorií, ceny a dostupnosti.</p></div>
+      <div><h2 class="h3 mb-1">Doporučené produkty</h2><p class="text-secondary mb-0">Aktuální výběr podle názvu stránky, keywordu, ceny, barvy, kategorie a dostupnosti.</p></div>
       <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.products') }}">Všechny produkty</a>
     </div>
 

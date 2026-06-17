@@ -1123,7 +1123,7 @@ def seo_blog_action(post_id, action):
         flash('Blog článek byl vrácen do draftu.', 'info')
     elif action == 'regenerate':
         regenerate_blog_content(post)
-        flash('Blog článek byl přegenerován do verze s produktovými kartami místo textových odkazů.', 'success')
+        flash('Blog článek byl přegenerován podle aktuálních produktových dat.', 'success')
     elif action == 'delete':
         db.session.delete(post)
         flash('Blog článek byl smazán.', 'info')
@@ -1166,7 +1166,7 @@ def seo_category_new():
         if raw_rules and raw_rules != '{}':
             category.seo_product_rules = raw_rules
         else:
-            category.seo_product_rules = json.dumps(infer_product_rules(slug or name, name, category.seo_target_keyword), ensure_ascii=False)
+            category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         category.seo_generated = True
@@ -1192,52 +1192,6 @@ def seo_category_new():
     return render_template('admin/seo_category_form.html', category=category, is_new=True)
 
 
-@admin_bp.route('/seo/category/bile-tenisky/create', methods=['POST'])
-@admin_required
-def seo_category_create_bile_tenisky():
-    rules = {
-        'slug': 'bile-tenisky',
-        'title': 'Bílé tenisky',
-        'keyword': 'bílé tenisky',
-        'colors': ['bíl', 'bil', 'white'],
-        'terms': ['tenisky', 'sneaker'],
-        'intent': 'color',
-    }
-
-    category = Category.query.filter_by(slug='bile-tenisky').first()
-    if not category:
-        category = Category(
-            name='Bílé tenisky',
-            slug='bile-tenisky',
-            description='',
-            meta_description='',
-            seo_title='Bílé tenisky | doporučené modely a ceny | BotyZaHubicku.cz',
-            seo_target_keyword='bílé tenisky',
-            seo_product_rules=json.dumps(rules, ensure_ascii=False),
-            seo_quality_score=0,
-            seo_generated=True,
-            seo_published=True,
-            show_in_menu=True,
-        )
-        db.session.add(category)
-        db.session.flush()
-    else:
-        category.name = 'Bílé tenisky'
-        category.seo_title = category.seo_title or 'Bílé tenisky | doporučené modely a ceny | BotyZaHubicku.cz'
-        category.seo_target_keyword = category.seo_target_keyword or 'bílé tenisky'
-        category.seo_product_rules = json.dumps(rules, ensure_ascii=False)
-        category.seo_generated = True
-        category.seo_published = True
-        category.show_in_menu = True
-
-    regenerate_category_content(category)
-    category.seo_published = True
-    category.show_in_menu = True
-    db.session.commit()
-
-    flash('Landing page /k/bile-tenisky byla vytvořena a publikována.', 'success')
-    return redirect(url_for('admin.seo_category_edit', category_id=category.id))
-
 
 @admin_bp.route('/seo/category/<int:category_id>/edit', methods=['GET', 'POST'])
 @admin_required
@@ -1253,10 +1207,13 @@ def seo_category_edit(category_id):
         if raw_rules and raw_rules != '{}':
             category.seo_product_rules = raw_rules
         else:
-            category.seo_product_rules = json.dumps(infer_product_rules(slug or name, name, category.seo_target_keyword), ensure_ascii=False)
+            category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         action = request.form.get('action', 'save')
+        if action == 'regenerate_content':
+            category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
+            regenerate_category_content(category)
         if action == 'publish':
             category.seo_published = True
         elif action == 'draft':
@@ -1278,9 +1235,9 @@ def seo_category_action(category_id, action):
         category.seo_published = False
         flash('Landing page byla vrácena do draftu.', 'info')
     elif action == 'regenerate':
-        category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword), ensure_ascii=False)
+        category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword, category.meta_description), ensure_ascii=False)
         regenerate_category_content(category)
-        flash('Landing page byla přegenerována podle názvu/slug: barva, cena, pohlaví a záměr se použijí jako produktové filtry.', 'success')
+        flash('Landing page byla přegenerována podle názvu, slug, keywordu, popisku a aktuálních produktů.', 'success')
     elif action == 'delete' and getattr(category, 'seo_generated', False):
         db.session.delete(category)
         flash('Generovaná landing page byla smazána.', 'info')

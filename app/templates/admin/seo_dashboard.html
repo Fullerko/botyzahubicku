@@ -23,7 +23,7 @@
 
   <form method="POST" action="{{ url_for('admin.seo_regenerate_all') }}" class="info-card mb-4 border border-warning">
     <h2 class="h4 mb-2">Přegenerovat starší obsah</h2>
-    <p class="text-secondary mb-3">Použij to, pokud chceš přepsat starší automaticky generované články a landing pages do aktuální čistší verze.</p>
+    <p class="text-secondary mb-3">Použij to po změně produktů nebo po úpravě pravidel. Přepočítá výběry, počty, ceny i texty podle aktuálních dat.</p>
     <button class="btn btn-warning rounded-pill">Přegenerovat všechny generované blogy a landing pages</button>
   </form>
 
@@ -46,19 +46,18 @@
     </table></div>
   </div>
 
+
   <div class="info-card mb-4 border border-info">
     <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
       <div>
-        <h2 class="h4 mb-1">Rychlá oprava 404: /k/bile-tenisky</h2>
-        <p class="text-secondary mb-0">Vytvoří nebo aktualizuje landing page Bílé tenisky, vygeneruje obsah podle reálných produktů, publikuje ji a zapne odkaz /k/bile-tenisky.</p>
+        <h2 class="h4 mb-1">Vytvořit vlastní landing page</h2>
+        <p class="text-secondary mb-0">Zadej název typu „Zimní boty“, „Bílé tenisky“, „Levné boty do 499 Kč“ nebo „Dámské sportovní tenisky“. Systém z názvu, slug, keywordu a popisku odvodí produktový filtr.</p>
       </div>
-      <form method="POST" action="{{ url_for('admin.seo_category_create_bile_tenisky') }}">
-        <button class="btn btn-info rounded-pill">Vytvořit /k/bile-tenisky</button>
-      </form>
+      <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-info rounded-pill">Nová landing page</a>
     </div>
   </div>
 
-  <div class="info-card">
+<div class="info-card">
     <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
       <h2 class="h4 mb-0">Landing pages / kategorie</h2>
       <a href="{{ url_for('admin.seo_category_new') }}" class="btn btn-sm btn-dark rounded-pill">+ Nová landing page</a>

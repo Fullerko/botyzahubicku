@@ -114,17 +114,19 @@ def _product_text(product):
     ]).casefold()
 
 
-def infer_product_rules(slug='', title='', keyword=''):
-    """Vytvoří produktová pravidla z názvu/slug landing page.
 
-    Cíl: /k/bile-tenisky má vybírat bílé produkty, /k/levne-boty boty do 499 Kč,
-    /k/tenisky-do-700-kc produkty do 700 Kč atd. Nevrací jen obecné terms,
-    ale i tvrdé filtry, které se potom použijí pro počty, ceny i produktové karty.
+def infer_product_rules(slug='', title='', keyword='', description=''):
+    """Odvodí přesná pravidla z názvu/slug/keywordu landing page.
+
+    Stránka nesmí při nejasném pravidle vracet celý katalog. Když název říká
+    Zimní, Bílé, Levné, Dámské nebo Tenisky do 500 Kč, stejné pravidlo se
+    použije pro počet produktů, cenu, produktové karty i texty.
     """
     slug = slug or ''
     title = title or ''
     keyword = keyword or ''
-    raw = f'{slug} {title} {keyword}'
+    description = description or ''
+    raw = f'{slug} {title} {keyword} {description}'
     text = _lower(raw.replace('-', ' '))
 
     rules = {
@@ -134,8 +136,15 @@ def infer_product_rules(slug='', title='', keyword=''):
         'gender': '',
         'colors': [],
         'terms': [],
+        'required_terms_any': [],
         'intent': 'category',
     }
+
+    def add_terms(*values):
+        rules['terms'].extend([v for v in values if v])
+
+    def require_any(*values):
+        rules['required_terms_any'].extend([v for v in values if v])
 
     if any(token in text for token in ['damsk', 'zenske', 'zeny', 'pro zeny']):
         rules['gender'] = 'damske'
@@ -153,7 +162,7 @@ def infer_product_rules(slug='', title='', keyword=''):
         (['cerven', 'red'], ['červen', 'cerven', 'red']),
         (['sede', 'seda', 'sed', 'grey', 'gray'], ['šed', 'sed', 'grey', 'gray']),
         (['hned', 'brown'], ['hněd', 'hned', 'brown']),
-        (['zelene', 'zelena', 'zelen', 'green'], ['zelen', 'green']),
+        (['zelen', 'green'], ['zelen', 'green']),
     ]
     for triggers, values in color_map:
         if any(trigger in text for trigger in triggers):
@@ -161,41 +170,59 @@ def infer_product_rules(slug='', title='', keyword=''):
             rules['intent'] = 'color'
             break
 
-    price_match = re.search(r'(?:do|pod)\s*(\d{3,4})', text) or re.search(r'(\d{3,4})\s*kc', text)
+    price_match = re.search(r'(?:do|pod)\s*(\d{3,5})', text) or re.search(r'(\d{3,5})\s*kc', text)
     if price_match:
         try:
             rules['max_price'] = int(price_match.group(1))
             rules['intent'] = 'price'
         except Exception:
             pass
-    elif any(token in text for token in ['levn', 'nejlevn', 'vyhodn']):
+    elif any(token in text for token in ['levn', 'nejlevn', 'vyhodn', 'budget']):
         rules['max_price'] = 499
         rules['intent'] = 'cheap'
 
     if any(token in text for token in ['tenisk', 'sneaker']):
-        rules['terms'].extend(['tenisky', 'teniska', 'sneaker'])
+        add_terms('tenisky', 'teniska', 'sneaker')
+        require_any('tenisk', 'sneaker')
     elif any(token in text for token in ['bot', 'obuv']):
-        rules['terms'].extend(['boty', 'obuv'])
+        add_terms('boty', 'obuv')
 
-    if any(token in text for token in ['sport', 'beh', 'bezeck']):
-        rules['terms'].extend(['sport', 'běh', 'beh', 'fitness'])
-        rules['intent'] = 'sport'
     if any(token in text for token in ['kotnik', 'kotnikove']):
-        rules['terms'].extend(['kotník', 'kotnik', 'kotníkové', 'kotnikove'])
+        add_terms('kotník', 'kotnik', 'kotníkové', 'kotnikove')
+        require_any('kotnik', 'kotník', 'kotnikove', 'kotníkové')
+        rules['intent'] = 'ankle'
+
     if any(token in text for token in ['sandal', 'sandaly']):
-        rules['terms'].extend(['sandály', 'sandaly', 'sandal'])
-    if any(token in text for token in ['pohodl', 'komfort']):
-        rules['terms'].extend(['pohodl', 'komfort', 'měkk', 'mekk'])
+        add_terms('sandály', 'sandaly', 'sandal')
+        require_any('sandal', 'sandaly', 'sandály')
+        rules['intent'] = 'sandals'
+
+    if any(token in text for token in ['zimn', 'winter', 'zateplen', 'snih', 'sníh']):
+        add_terms('zimní', 'zimni', 'winter', 'zateplen', 'sníh', 'snih')
+        require_any('zimn', 'winter', 'zateplen', 'snih', 'sníh')
+        rules['intent'] = 'winter'
+
+    if any(token in text for token in ['letni', 'leto', 'summer', 'prodyš', 'prodys']):
+        add_terms('letní', 'letni', 'summer', 'lehké', 'lehke', 'prodyš', 'prodys')
+        require_any('letni', 'letní', 'leto', 'summer', 'prodys', 'prodyš')
+        rules['intent'] = 'summer'
+
+    if any(token in text for token in ['sport', 'beh', 'bezeck', 'fitness', 'running']):
+        add_terms('sport', 'běh', 'beh', 'běžecké', 'bezecke', 'fitness', 'running')
+        require_any('sport', 'běh', 'beh', 'bezeck', 'běžeck', 'fitness', 'running')
+        rules['intent'] = 'sport'
+
+    if any(token in text for token in ['pohodl', 'komfort', 'mekk', 'měkk']):
+        add_terms('pohodl', 'komfort', 'měkk', 'mekk')
+        require_any('pohodl', 'komfort', 'měkk', 'mekk')
         rules['intent'] = 'comfort'
-    if any(token in text for token in ['letni', 'leto']):
-        rules['terms'].extend(['letní', 'letni', 'lehké', 'lehke', 'prodyš'])
-        rules['intent'] = 'season'
-    if any(token in text for token in ['mesto', 'mestsk', 'urban']):
-        rules['terms'].extend(['město', 'mesto', 'urban', 'street'])
+
+    if any(token in text for token in ['mesto', 'mestsk', 'město', 'urban', 'street']):
+        add_terms('město', 'mesto', 'městské', 'mestske', 'urban', 'street')
+        require_any('město', 'mesto', 'urban', 'street')
         rules['intent'] = 'daily'
 
-    # deduplikace se zachováním pořadí
-    for key in ['colors', 'terms']:
+    for key in ['colors', 'terms', 'required_terms_any']:
         seen = set()
         clean = []
         for item in rules.get(key) or []:
@@ -213,6 +240,7 @@ def infer_product_rules_for_category(category):
         slug=getattr(category, 'slug', '') or '',
         title=getattr(category, 'name', '') or '',
         keyword=getattr(category, 'seo_target_keyword', '') or '',
+        description=(getattr(category, 'meta_description', '') or ''),
     )
 
 
@@ -245,12 +273,22 @@ def _product_passes_hard_filters(product, rules):
     if colors and not _contains_any(text, colors):
         return False
 
+    required = rules.get('required_terms_any') or []
+    if required and not _contains_any(text, required):
+        return False
+
     return True
 
 
 def _has_hard_filters(rules):
     rules = _as_rules(rules)
-    return bool(rules.get('gender') or rules.get('colors') or rules.get('max_price') is not None or rules.get('min_price') is not None)
+    return bool(
+        rules.get('gender')
+        or rules.get('colors')
+        or rules.get('max_price') is not None
+        or rules.get('min_price') is not None
+        or rules.get('required_terms_any')
+    )
 
 
 def _term_match_count(product, rules):
@@ -271,81 +309,108 @@ def _score_product(product, rules):
 
     if rules.get('max_price') is not None:
         max_price = float(rules.get('max_price'))
-        score += max(0, 35 - int((_price(product) / max(max_price, 1)) * 10)) if _price(product) <= max_price else -50
+        score += 30 if _price(product) <= max_price else -100
     if rules.get('min_price') is not None:
-        score += 15 if _price(product) >= float(rules.get('min_price')) else -25
+        score += 15 if _price(product) >= float(rules.get('min_price')) else -50
 
     for color in rules.get('colors') or []:
         if _lower(color) in text:
-            score += 35
+            score += 40
             break
 
-    term_hits = _term_match_count(product, rules)
-    score += term_hits * 12
+    if rules.get('required_terms_any') and _contains_any(text, rules.get('required_terms_any')):
+        score += 45
+
+    score += _term_match_count(product, rules) * 10
 
     if getattr(product, 'featured', False):
-        score += 8
+        score += 6
     if product.stock and product.stock > 0:
         score += 8
     if product.original_price and product.original_price > product.price:
-        score += 5
+        score += 4
     return score
+
 
 def _active_products():
     return Product.query.filter_by(active=True).order_by(Product.created_at.desc()).all()
 
 
-def select_products_for_rules(rules, limit=24):
-    rules = _as_rules(rules)
-    products = _active_products()
+def _unique_products(products):
+    seen = set()
+    result = []
+    for product in products or []:
+        if not product or product.id in seen:
+            continue
+        seen.add(product.id)
+        result.append(product)
+    return result
 
-    # Tvrdé filtry: barva, pohlaví a cena musí sedět.
-    # Díky tomu /k/bile-tenisky nevrátí celý katalog jen proto, že každý produkt obsahuje slovo tenisky.
-    hard_filtered = [p for p in products if _product_passes_hard_filters(p, rules)]
+
+def _limit_products(products, limit):
+    products = list(products or [])
+    if limit is None:
+        return products
+    return products[:int(limit)]
+
+
+def _assigned_products_for_category(category):
+    if not category or not getattr(category, 'id', None):
+        return []
+    return Product.query.filter(
+        Product.active.is_(True),
+        db.or_(
+            Product.category_id == category.id,
+            Product.categories.any(Category.id == category.id)
+        )
+    ).order_by(Product.created_at.desc()).all()
+
+
+def select_products_for_rules(rules, limit=24, base_products=None):
+    rules = _as_rules(rules)
+    products = list(base_products) if base_products is not None else _active_products()
 
     if _has_hard_filters(rules):
-        candidates = hard_filtered
+        candidates = [p for p in products if _product_passes_hard_filters(p, rules)]
     else:
-        candidates = products
+        candidates = [p for p in products if _term_match_count(p, rules) > 0]
 
     scored = [(p, _score_product(p, rules)) for p in candidates]
     scored.sort(key=lambda item: (item[1], item[0].stock or 0, item[0].created_at or datetime.utcnow()), reverse=True)
 
     if _has_hard_filters(rules):
-        # U stránek s tvrdým filtrem vrať jen skutečné shody. Když metadata nestačí, vrať 0, ne celý katalog.
-        return [p for p, score in scored if score >= 0][:limit]
+        selected = [p for p, score in scored if score >= 0]
+    else:
+        selected = [p for p, score in scored if score > 0]
 
-    selected = [p for p, score in scored if score > 0]
-    if len(selected) < 3:
-        selected = [p for p, _score in scored]
-    return selected[:limit]
+    return _limit_products(selected, limit)
 
 
 def products_for_landing_category(category, limit=48):
     stored_rules = _as_rules(getattr(category, 'seo_product_rules', '') or '')
     inferred_rules = infer_product_rules_for_category(category)
+    stored_has_filters = stored_rules and (
+        stored_rules.get('colors')
+        or stored_rules.get('gender')
+        or stored_rules.get('max_price') is not None
+        or stored_rules.get('min_price') is not None
+        or stored_rules.get('required_terms_any')
+        or stored_rules.get('terms')
+    )
+    rules = stored_rules if stored_has_filters else inferred_rules
 
-    # Pokud je ve DB prázdné {} nebo jen obecný záznam, použij pravidla z názvu/slug.
-    rules = stored_rules if (stored_rules and (stored_rules.get('colors') or stored_rules.get('gender') or stored_rules.get('max_price') is not None or stored_rules.get('terms'))) else inferred_rules
+    assigned = _assigned_products_for_category(category)
+    rule_matches = select_products_for_rules(rules, limit=None)
 
-    products = select_products_for_rules(rules, limit=limit)
-    if products:
-        return products
+    if _has_hard_filters(rules):
+        products = rule_matches
+        if assigned:
+            products = _unique_products([p for p in assigned if _product_passes_hard_filters(p, rules)] + products)
+    else:
+        products = _unique_products(assigned + rule_matches)
 
-    # Fallback na skutečně přiřazenou kategorii pouze pro obecné kategorie bez tvrdých filtrů.
-    # Pro /k/bile-tenisky nebo /k/levne-boty nechceme ukázat celý katalog, pokud neexistují odpovídající metadata.
-    if not _has_hard_filters(rules):
-        q = Product.query.filter_by(active=True)
-        products = q.filter(
-            db.or_(
-                Product.category_id == category.id,
-                Product.categories.any(Category.id == category.id)
-            )
-        ).order_by(Product.created_at.desc()).limit(limit).all()
-        if products:
-            return products
-
-    return []
+    products.sort(key=lambda p: (_score_product(p, rules), p.stock or 0, p.created_at or datetime.utcnow()), reverse=True)
+    return _limit_products(products, limit)
 
 
 def _format_price(value):
@@ -489,79 +554,72 @@ def _faq_html(title, products):
 '''
 
 
+
 def _quality_score(products, content):
     score = 35
-    if len(products) >= 3: score += 20
-    if len(products) >= 8: score += 10
-    if len(content) >= 3500: score += 15
-    if 'seo-product-card' in content: score += 10
-    if 'Časté otázky' in content: score += 10
+    if len(products) >= 2:
+        score += 15
+    if len(products) >= 5:
+        score += 15
+    if len(content) >= 2200:
+        score += 15
+    if 'Časté otázky' in content:
+        score += 10
+    if 'Jak vybrat' in content:
+        score += 10
     return min(100, score)
 
 
 def _landing_content(title, rules, products):
     stats = build_product_stats(products)
-    groups = build_product_groups(products)
-    count = stats['count']
-    brands = ', '.join(stats['brands'][:6]) if stats['brands'] else 'různé dostupné značky'
-    price_sentence = 'Cenové rozpětí se bude odvíjet od aktuální nabídky.'
+    brands = ', '.join(stats['brands'][:5]) if stats['brands'] else 'aktuální dostupné značky'
+    price_sentence = 'Cenu vždy porovnejte u konkrétního modelu podle dostupné velikosti a skladovosti.'
     if stats['min_price'] is not None and stats['max_price'] is not None:
-        price_sentence = f"Aktuálně vybrané modely začínají přibližně na {_format_price(stats['min_price'])} a nejdražší doporučené kusy jsou kolem {_format_price(stats['max_price'])}."
-    featured_models = _product_names(groups['featured'][:3])
-    cheap_models = _product_names(groups['cheapest'][:3])
+        price_sentence = f"V aktuálním výběru se ceny pohybují přibližně od {_format_price(stats['min_price'])} do {_format_price(stats['max_price'])}."
 
     return f'''
-<p><strong>{escape(title)}</strong> jsou určené pro zákazníky, kteří chtějí rychle najít vhodné modely podle konkrétního záměru, ceny a dostupnosti. Níže najdete aktuální výběr produktů, doporučení podle použití a praktický návod, podle čeho vybírat.</p>
-
-<div class="row g-3 my-4">
-  <div class="col-md-3"><div class="border rounded-4 p-3 h-100"><div class="text-secondary small">Vybrané produkty</div><strong class="fs-4">{count}</strong></div></div>
-  <div class="col-md-3"><div class="border rounded-4 p-3 h-100"><div class="text-secondary small">Od ceny</div><strong class="fs-4">{_format_price(stats['min_price']) if stats['min_price'] is not None else '—'}</strong></div></div>
-  <div class="col-md-3"><div class="border rounded-4 p-3 h-100"><div class="text-secondary small">Skladem</div><strong class="fs-4">{stats['in_stock']}</strong></div></div>
-  <div class="col-md-3"><div class="border rounded-4 p-3 h-100"><div class="text-secondary small">Značky</div><strong class="fs-6">{escape(brands)}</strong></div></div>
-</div>
+<p><strong>{escape(title)}</strong> jsou výběrová stránka pro zákazníky, kteří chtějí rychle najít vhodné produkty podle konkrétního záměru. Výběr produktů na této stránce se řídí názvem, keywordem, cenou, barvou, kategorií a dostupnými informacemi u produktů.</p>
 
 <h2>Jak vybrat {escape(title.lower())}</h2>
-<p>Nejdřív si ujasněte, k čemu mají boty sloužit. Pro každodenní nošení je nejdůležitější pohodlí, měkčí došlap a univerzální vzhled. Pro město se vyplatí volit odolnější podrážku a barvu, která se snadno kombinuje. U levnějších modelů sledujte hlavně poměr ceny, vzhledu a dostupných velikostí.</p>
-<p>{price_sentence} Pokud chcete co nejrychlejší výběr, začněte u modelů jako {featured_models}. Pro nejnižší cenu dávají smysl hlavně {cheap_models}. Konkrétní modely najdete níže v přehledném výběru.</p>
+<p>Nejdřív si ujasněte, k čemu mají boty sloužit. Pro každodenní nošení je důležité pohodlí, správná velikost a podrážka. Pro město se hodí univerzální design, který se snadno kombinuje s běžným oblečením. Pokud řešíte cenu, sledujte nejen částku, ale i dostupné velikosti, materiál a popis produktu.</p>
+<p>{price_sentence} Mezi značkami v tomto výběru se mohou objevit například {escape(brands)}. Přesný výběr níže se vždy opírá o aktuální produktová data v katalogu.</p>
 
-<h2>Doporučení podle ceny a použití</h2>
-<p>U této stránky je cílem vybrat boty, které dávají smysl nejen podle názvu kategorie, ale i podle reálné nabídky. Proto jsou nahoře produkty se silnější shodou: odpovídají kategorii, ceně, popisu produktu, značce nebo dostupnosti. Níže najdete konkrétní modely a jejich hlavní důvod zařazení.</p>
-{_render_product_table(groups['featured'], 'Nejlepší výběr v této kategorii')}
-{_render_product_table(groups['cheapest'], 'Nejlevnější relevantní modely')}
+<h2>Podle čeho porovnávat jednotlivé modely</h2>
+<p>Při porovnání podobných modelů se vyplatí začít velikostí a účelem použití. Pokud boty plánujete nosit často, dejte přednost pohodlí a stabilitě. U módnějších modelů je důležité sladění s outfitem, barva a celkový střih. U levnějších produktů doporučujeme ověřit, zda popis odpovídá tomu, na co boty reálně potřebujete.</p>
 
-<h2>Pro koho je tato kategorie nejlepší</h2>
-<p>{escape(title)} se hodí hlavně pro zákazníky, kteří chtějí rychlý výběr bez složitého filtrování. Pokud hledáte boty na běžné nošení, zaměřte se na univerzální modely s jednoduchým designem. Pokud řešíte cenu, seřaďte produkty od nejlevnějších a kontrolujte, jestli je dostupná vaše velikost.</p>
-<p>Prakticky platí: čím častěji budete boty nosit, tím více řešte pohodlí a podrážku. Pokud mají být boty spíš módním doplňkem, může dávat smysl vybírat podle barvy, stylu a kombinovatelnosti s oblečením.</p>
-
-<h2>Rychlé shrnutí výběru</h2>
+<h2>Na co si dát pozor před objednávkou</h2>
 <ul>
-  <li>Pro nejnižší cenu sledujte modely od {_format_price(stats['min_price']) if stats['min_price'] is not None else 'nejnižší dostupné ceny'}.</li>
-  <li>Pro každodenní nošení vybírejte pohodlnější modely s univerzálním vzhledem.</li>
-  <li>U barvy zvažte praktičnost: černé modely se méně špiní, bílé působí čistěji a výrazněji.</li>
-  <li>U online nákupu vždy kontrolujte velikost, sklad a popis materiálu.</li>
+  <li>zkontrolujte dostupnou velikost u konkrétního produktu,</li>
+  <li>porovnejte cenu, materiál, podrážku a účel nošení,</li>
+  <li>u světlých modelů počítejte s častější údržbou,</li>
+  <li>u zimních nebo sportovních modelů řešte hlavně praktičnost a pohodlí.</li>
 </ul>
+
+<h2>Rychlé doporučení</h2>
+<p>Nejlepší volba je produkt, který odpovídá vašemu použití, sedí velikostí a zároveň dává smysl cenou. Níže najdete aktuální produkty, které odpovídají této stránce podle pravidel výběru.</p>
 {_faq_html(title, products)}
 '''
+
 
 
 def _blog_content(title, rules, products, category_slug):
     stats = build_product_stats(products)
     groups = build_product_groups(products)
     intro_products = _product_names(groups['featured'][:3])
-    category_cta = _category_button(category_slug, 'Zobrazit produkty')
+    category_cta = _category_button(category_slug, 'Zobrazit související produkty')
     price_sentence = ''
     if stats['min_price'] is not None:
-        price_sentence = f" V doporučeném výběru ceny začínají zhruba na {_format_price(stats['min_price'])}."
+        price_sentence = f" Ceny doporučených produktů začínají přibližně na {_format_price(stats['min_price'])}."
 
     return f'''
 <p>Tenhle průvodce pomáhá rychle vybrat boty podle ceny, stylu, velikosti a způsobu nošení.{price_sentence}</p>
 
 <h2>Rychlé doporučení</h2>
-<p>Pokud chcete vybrat bez dlouhého porovnávání, začněte u modelů jako {intro_products}. Níže najdete konkrétní modely s aktuální cenou a dostupností.</p>
+<p>Pokud chcete vybrat bez dlouhého porovnávání, začněte u modelů jako {intro_products}. Před objednávkou vždy zkontrolujte dostupnou velikost, popis produktu a cenu.</p>
 <div class="my-3">{category_cta}</div>
 
 <h2>Podle čeho vybírat</h2>
-<p>U bot na každodenní nošení sledujte hlavně pohodlí, stabilitu podrážky, dostupné velikosti a to, jestli se model hodí k vašemu běžnému oblečení. U levnějších bot je dobré porovnat nejen cenu, ale i popis, materiál a to, jestli produkt odpovídá způsobu nošení.</p>
+<p>U bot na každodenní nošení sledujte hlavně pohodlí, stabilitu podrážky, dostupné velikosti a to, jestli se model hodí k vašemu běžnému oblečení. U levnějších bot je dobré porovnat nejen cenu, ale i popis, materiál a způsob nošení.</p>
 <p>Pokud kupujete online, berte velikost vážněji než barvu. Nejčastější chyba je objednání podle zvyku bez kontroly konkrétního střihu. Ideální je změřit chodidlo a nechat malou rezervu.</p>
 
 {_render_product_table(groups['featured'], 'Konkrétní modely, které stojí za zvážení')}
@@ -573,7 +631,7 @@ def _blog_content(title, rules, products, category_slug):
 <ul>
   <li>výběr jen podle fotky bez kontroly velikosti,</li>
   <li>ignorování účelu nošení,</li>
-  <li>nákup bílé obuvi bez plánu na údržbu,</li>
+  <li>nákup světlé obuvi bez plánu na údržbu,</li>
   <li>výběr sportovního modelu tam, kde zákazník reálně chce městské boty.</li>
 </ul>
 
@@ -654,7 +712,7 @@ def _topic_for_blog(post):
 
 def regenerate_category_content(category):
     topic = _topic_for_category(category)
-    products = select_products_for_rules(topic, limit=36)
+    products = products_for_landing_category(category, limit=None)
     title = topic.get('title') or category.name
     content = _landing_content(title, topic, products)
     score = _quality_score(products, content)
@@ -703,7 +761,7 @@ def generate_daily_seo_content(blog_count=10, landing_count=10, auto_publish=Fal
         slug = topic['slug']
         if _already_done_category(slug):
             continue
-        products = select_products_for_rules(topic, limit=36)
+        products = select_products_for_rules(topic, limit=None)
         content = _landing_content(topic['title'], topic, products)
         score = _quality_score(products, content)
         publish_now = bool(auto_publish and score >= min_quality_to_publish and len(products) >= 3)
