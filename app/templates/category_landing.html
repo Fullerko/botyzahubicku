@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} | BotyZaHubicku.cz{% endblock %}
+{% block meta_description %}{{ category.meta_description or (category.description|striptags|truncate(160)) }}{% endblock %}
+{% block canonical_url %}{{ url_for('shop.category_landing', slug=category.slug, _external=True) }}{% endblock %}
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="mb-4">
+      <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Kategorie</span>
+      <h1 class="display-6 fw-bold mt-3">{{ category.name }}</h1>
+      {% if category.meta_description %}<p class="text-muted fs-5">{{ category.meta_description }}</p>{% endif %}
+    </div>
+
+    {% if category.description %}
+    <div class="info-card mb-5 seo-content">
+      {{ category.description | safe }}
+    </div>
+    {% endif %}
+
+    <div class="section-header mb-3">
+      <h2 class="h3 mb-1">Doporučené produkty</h2>
+      <p class="text-secondary mb-0">Vybrané produkty související s touto kategorií.</p>
+    </div>
+
+    {% if products %}
+    <div class="row g-4">
+      {% for product in products %}
+        {% include 'components/product_card.html' %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="info-card text-center py-5">
+      <p class="mb-0 text-secondary">V této kategorii zatím nejsou produkty.</p>
+    </div>
+    {% endif %}
+
+    {% if related_categories %}
+    <div class="info-card mt-5">
+      <h2 class="h4">Související kategorie</h2>
+      <div class="d-flex gap-2 flex-wrap mt-3">
+        {% for related in related_categories %}
+          <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.category_landing', slug=related.slug) }}">{{ related.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

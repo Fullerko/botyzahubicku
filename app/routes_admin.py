@@ -7,11 +7,12 @@ import uuid
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from . import db
-from .models import AffiliatePartner, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, SiteSetting, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from .emailing_service import contacts_query, enqueue_campaign, ensure_suppression, retry_failed_recipients, send_campaign_batch, send_test_campaign_email, sync_existing_contacts
+from .seo_generator import generate_daily_seo_content
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -55,6 +56,7 @@ def dashboard():
         'coupon_codes': Coupon.query.count(),
         'affiliate_balance': sum((p.commission_balance or 0) for p in AffiliatePartner.query.all()),
         'email_contacts': EmailContact.query.filter(EmailContact.deleted_at.is_(None)).count(),
+        'seo_drafts': BlogPost.query.filter_by(status='draft').count() + Category.query.filter_by(seo_generated=True, seo_published=False).count(),
     }
 
     latest_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
@@ -1058,6 +1060,101 @@ def emailing_attachment_delete(attachment_id):
     return redirect(url_for('admin.emailing_campaign_edit', campaign_id=campaign_id))
 
 
+@admin_bp.route('/seo', methods=['GET', 'POST'])
+@admin_required
+def seo_dashboard():
+    if request.method == 'POST':
+        blog_count = max(0, min(50, _int_form('blog_count', 10)))
+        landing_count = max(0, min(50, _int_form('landing_count', 10)))
+        auto_publish = bool(request.form.get('auto_publish'))
+        result = generate_daily_seo_content(blog_count=blog_count, landing_count=landing_count, auto_publish=auto_publish)
+        flash(f"Vygenerováno: {result.get('blogs', 0)} blog draftů a {result.get('landing_pages', 0)} landing pages.", 'success')
+        return redirect(url_for('admin.seo_dashboard'))
+
+    blog_posts = BlogPost.query.order_by(BlogPost.created_at.desc()).limit(100).all()
+    categories = Category.query.order_by(Category.id.desc()).limit(150).all()
+    return render_template('admin/seo_dashboard.html', blog_posts=blog_posts, categories=categories)
+
+
+@admin_bp.route('/seo/blog/<int:post_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def seo_blog_edit(post_id):
+    post = BlogPost.query.get_or_404(post_id)
+    if request.method == 'POST':
+        post.title = request.form.get('title', '').strip() or post.title
+        post.slug = request.form.get('slug', '').strip() or post.slug
+        post.meta_description = request.form.get('meta_description', '').strip()
+        post.content = request.form.get('content', '').strip()
+        action = request.form.get('action', 'save')
+        if action == 'publish':
+            post.status = 'published'
+            post.published_at = post.published_at or datetime.utcnow()
+        elif action == 'draft':
+            post.status = 'draft'
+            post.published_at = None
+        db.session.commit()
+        flash('Blog článek byl uložen.', 'success')
+        return redirect(url_for('admin.seo_dashboard'))
+    return render_template('admin/seo_blog_form.html', post=post)
+
+
+@admin_bp.route('/seo/blog/<int:post_id>/<action>', methods=['POST'])
+@admin_required
+def seo_blog_action(post_id, action):
+    post = BlogPost.query.get_or_404(post_id)
+    if action == 'publish':
+        post.status = 'published'
+        post.published_at = post.published_at or datetime.utcnow()
+        flash('Blog článek byl publikován.', 'success')
+    elif action == 'draft':
+        post.status = 'draft'
+        post.published_at = None
+        flash('Blog článek byl vrácen do draftu.', 'info')
+    elif action == 'delete':
+        db.session.delete(post)
+        flash('Blog článek byl smazán.', 'info')
+    db.session.commit()
+    return redirect(url_for('admin.seo_dashboard'))
+
+
+@admin_bp.route('/seo/category/<int:category_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def seo_category_edit(category_id):
+    category = Category.query.get_or_404(category_id)
+    if request.method == 'POST':
+        category.name = request.form.get('name', '').strip() or category.name
+        category.slug = request.form.get('slug', '').strip() or category.slug
+        category.meta_description = request.form.get('meta_description', '').strip()
+        category.description = request.form.get('description', '').strip()
+        category.show_in_menu = bool(request.form.get('show_in_menu'))
+        action = request.form.get('action', 'save')
+        if action == 'publish':
+            category.seo_published = True
+        elif action == 'draft':
+            category.seo_published = False
+        db.session.commit()
+        flash('Landing page byla uložena.', 'success')
+        return redirect(url_for('admin.seo_dashboard'))
+    return render_template('admin/seo_category_form.html', category=category)
+
+
+@admin_bp.route('/seo/category/<int:category_id>/<action>', methods=['POST'])
+@admin_required
+def seo_category_action(category_id, action):
+    category = Category.query.get_or_404(category_id)
+    if action == 'publish':
+        category.seo_published = True
+        flash('Landing page byla publikována.', 'success')
+    elif action == 'draft':
+        category.seo_published = False
+        flash('Landing page byla vrácena do draftu.', 'info')
+    elif action == 'delete' and getattr(category, 'seo_generated', False):
+        db.session.delete(category)
+        flash('Generovaná landing page byla smazána.', 'info')
+    db.session.commit()
+    return redirect(url_for('admin.seo_dashboard'))
+
+
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @admin_required
 def settings():
@@ -1127,6 +1224,15 @@ def settings():
             ('emailing_batch_size', 'Počet e-mailů v jedné dávce'),
             ('emailing_delay_seconds', 'Pauza mezi e-maily v dávce (sekundy)'),
             ('emailing_max_attachment_mb', 'Maximální velikost jedné přílohy v MB'),
+        ],
+        'SEO automat': [
+            ('seo_generator_enabled', 'Zapnout denní SEO generátor (1 nebo 0)'),
+            ('seo_generator_hour', 'Hodina generování 0–23'),
+            ('seo_generator_minute', 'Minuta generování 0–59'),
+            ('seo_generator_timezone', 'Časové pásmo'),
+            ('seo_generate_blogs_per_day', 'Počet blog draftů denně'),
+            ('seo_generate_categories_per_day', 'Počet landing page draftů denně'),
+            ('seo_auto_publish', 'Automaticky publikovat bez kontroly (1 nebo 0)'),
         ],
     }
 

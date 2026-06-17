@@ -29,8 +29,11 @@ def ensure_schema_columns():
     desired = {
         'category': {
             'image_url': "ALTER TABLE category ADD COLUMN image_url VARCHAR(500) DEFAULT ''",
-            'description': "ALTER TABLE category ADD COLUMN description VARCHAR(255) DEFAULT ''",
+            'description': "ALTER TABLE category ADD COLUMN description TEXT DEFAULT ''",
+            'meta_description': "ALTER TABLE category ADD COLUMN meta_description VARCHAR(320) DEFAULT ''",
             'show_in_menu': "ALTER TABLE category ADD COLUMN show_in_menu BOOLEAN DEFAULT 1",
+            'seo_generated': "ALTER TABLE category ADD COLUMN seo_generated BOOLEAN DEFAULT 0",
+            'seo_published': "ALTER TABLE category ADD COLUMN seo_published BOOLEAN DEFAULT 1",
         },
         'product': {
             'seo_title': "ALTER TABLE product ADD COLUMN seo_title VARCHAR(180) DEFAULT ''",
@@ -238,6 +241,13 @@ def seed_data():
         'emailing_batch_size': '50',
         'emailing_delay_seconds': '0',
         'emailing_max_attachment_mb': '10',
+        'seo_generator_enabled': '0',
+        'seo_generator_hour': '6',
+        'seo_generator_minute': '0',
+        'seo_generator_timezone': 'Europe/Prague',
+        'seo_generate_blogs_per_day': '10',
+        'seo_generate_categories_per_day': '10',
+        'seo_auto_publish': '0',
     }
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():

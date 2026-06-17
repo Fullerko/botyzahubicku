@@ -4,11 +4,11 @@ import random
 import string
 import qrcode
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
 
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest, User
 from .utils import get_cart, setting
 from datetime import datetime
 from werkzeug.security import generate_password_hash
@@ -416,7 +416,9 @@ def order_status(order_number):
 
 @shop_bp.route('/blog')
 def blog():
-    return render_template('blog.html')
+    generated_posts = BlogPost.query.filter_by(status='published').order_by(BlogPost.published_at.desc(), BlogPost.created_at.desc()).all()
+    return render_template('blog.html', generated_posts=generated_posts)
+
     
 @shop_bp.route('/blog/jak-vybrat-tenisky')
 def blog_jak_vybrat():
@@ -472,6 +474,12 @@ def blog9():
 def blog10():
     return render_template('blog/jak-vybrat-velikost-tenisek.html')
     
+@shop_bp.route('/blog/<slug>')
+def blog_dynamic(slug):
+    post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
+    return render_template('blog_detail.html', post=post)
+
+
 @shop_bp.route('/obchodni-podminky')
 def terms():
     return render_template('legal/terms.html')
@@ -1070,3 +1078,32 @@ def affiliate_portal():
         'paid_total': partner.paid_total or 0,
     }
     return render_template('shop/affiliate_portal.html', partner=partner, coupons=coupons, orders=orders, stats=stats)
+
+
+@shop_bp.route('/k/<slug>')
+def category_landing(slug):
+    category = Category.query.filter_by(slug=slug).first_or_404()
+    if getattr(category, 'seo_generated', False) and not getattr(category, 'seo_published', True):
+        abort(404)
+
+    products = Product.query.filter_by(category_id=category.id, active=True).order_by(Product.created_at.desc()).all()
+    if not products:
+        keywords = [part for part in category.slug.replace('-', ' ').split() if len(part) > 2]
+        q = Product.query.filter_by(active=True)
+        filters = []
+        for keyword in keywords:
+            filters.append(Product.name.ilike(f'%{keyword}%'))
+            filters.append(Product.short_description.ilike(f'%{keyword}%'))
+            filters.append(Product.description.ilike(f'%{keyword}%'))
+            filters.append(Product.seo_keywords.ilike(f'%{keyword}%'))
+        if filters:
+            products = q.filter(db.or_(*filters)).order_by(Product.created_at.desc()).limit(24).all()
+    if not products:
+        products = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).limit(24).all()
+
+    related_categories = Category.query.filter(
+        Category.id != category.id,
+        db.or_(Category.seo_published.is_(True), Category.seo_generated.is_(False))
+    ).order_by(Category.name.asc()).limit(8).all()
+
+    return render_template('category_landing.html', category=category, products=products, related_categories=related_categories)

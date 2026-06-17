@@ -75,7 +75,7 @@ Sitemap: {sitemap}
     def sitemap_xml():
         from datetime import datetime
         from xml.sax.saxutils import escape
-        from .models import Category, Product
+        from .models import BlogPost, Category, Product
 
         def xml_url(loc, priority='0.7', changefreq='weekly'):
             return (
@@ -95,7 +95,13 @@ Sitemap: {sitemap}
         try:
             for category in Category.query.order_by(Category.name.asc()).all():
                 if getattr(category, 'slug', None):
-                    urls.append(xml_url(url_for('shop.products', category=category.slug, _external=True), '0.8', 'weekly'))
+                    if getattr(category, 'seo_generated', False) and not getattr(category, 'seo_published', True):
+                        continue
+                    urls.append(xml_url(url_for('shop.category_landing', slug=category.slug, _external=True), '0.85', 'weekly'))
+
+            for post in BlogPost.query.filter_by(status='published').order_by(BlogPost.created_at.desc()).all():
+                if getattr(post, 'slug', None):
+                    urls.append(xml_url(url_for('shop.blog_dynamic', slug=post.slug, _external=True), '0.75', 'weekly'))
 
             for product in Product.query.filter_by(active=True).order_by(Product.id.desc()).all():
                 if getattr(product, 'slug', None):
@@ -141,6 +147,23 @@ Sitemap: {sitemap}
     app.register_blueprint(emailing_bp)
     app.register_blueprint(analytics_bp)
 
+
+    import click
+    from flask.cli import with_appcontext
+
+    @click.command('seo-generate-daily')
+    @click.option('--blogs', default=10, help='Počet blog draftů.')
+    @click.option('--landing-pages', default=10, help='Počet landing page draftů.')
+    @click.option('--publish', is_flag=True, help='Rovnou publikovat místo draftu.')
+    @with_appcontext
+    def seo_generate_daily(blogs, landing_pages, publish):
+        from .seo_generator import generate_daily_seo_content
+        result = generate_daily_seo_content(blog_count=blogs, landing_count=landing_pages, auto_publish=publish)
+        click.echo(f"Created blogs: {result.get('blogs', 0)}")
+        click.echo(f"Created landing pages: {result.get('landing_pages', 0)}")
+
+    app.cli.add_command(seo_generate_daily)
+
     with app.app_context():
         from . import models
         from . import analytics
@@ -154,6 +177,9 @@ Sitemap: {sitemap}
 
         from .emailing_scheduler import start_emailing_scheduler
         start_emailing_scheduler(app)
+
+        from .seo_scheduler import start_seo_generator_scheduler
+        start_seo_generator_scheduler(app)
 
         zimni = Category.query.filter_by(slug='zimni').first()
         if not zimni:

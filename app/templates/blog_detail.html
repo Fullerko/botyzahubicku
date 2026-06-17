@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} | Blog BotyZaHubicku.cz{% endblock %}
+{% block meta_description %}{{ post.meta_description or (post.content|striptags|truncate(160)) }}{% endblock %}
+{% block canonical_url %}{{ url_for('shop.blog_dynamic', slug=post.slug, _external=True) }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width: 920px;">
+    <a href="{{ url_for('shop.blog') }}" class="btn btn-outline-dark rounded-pill mb-4">← Blog</a>
+    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Blog</span>
+    <h1 class="display-6 fw-bold mt-3">{{ post.title }}</h1>
+    {% if post.meta_description %}<p class="text-muted fs-5">{{ post.meta_description }}</p>{% endif %}
+    <div class="info-card mt-4 seo-content">
+      {{ post.content | safe }}
+    </div>
+  </div>
+</section>
+{% endblock %}

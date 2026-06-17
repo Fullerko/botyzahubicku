@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Upravit SEO blog{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <a href="{{ url_for('admin.seo_dashboard') }}" class="btn btn-outline-dark rounded-pill mb-4">← SEO automat</a>
+  <h1 class="h2 mb-4">Upravit blog článek</h1>
+  <form method="POST" class="info-card">
+    <div class="mb-3"><label class="form-label fw-semibold">Title</label><input name="title" value="{{ post.title }}" class="form-control"></div>
+    <div class="mb-3"><label class="form-label fw-semibold">Slug</label><input name="slug" value="{{ post.slug }}" class="form-control"></div>
+    <div class="mb-3"><label class="form-label fw-semibold">Meta description</label><textarea name="meta_description" rows="2" class="form-control">{{ post.meta_description }}</textarea></div>
+    <div class="mb-3"><label class="form-label fw-semibold">Obsah HTML</label><textarea name="content" rows="22" class="form-control">{{ post.content }}</textarea></div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button name="action" value="save" class="btn btn-outline-dark rounded-pill">Uložit</button>
+      <button name="action" value="publish" class="btn btn-dark rounded-pill">Uložit a publikovat</button>
+      <button name="action" value="draft" class="btn btn-outline-secondary rounded-pill">Vrátit do draftu</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

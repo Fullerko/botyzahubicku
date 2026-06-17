@@ -29,9 +29,12 @@ class Category(db.Model):
     name = db.Column(db.String(80), unique=True, nullable=False)
     slug = db.Column(db.String(80), unique=True, nullable=False)
     image_url = db.Column(db.String(500), default='')
-    description = db.Column(db.String(255), default='')
+    description = db.Column(db.Text, default='')
+    meta_description = db.Column(db.String(320), default='')
     products = db.relationship('Product', backref='category', lazy=True)
     show_in_menu = db.Column(db.Boolean, default=True)
+    seo_generated = db.Column(db.Boolean, default=False)
+    seo_published = db.Column(db.Boolean, default=True)
 
 class Settings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,6 +48,23 @@ class Settings(db.Model):
     contact_email = db.Column(db.String(120))
     delivery_text = db.Column(db.String(200), default="Doručení 8–12 dní")
     menu_items = db.Column(db.Text, default="Všechny boty,Běžecké boty,Dámské,Kotníkové boty,Pánské,Sandály")
+
+
+
+class BlogPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(160), unique=True, nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    meta_description = db.Column(db.String(320), default='')
+    content = db.Column(db.Text, default='')
+    status = db.Column(db.String(20), default='draft')  # draft / published
+    seo_generated = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    published_at = db.Column(db.DateTime, nullable=True)
+
+    @property
+    def is_published(self):
+        return self.status == 'published'
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
