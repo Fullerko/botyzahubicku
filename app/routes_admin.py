@@ -12,7 +12,7 @@ from .utils import admin_required, save_image, set_setting, setting, unique_slug
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
 from .emailing_service import contacts_query, enqueue_campaign, ensure_suppression, retry_failed_recipients, send_campaign_batch, send_test_campaign_email, sync_existing_contacts
-from .seo_generator import generate_daily_seo_content, regenerate_all_generated_content, regenerate_blog_content, regenerate_category_content
+from .seo_generator import generate_daily_seo_content, regenerate_all_generated_content, regenerate_blog_content, regenerate_category_content, infer_product_rules
 from datetime import datetime
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
@@ -1162,7 +1162,11 @@ def seo_category_new():
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip() or name.lower()
         category.meta_description = request.form.get('meta_description', '').strip()
-        category.seo_product_rules = request.form.get('seo_product_rules', '').strip() or '{}'
+        raw_rules = request.form.get('seo_product_rules', '').strip()
+        if raw_rules and raw_rules != '{}':
+            category.seo_product_rules = raw_rules
+        else:
+            category.seo_product_rules = json.dumps(infer_product_rules(slug or name, name, category.seo_target_keyword), ensure_ascii=False)
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         category.seo_generated = True
@@ -1245,7 +1249,11 @@ def seo_category_edit(category_id):
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
-        category.seo_product_rules = request.form.get('seo_product_rules', '').strip() or '{}'
+        raw_rules = request.form.get('seo_product_rules', '').strip()
+        if raw_rules and raw_rules != '{}':
+            category.seo_product_rules = raw_rules
+        else:
+            category.seo_product_rules = json.dumps(infer_product_rules(slug or name, name, category.seo_target_keyword), ensure_ascii=False)
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         action = request.form.get('action', 'save')
@@ -1270,8 +1278,9 @@ def seo_category_action(category_id, action):
         category.seo_published = False
         flash('Landing page byla vrácena do draftu.', 'info')
     elif action == 'regenerate':
+        category.seo_product_rules = json.dumps(infer_product_rules(category.slug, category.name, category.seo_target_keyword), ensure_ascii=False)
         regenerate_category_content(category)
-        flash('Landing page byla přegenerována do verze s produktovými kartami místo textových odkazů.', 'success')
+        flash('Landing page byla přegenerována podle názvu/slug: barva, cena, pohlaví a záměr se použijí jako produktové filtry.', 'success')
     elif action == 'delete' and getattr(category, 'seo_generated', False):
         db.session.delete(category)
         flash('Generovaná landing page byla smazána.', 'info')

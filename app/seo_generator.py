@@ -1,4 +1,6 @@
 import json
+import re
+import unicodedata
 from datetime import datetime
 from html import escape
 
@@ -88,8 +90,18 @@ def _as_rules(value):
         return {}
 
 
+def _strip_accents(value):
+    value = str(value or '')
+    return ''.join(ch for ch in unicodedata.normalize('NFKD', value) if not unicodedata.combining(ch))
+
+
 def _lower(value):
-    return (value or '').casefold()
+    return _strip_accents(value).casefold()
+
+
+def _contains_any(text, needles):
+    text = _lower(text)
+    return any(_lower(needle) in text for needle in (needles or []) if str(needle or '').strip())
 
 
 def _product_text(product):
@@ -101,34 +113,174 @@ def _product_text(product):
     ]).casefold()
 
 
+def infer_product_rules(slug='', title='', keyword=''):
+    """Vytvoří produktová pravidla z názvu/slug landing page.
+
+    Cíl: /k/bile-tenisky má vybírat bílé produkty, /k/levne-boty boty do 499 Kč,
+    /k/tenisky-do-700-kc produkty do 700 Kč atd. Nevrací jen obecné terms,
+    ale i tvrdé filtry, které se potom použijí pro počty, ceny i produktové karty.
+    """
+    slug = slug or ''
+    title = title or ''
+    keyword = keyword or ''
+    raw = f'{slug} {title} {keyword}'
+    text = _lower(raw.replace('-', ' '))
+
+    rules = {
+        'slug': slug,
+        'title': title or slug.replace('-', ' ').title(),
+        'keyword': keyword or (title or slug.replace('-', ' ')).lower(),
+        'gender': '',
+        'colors': [],
+        'terms': [],
+        'intent': 'category',
+    }
+
+    if any(token in text for token in ['damsk', 'zenske', 'zeny', 'pro zeny']):
+        rules['gender'] = 'damske'
+    elif any(token in text for token in ['pansk', 'muzi', 'pro muze']):
+        rules['gender'] = 'panske'
+    elif 'unisex' in text:
+        rules['gender'] = 'unisex'
+
+    color_map = [
+        (['bil', 'bile', 'bila', 'bily', 'white'], ['bíl', 'bil', 'white']),
+        (['cern', 'cerne', 'cerna', 'cerny', 'black'], ['čern', 'cern', 'black']),
+        (['bez', 'bezove', 'bezova', 'beige'], ['béž', 'bez', 'beige']),
+        (['modr', 'blue'], ['modr', 'blue']),
+        (['ruzov', 'pink'], ['růž', 'ruz', 'pink']),
+        (['cerven', 'red'], ['červen', 'cerven', 'red']),
+        (['sede', 'seda', 'sed', 'grey', 'gray'], ['šed', 'sed', 'grey', 'gray']),
+        (['hned', 'brown'], ['hněd', 'hned', 'brown']),
+        (['zelene', 'zelena', 'zelen', 'green'], ['zelen', 'green']),
+    ]
+    for triggers, values in color_map:
+        if any(trigger in text for trigger in triggers):
+            rules['colors'].extend(values)
+            rules['intent'] = 'color'
+            break
+
+    price_match = re.search(r'(?:do|pod)\s*(\d{3,4})', text) or re.search(r'(\d{3,4})\s*kc', text)
+    if price_match:
+        try:
+            rules['max_price'] = int(price_match.group(1))
+            rules['intent'] = 'price'
+        except Exception:
+            pass
+    elif any(token in text for token in ['levn', 'nejlevn', 'vyhodn']):
+        rules['max_price'] = 499
+        rules['intent'] = 'cheap'
+
+    if any(token in text for token in ['tenisk', 'sneaker']):
+        rules['terms'].extend(['tenisky', 'teniska', 'sneaker'])
+    elif any(token in text for token in ['bot', 'obuv']):
+        rules['terms'].extend(['boty', 'obuv'])
+
+    if any(token in text for token in ['sport', 'beh', 'bezeck']):
+        rules['terms'].extend(['sport', 'běh', 'beh', 'fitness'])
+        rules['intent'] = 'sport'
+    if any(token in text for token in ['kotnik', 'kotnikove']):
+        rules['terms'].extend(['kotník', 'kotnik', 'kotníkové', 'kotnikove'])
+    if any(token in text for token in ['sandal', 'sandaly']):
+        rules['terms'].extend(['sandály', 'sandaly', 'sandal'])
+    if any(token in text for token in ['pohodl', 'komfort']):
+        rules['terms'].extend(['pohodl', 'komfort', 'měkk', 'mekk'])
+        rules['intent'] = 'comfort'
+    if any(token in text for token in ['letni', 'leto']):
+        rules['terms'].extend(['letní', 'letni', 'lehké', 'lehke', 'prodyš'])
+        rules['intent'] = 'season'
+    if any(token in text for token in ['mesto', 'mestsk', 'urban']):
+        rules['terms'].extend(['město', 'mesto', 'urban', 'street'])
+        rules['intent'] = 'daily'
+
+    # deduplikace se zachováním pořadí
+    for key in ['colors', 'terms']:
+        seen = set()
+        clean = []
+        for item in rules.get(key) or []:
+            norm = _lower(item)
+            if norm and norm not in seen:
+                clean.append(item)
+                seen.add(norm)
+        rules[key] = clean
+
+    return rules
+
+
+def infer_product_rules_for_category(category):
+    return infer_product_rules(
+        slug=getattr(category, 'slug', '') or '',
+        title=getattr(category, 'name', '') or '',
+        keyword=getattr(category, 'seo_target_keyword', '') or '',
+    )
+
+
+def _price(product):
+    try:
+        return float(product.price or 0)
+    except Exception:
+        return 0.0
+
+
+def _product_passes_hard_filters(product, rules):
+    rules = _as_rules(rules)
+    text = _product_text(product)
+
+    gender = _lower(rules.get('gender'))
+    if gender:
+        product_gender = _lower(getattr(product, 'gender', ''))
+        if gender == 'unisex':
+            if product_gender and 'unisex' not in product_gender and gender not in text:
+                return False
+        elif gender not in product_gender and gender not in text:
+            return False
+
+    if rules.get('max_price') is not None and _price(product) > float(rules.get('max_price')):
+        return False
+    if rules.get('min_price') is not None and _price(product) < float(rules.get('min_price')):
+        return False
+
+    colors = rules.get('colors') or []
+    if colors and not _contains_any(text, colors):
+        return False
+
+    return True
+
+
+def _has_hard_filters(rules):
+    rules = _as_rules(rules)
+    return bool(rules.get('gender') or rules.get('colors') or rules.get('max_price') is not None or rules.get('min_price') is not None)
+
+
+def _term_match_count(product, rules):
+    text = _product_text(product)
+    return sum(1 for term in (rules.get('terms') or []) if _lower(term) in text)
+
+
 def _score_product(product, rules):
     score = 0
+    rules = _as_rules(rules)
     text = _product_text(product)
+
     gender = _lower(rules.get('gender'))
     if gender:
         pg = _lower(product.gender)
         if gender in pg or gender in text:
             score += 35
-        elif gender != 'unisex' and pg and 'unisex' not in pg:
-            score -= 15
 
-    max_price = rules.get('max_price')
-    min_price = rules.get('min_price')
-    try:
-        price = float(product.price or 0)
-    except Exception:
-        price = 0
-    if max_price is not None:
-        score += 35 if price <= float(max_price) else -25
-    if min_price is not None:
-        score += 15 if price >= float(min_price) else -10
+    if rules.get('max_price') is not None:
+        max_price = float(rules.get('max_price'))
+        score += max(0, 35 - int((_price(product) / max(max_price, 1)) * 10)) if _price(product) <= max_price else -50
+    if rules.get('min_price') is not None:
+        score += 15 if _price(product) >= float(rules.get('min_price')) else -25
 
     for color in rules.get('colors') or []:
         if _lower(color) in text:
-            score += 25
-    for term in rules.get('terms') or []:
-        if _lower(term) in text:
-            score += 12
+            score += 35
+            break
+
+    term_hits = _term_match_count(product, rules)
+    score += term_hits * 12
 
     if getattr(product, 'featured', False):
         score += 8
@@ -138,7 +290,6 @@ def _score_product(product, rules):
         score += 5
     return score
 
-
 def _active_products():
     return Product.query.filter_by(active=True).order_by(Product.created_at.desc()).all()
 
@@ -146,8 +297,23 @@ def _active_products():
 def select_products_for_rules(rules, limit=24):
     rules = _as_rules(rules)
     products = _active_products()
-    scored = [(p, _score_product(p, rules)) for p in products]
+
+    # Tvrdé filtry: barva, pohlaví a cena musí sedět.
+    # Díky tomu /k/bile-tenisky nevrátí celý katalog jen proto, že každý produkt obsahuje slovo tenisky.
+    hard_filtered = [p for p in products if _product_passes_hard_filters(p, rules)]
+
+    if _has_hard_filters(rules):
+        candidates = hard_filtered
+    else:
+        candidates = products
+
+    scored = [(p, _score_product(p, rules)) for p in candidates]
     scored.sort(key=lambda item: (item[1], item[0].stock or 0, item[0].created_at or datetime.utcnow()), reverse=True)
+
+    if _has_hard_filters(rules):
+        # U stránek s tvrdým filtrem vrať jen skutečné shody. Když metadata nestačí, vrať 0, ne celý katalog.
+        return [p for p, score in scored if score >= 0][:limit]
+
     selected = [p for p, score in scored if score > 0]
     if len(selected) < 3:
         selected = [p for p, _score in scored]
@@ -155,24 +321,30 @@ def select_products_for_rules(rules, limit=24):
 
 
 def products_for_landing_category(category, limit=48):
-    rules = _as_rules(getattr(category, 'seo_product_rules', '') or '')
-    if rules:
-        products = select_products_for_rules(rules, limit=limit)
-        if products:
-            return products
+    stored_rules = _as_rules(getattr(category, 'seo_product_rules', '') or '')
+    inferred_rules = infer_product_rules_for_category(category)
 
-    q = Product.query.filter_by(active=True)
-    products = q.filter(
-        db.or_(
-            Product.category_id == category.id,
-            Product.categories.any(Category.id == category.id)
-        )
-    ).order_by(Product.created_at.desc()).limit(limit).all()
+    # Pokud je ve DB prázdné {} nebo jen obecný záznam, použij pravidla z názvu/slug.
+    rules = stored_rules if (stored_rules and (stored_rules.get('colors') or stored_rules.get('gender') or stored_rules.get('max_price') is not None or stored_rules.get('terms'))) else inferred_rules
+
+    products = select_products_for_rules(rules, limit=limit)
     if products:
         return products
 
-    fallback_rules = {'terms': [part for part in (category.slug or '').replace('-', ' ').split() if len(part) > 2]}
-    return select_products_for_rules(fallback_rules, limit=limit)
+    # Fallback na skutečně přiřazenou kategorii pouze pro obecné kategorie bez tvrdých filtrů.
+    # Pro /k/bile-tenisky nebo /k/levne-boty nechceme ukázat celý katalog, pokud neexistují odpovídající metadata.
+    if not _has_hard_filters(rules):
+        q = Product.query.filter_by(active=True)
+        products = q.filter(
+            db.or_(
+                Product.category_id == category.id,
+                Product.categories.any(Category.id == category.id)
+            )
+        ).order_by(Product.created_at.desc()).limit(limit).all()
+        if products:
+            return products
+
+    return []
 
 
 def _format_price(value):
@@ -447,15 +619,16 @@ def _topic_for_category(category):
     for topic in LANDING_TOPICS:
         if topic.get('slug') == slug:
             return topic
+
     rules = _as_rules(getattr(category, 'seo_product_rules', '') or '')
-    if rules:
+    if rules and (rules.get('colors') or rules.get('gender') or rules.get('max_price') is not None or rules.get('terms')):
+        if not rules.get('slug'):
+            rules['slug'] = slug
+        if not rules.get('title'):
+            rules['title'] = getattr(category, 'name', '') or slug.replace('-', ' ').title()
         return rules
-    return {
-        'slug': slug,
-        'title': getattr(category, 'name', '') or slug.replace('-', ' ').title(),
-        'keyword': getattr(category, 'seo_target_keyword', '') or (getattr(category, 'name', '') or slug.replace('-', ' ')).lower(),
-        'terms': [part for part in slug.replace('-', ' ').split() if len(part) > 2],
-    }
+
+    return infer_product_rules_for_category(category)
 
 
 def _topic_for_blog(post):
