@@ -171,30 +171,6 @@ Sitemap: {sitemap}
 
         homepage_categories = [
             (
-                'Tenisky',
-                'tenisky',
-                'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=80',
-                'Streetwear a pohodlné boty na každý den.',
-                [],
-                [],
-            ),
-            (
-                'Běžecké boty',
-                'bezecke-boty',
-                'https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=1400&q=80',
-                'Lehké modely pro běh i aktivní chůzi.',
-                [],
-                [],
-            ),
-            (
-                'Kotníkové boty',
-                'kotnikove-boty',
-                'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
-                'Vyšší střih, stabilita a výrazný look.',
-                [],
-                [],
-            ),
-            (
                 'Pánské',
                 'panske',
                 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
@@ -211,15 +187,38 @@ Sitemap: {sitemap}
                 [],
             ),
             (
+                'Běžecké boty',
+                'bezecke-boty',
+                'https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=1400&q=80',
+                'Lehké modely pro běh i aktivní chůzi.',
+                [],
+                [],
+            ),
+            (
+                'Tenisky',
+                'tenisky',
+                'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=80',
+                'Streetwear a pohodlné boty na každý den.',
+                [],
+                [],
+            ),
+            (
+                'Kotníkové boty',
+                'kotnikove-boty',
+                'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
+                'Vyšší střih, stabilita a výrazný look.',
+                [],
+                [],
+            ),
+            (
                 'Zimní',
                 'zimni',
                 'zimni.jpg',
                 'Teplé modely do zimy a chladného počasí.',
                 ['zimni-boty', 'zimni-obuv', 'snehule', 'panske-zimni-boty', 'damske-zimni-boty'],
                 ['Zimní boty', 'Zímní boty', 'Zimní obuv', 'Sněhule', 'Pánské zimní boty', 'Dámské zimní boty'],
-            ),
+            )
         ]
-
         existing_tables = set(sqlalchemy_inspect(db.engine).get_table_names())
         has_product_categories_table = 'product_categories' in existing_tables
 
@@ -288,6 +287,22 @@ Sitemap: {sitemap}
                             if category not in product.categories:
                                 product.categories.append(category)
                                 changed = True
+
+        desired_menu_items = 'Všechny:all,Pánské:panske,Dámské:damske,Běžecké:bezecke-boty,Tenisky:tenisky'
+        old_menu_items = {
+            '',
+            'Všechny boty:all,Běžecké:bezecke-boty,Dámské:damske,Pánské:panske,Tenisky:tenisky',
+            'Všechny:all,Běžecké:bezecke-boty,Dámské:damske,Pánské:panske,Tenisky:tenisky',
+            'Všechny boty:all,Běžecké:bezecke-boty,Dámské:damske,Pánské:panske,Tenisky:tenisky,Zimní:zimni',
+            'Všechny:all,Běžecké:bezecke-boty,Dámské:damske,Pánské:panske,Tenisky:tenisky,Zimní:zimni',
+        }
+        menu_setting = SiteSetting.query.filter_by(key='menu_items').first()
+        if not menu_setting:
+            db.session.add(SiteSetting(key='menu_items', value=desired_menu_items))
+            changed = True
+        elif (menu_setting.value or '').strip() in old_menu_items:
+            menu_setting.value = desired_menu_items
+            changed = True
 
         if changed:
             db.session.commit()

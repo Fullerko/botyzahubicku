@@ -108,7 +108,7 @@
 
     <div class="d-none d-xl-flex align-items-center gap-4 mx-4">
 	  {% set current_category = request.args.get('category', '') %}
-	  {% set menu_items = settings.get('menu_items', 'Všechny boty:all,Běžecké:bezecke-boty,Dámské:damske,Pánské:panske,Tenisky:tenisky').split(',') %}
+	  {% set menu_items = settings.get('menu_items', 'Všechny:all,Pánské:panske,Dámské:damske,Běžecké:bezecke-boty,Tenisky:tenisky').split(',') %}
 
 	  {% for item in menu_items %}
 		{% set parts = item.strip().split(':') %}
