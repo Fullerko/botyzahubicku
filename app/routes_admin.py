@@ -1311,6 +1311,60 @@ def seo_category_action(category_id, action):
 
 
 
+
+HOMEPAGE_CATEGORY_IMAGE_FIELDS = {
+    'homepage_category_image_panske',
+    'homepage_category_image_damske',
+    'homepage_category_image_bezecke',
+    'homepage_category_image_tenisky',
+    'homepage_category_image_kotnikove_boty',
+    'homepage_category_image_kotnikove',
+    'homepage_category_image_zimni',
+    'homepage_category_image_zimni_boty',
+}
+HOMEPAGE_CATEGORY_IMAGE_MAX_BYTES = 200 * 1024
+HOMEPAGE_CATEGORY_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
+
+
+def _save_homepage_category_image_upload(field_key, uploaded, preferred_filename=''):
+    """Save homepage category image into /uploads and return stored filename.
+
+    Admin can type e.g. panske.jpg and upload a file. The file is saved under
+    that typed name. If no name is typed, original upload filename is used.
+    """
+    if field_key not in HOMEPAGE_CATEGORY_IMAGE_FIELDS:
+        return None
+    if not uploaded or not uploaded.filename:
+        return None
+
+    typed_name = (preferred_filename or '').strip()
+    filename = secure_filename(typed_name or uploaded.filename)
+    if not filename:
+        flash('Soubor obrázku nemá platný název.', 'warning')
+        return None
+
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in HOMEPAGE_CATEGORY_IMAGE_EXTENSIONS:
+        flash(f'Obrázek {filename} nebyl uložen. Podporované formáty jsou JPG, PNG a WEBP.', 'warning')
+        return None
+
+    try:
+        uploaded.stream.seek(0, os.SEEK_END)
+        size = uploaded.stream.tell()
+        uploaded.stream.seek(0)
+    except Exception:
+        size = 0
+
+    if size > HOMEPAGE_CATEGORY_IMAGE_MAX_BYTES:
+        flash(f'Obrázek {filename} nebyl uložen. Limit je 200 KB.', 'warning')
+        return None
+
+    upload_folder = current_app.config.get('UPLOAD_FOLDER') or os.path.join(current_app.root_path, '..', 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+    uploaded.save(os.path.join(upload_folder, filename))
+    return filename
+
+
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @admin_required
 def settings():
@@ -1394,7 +1448,13 @@ def settings():
     if request.method == 'POST':
         for fields in sections.values():
             for key, _label in fields:
-                set_setting(key, request.form.get(key, ''))
+                value = (request.form.get(key, '') or '').strip()
+                if key in HOMEPAGE_CATEGORY_IMAGE_FIELDS:
+                    uploaded = request.files.get(f'{key}_file')
+                    saved_filename = _save_homepage_category_image_upload(key, uploaded, value)
+                    if saved_filename:
+                        value = saved_filename
+                set_setting(key, value)
         db.session.commit()
         flash('Nastavení bylo uloženo.', 'success')
         return redirect(url_for('admin.settings'))

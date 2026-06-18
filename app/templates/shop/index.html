@@ -56,10 +56,13 @@
   {% set category_image_keys = {
     'panske': 'homepage_category_image_panske',
     'damske': 'homepage_category_image_damske',
+    'bezecke': 'homepage_category_image_bezecke',
     'bezecke-boty': 'homepage_category_image_bezecke',
     'tenisky': 'homepage_category_image_tenisky',
+    'kotnikove': 'homepage_category_image_kotnikove_boty',
     'kotnikove-boty': 'homepage_category_image_kotnikove_boty',
-    'zimni': 'homepage_category_image_zimni'
+    'zimni': 'homepage_category_image_zimni',
+    'zimni-boty': 'homepage_category_image_zimni'
   } %}
 
   <div class="row g-4 mt-1">
@@ -104,16 +107,6 @@
   </div>
 </section>
 <style>
-.category-photo-card--empty {
-  background: #fff;
-}
-.category-photo-card--empty .category-photo-overlay {
-  color: #111827;
-  background: transparent;
-}
-.category-photo-card--empty .category-photo-overlay h5 {
-  background: rgba(17,24,39,.08);
-}
 @media (max-width: 768px) {
   .hero-btn-shift {
     transform: translateX(-35px);

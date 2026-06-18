@@ -9,7 +9,7 @@
     </div>
   </div>
 
-  <form method="post" class="row g-4">
+  <form method="post" enctype="multipart/form-data" class="row g-4">
     {% for section_name, fields in sections.items() %}
       <div class="col-12">
         <div class="info-card">
@@ -21,17 +21,15 @@
                 {% set value = settings.get(key, '') %}
                 {% if key in ['meta_description', 'hero_subtitle', 'categories_subtitle', 'featured_subtitle', 'newest_subtitle', 'delivery_text', 'menu_items'] %}
                   <textarea class="form-control" name="{{ key }}" rows="3">{{ value }}</textarea>
-                {% else %}
-                  <input class="form-control" name="{{ key }}" value="{{ value }}">
-                {% endif %}
-                {% if key[:24] == 'homepage_category_image_' %}
-                  <small class="text-secondary d-block mt-1">Zadej jen název souboru uloženého ve složce <code>/uploads</code>. Když soubor neexistuje, karta na hlavní stránce zůstane bez obrázku.</small>
+                {% elif key.startswith('homepage_category_image_') %}
+                  <input class="form-control" name="{{ key }}" value="{{ value }}" placeholder="např. panske.jpg">
+                  <input class="form-control mt-2" type="file" name="{{ key }}_file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                  <small class="text-secondary d-block mt-1">Klíč: {{ key }}. Soubor se uloží do <code>/uploads</code>. Limit uploadu: 200 KB.</small>
                   {% if value %}
-                    <div class="mt-2 rounded-4 border bg-white p-2" style="max-width: 220px;">
-                      <img src="{{ image_url(value) }}" alt="Náhled {{ label }}" style="width:100%;height:110px;object-fit:cover;border-radius:14px;" onerror="this.parentElement.style.display='none'">
-                    </div>
+                    <img src="{{ image_url(value) }}" alt="{{ label }}" class="mt-2 rounded-3 border" style="width:96px;height:64px;object-fit:cover;background:#fff;" onerror="this.style.display='none';">
                   {% endif %}
                 {% else %}
+                  <input class="form-control" name="{{ key }}" value="{{ value }}">
                   <small class="text-secondary">Klíč: {{ key }}</small>
                 {% endif %}
               </div>
@@ -48,7 +46,7 @@
 
   <div class="info-card mt-4">
     <h5 class="mb-2">Poznámka</h5>
-    <p class="text-secondary mb-0">Menu nahoře zadávej oddělené čárkou. Logo může být buď externí URL, nebo název souboru ze složky <code>app/static/uploads</code>. Bez SMTP se resetovací e-maily ukládají do <code>instance/outbox/emails.log</code>.</p>
+    <p class="text-secondary mb-0">Menu nahoře zadávej oddělené čárkou. Logo může být buď externí URL, nebo název souboru ze složky <code>/uploads</code>. Bez SMTP se resetovací e-maily ukládají do <code>instance/outbox/emails.log</code>.</p>
   </div>
 </section>
 {% endblock %}
