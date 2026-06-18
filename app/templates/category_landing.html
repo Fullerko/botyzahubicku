@@ -4,7 +4,96 @@
 {% set fallback_description = category.name ~ ': aktuální výběr produktů podle ceny, dostupnosti a katalogových dat.' %}
 {% set page_description = category.meta_description or fallback_description %}
 
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}{{ page_title }}
+<script>
+  (function () {
+    function parsePrice(card) {
+      var text = card.innerText || '';
+      var match = text.match(/([0-9\s]+)\s*Kč/);
+      if (!match) return 0;
+      return Number(match[1].replace(/\s/g, '')) || 0;
+    }
+
+    function parseNewest(card) {
+      var raw =
+        card.getAttribute('data-created-at') ||
+        card.getAttribute('data-created') ||
+        card.getAttribute('data-date') ||
+        card.getAttribute('data-added-at') ||
+        '';
+
+      if (raw) {
+        var parsed = Date.parse(raw);
+        if (!isNaN(parsed)) return parsed;
+
+        var numeric = Number(raw);
+        if (!isNaN(numeric)) return numeric;
+      }
+
+      var originalOrder = Number(card.getAttribute('data-original-order'));
+      if (!isNaN(originalOrder)) return -originalOrder;
+
+      return 0;
+    }
+
+    function initLandingProductSort() {
+      var section = document.getElementById('produkty');
+      if (!section) return;
+
+      var grid = section.querySelector('.seo-product-grid');
+      var select = document.getElementById('landingProductSort');
+
+      if (!grid || !select) return;
+
+      select.removeAttribute('name');
+      select.removeAttribute('form');
+      select.removeAttribute('onchange');
+
+      var initialCards = Array.prototype.slice.call(grid.querySelectorAll('.seo-product-card'));
+      initialCards.forEach(function (card, index) {
+        if (!card.hasAttribute('data-original-order')) {
+          card.setAttribute('data-original-order', index);
+        }
+      });
+
+      function sortProducts(value) {
+        var cards = Array.prototype.slice.call(grid.querySelectorAll('.seo-product-card'));
+
+        cards.sort(function (a, b) {
+          if (value === 'price_asc') {
+            return parsePrice(a) - parsePrice(b);
+          }
+
+          if (value === 'price_desc') {
+            return parsePrice(b) - parsePrice(a);
+          }
+
+          return parseNewest(b) - parseNewest(a);
+        });
+
+        cards.forEach(function (card) {
+          grid.appendChild(card);
+        });
+      }
+
+      select.addEventListener('change', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        sortProducts(select.value);
+      });
+
+      sortProducts('newest');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initLandingProductSort);
+    } else {
+      initLandingProductSort();
+    }
+  })();
+</script>
+
+{% endblock %}
 {% block meta_description %}{{ page_description }}{% endblock %}
 {% block canonical_url %}{{ url_for('shop.category_landing', slug=category.slug, _external=True) }}{% endblock %}
 
@@ -311,16 +400,16 @@
         </div>
 
         {% if products %}
-        <form method="get" class="landing-sort-control">
+        <div class="landing-sort-control">
           <div>
             <label for="landingProductSort">Řazení produktů</label>
-            <select id="landingProductSort" name="sort" aria-label="Řazení produktů" onchange="this.form.submit()">
-              <option value="newest" {% if product_sort == 'newest' %}selected{% endif %}>Novinky</option>
-              <option value="price_asc" {% if product_sort == 'price_asc' %}selected{% endif %}>Od nejlevnějších</option>
-              <option value="price_desc" {% if product_sort == 'price_desc' %}selected{% endif %}>Od nejdražších</option>
+            <select id="landingProductSort" aria-label="Řazení produktů">
+              <option value="newest" selected>Novinky</option>
+              <option value="price_asc">Od nejlevnějších</option>
+              <option value="price_desc">Od nejdražších</option>
             </select>
           </div>
-        </form>
+        </div>
         {% endif %}
       </div>
 
