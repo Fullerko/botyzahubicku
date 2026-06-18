@@ -309,8 +309,9 @@
             <p class="text-muted mb-0">Zatím nejsou dostupné odpovídající produkty.</p>
           {% endif %}
         </div>
+
         {% if products %}
-        <div class="landing-sort-control" data-landing-sort>
+        <div class="landing-sort-control">
           <div>
             <label for="landingProductSort">Řazení produktů</label>
             <select id="landingProductSort" aria-label="Řazení produktů">
@@ -320,19 +321,13 @@
             </select>
           </div>
         </div>
-        {% endif %}>Novinky</option>
-              <option value="price_asc" {% if product_sort == 'price_asc' %}selected{% endif %}>Od nejlevnějších</option>
-              <option value="price_desc" {% if product_sort == 'price_desc' %}selected{% endif %}>Od nejdražších</option>
-            </select>
-          </div>
-        </form>
         {% endif %}
       </div>
 
       {% if products %}
       <div class="seo-product-grid">
         {% for product in products %}
-        <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="seo-product-card" data-created-at="{{ product.created_at.isoformat() if product.created_at else '' }}" data-created-ts="{{ product.created_at.timestamp() if product.created_at else 0 }}" data-price="{{ product.price or 0 }}">
+        <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="seo-product-card" data-created-at="{{ product.created_at.isoformat() if product.created_at else '' }}" data-price="{{ product.price or 0 }}">
           <div class="seo-product-card__image">
             <img src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}" loading="lazy">
           </div>
@@ -382,35 +377,34 @@
 
 <script>
   (function () {
-    function asNumber(value) {
-      var number = Number(String(value || '').replace(',', '.'));
+    function parseNumber(value) {
+      var normalized = String(value || '').replace(',', '.').replace(/\s/g, '');
+      var number = Number(normalized);
       return isNaN(number) ? 0 : number;
     }
 
     function getProductPrice(card) {
-      var attr = card.getAttribute('data-price');
-      if (attr !== null && attr !== '') {
-        return asNumber(attr);
+      var value = card.getAttribute('data-price');
+      if (value !== null && value !== '') {
+        return parseNumber(value);
       }
 
       var text = card.textContent || '';
       var match = text.match(/([0-9\s]+)\s*Kč/);
-      if (!match) return 0;
-
-      return asNumber(match[1].replace(/\s/g, ''));
+      return match ? parseNumber(match[1]) : 0;
     }
 
     function getProductCreated(card) {
-      var ts = asNumber(card.getAttribute('data-created-ts'));
-      if (ts) return ts;
+      var value = card.getAttribute('data-created-at') || '';
 
-      var raw = card.getAttribute('data-created-at') || '';
-      if (raw) {
-        var parsed = Date.parse(raw);
-        if (!isNaN(parsed)) return parsed;
+      if (value) {
+        var parsed = Date.parse(value);
+        if (!isNaN(parsed)) {
+          return parsed;
+        }
       }
 
-      var originalOrder = asNumber(card.getAttribute('data-original-order'));
+      var originalOrder = parseNumber(card.getAttribute('data-original-order'));
       return originalOrder ? -originalOrder : 0;
     }
 
@@ -427,7 +421,7 @@
 
       cards.forEach(function (card, index) {
         if (!card.hasAttribute('data-original-order')) {
-          card.setAttribute('data-original-order', index);
+          card.setAttribute('data-original-order', String(index));
         }
       });
 
@@ -451,7 +445,8 @@
         });
       }
 
-      select.addEventListener('change', function () {
+      select.addEventListener('change', function (event) {
+        event.preventDefault();
         sortProducts(select.value);
       });
 
