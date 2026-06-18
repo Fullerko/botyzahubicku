@@ -170,12 +170,6 @@ Sitemap: {sitemap}
 
         homepage_categories = [
             (
-                'Zimní',
-                'zimni',
-                'zimni.jpg',
-                'Teplé modely do zimy a chladného počasí.',
-            ),
-            (
                 'Tenisky',
                 'tenisky',
                 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=80',
@@ -194,16 +188,22 @@ Sitemap: {sitemap}
                 'Vyšší střih, stabilita a výrazný look.',
             ),
             (
+                'Pánské',
+                'panske',
+                'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
+                'Pánské modely do města i na každý den.',
+            ),
+            (
                 'Dámské',
                 'damske',
                 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=1400&q=80',
                 'Vybrané trendy dámské modely.',
             ),
             (
-                'Pánské',
-                'panske',
-                'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1400&q=80',
-                'Pánské modely do města i na každý den.',
+                'Zimní',
+                'zimni',
+                'zimni.jpg',
+                'Teplé modely do zimy a chladného počasí.',
             ),
         ]
 

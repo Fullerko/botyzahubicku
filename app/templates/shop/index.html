@@ -60,7 +60,6 @@
         <img src="{{ url_for('static', filename='images/' + cat.slug + '.jpg') }}" alt="{{ cat.name }}">
         <div class="category-photo-overlay">
           <h5>{{ cat.name.replace(' boty', '').replace(' Boty', '') }}</h5>
-          <p>{{ (cat.meta_description or cat.description or '')|striptags|truncate(110, True, '…') }}</p>
         </div>
       </a>
     </div>

@@ -63,12 +63,12 @@ META_CURRENCY = 'CZK'
 # Only these real shop categories are allowed in the homepage category block
 # and product category filter. SEO landing categories must stay out.
 HOME_CATEGORY_SLUGS = [
-    'zimni',
     'tenisky',
     'bezecke-boty',
     'kotnikove-boty',
-    'damske',
     'panske',
+    'damske',
+    'zimni',
 ]
 
 
