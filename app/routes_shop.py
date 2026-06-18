@@ -60,14 +60,21 @@ def _ensure_affiliate_coupon(partner, preferred_split='5_5'):
 
 META_CURRENCY = 'CZK'
 
+# Only these real shop categories are allowed in the homepage category block
+# and product category filter. SEO landing categories must stay out.
+HOME_CATEGORY_SLUGS = [
+    'zimni',
+    'tenisky',
+    'bezecke-boty',
+    'kotnikove-boty',
+    'damske',
+    'panske',
+]
+
 
 def _visible_shop_categories():
-    """Categories shown in homepage/product filters.
-
-    SEO landing pages stay available on /k/<slug>, but they must not be
-    rendered as homepage category cards or product-filter categories.
-    """
-    q = Category.query.filter(Category.slug != 'sandaly')
+    """Return only real shop categories, never SEO landing pages."""
+    q = Category.query.filter(Category.slug.in_(HOME_CATEGORY_SLUGS))
 
     if hasattr(Category, 'show_in_menu'):
         q = q.filter(db.or_(Category.show_in_menu.is_(True), Category.show_in_menu.is_(None)))
@@ -75,7 +82,9 @@ def _visible_shop_categories():
     if hasattr(Category, 'seo_generated'):
         q = q.filter(db.or_(Category.seo_generated.is_(False), Category.seo_generated.is_(None)))
 
-    return q.order_by(Category.name.asc()).all()
+    categories = q.all()
+    order = {slug: index for index, slug in enumerate(HOME_CATEGORY_SLUGS)}
+    return sorted(categories, key=lambda category: order.get(category.slug, 999))
 
 
 def _money(value):

@@ -125,7 +125,12 @@ Sitemap: {sitemap}
     @app.context_processor
     def inject_globals():
         settings_rows = {s.key: s.value for s in SiteSetting.query.all()}
-        nav_categories = Category.query.order_by(Category.name.asc()).all()
+        nav_categories_query = Category.query
+        if hasattr(Category, 'show_in_menu'):
+            nav_categories_query = nav_categories_query.filter(db.or_(Category.show_in_menu.is_(True), Category.show_in_menu.is_(None)))
+        if hasattr(Category, 'seo_generated'):
+            nav_categories_query = nav_categories_query.filter(db.or_(Category.seo_generated.is_(False), Category.seo_generated.is_(None)))
+        nav_categories = nav_categories_query.order_by(Category.name.asc()).all()
         cart_count = sum(item.get('quantity', 0) for item in get_cart().values())
         return {
             'settings': settings_rows,
@@ -163,16 +168,86 @@ Sitemap: {sitemap}
 
         # SEO auto generator removed: content is managed manually in /admin/seo.
 
-        zimni = Category.query.filter_by(slug='zimni').first()
-        if not zimni:
-            zimni = Category(
-                name='Zimní',
-                slug='zimni',
-                image_url='zimni.jpg',
-                description='Teplé modely do zimy a chladného počasí.',
-                show_in_menu=True
-            )
-            db.session.add(zimni)
+        homepage_categories = [
+            (
+                'Zimní',
+                'zimni',
+                'zimni.jpg',
+                'Teplé modely do zimy a chladného počasí.',
+            ),
+            (
+                'Tenisky',
+                'tenisky',
+                'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=80',
+                'Streetwear a pohodlné boty na každý den.',
+            ),
+            (
+                'Běžecké boty',
+                'bezecke-boty',
+                'https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=1400&q=80',
+                'Lehké modely pro běh i aktivní chůzi.',
+            ),
+            (
+                'Kotníkové boty',
+                'kotnikove-boty',
+                'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
+                'Vyšší střih, stabilita a výrazný look.',
+            ),
+            (
+                'Dámské',
+                'damske',
+                'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=1400&q=80',
+                'Vybrané trendy dámské modely.',
+            ),
+            (
+                'Pánské',
+                'panske',
+                'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1400&q=80',
+                'Pánské modely do města i na každý den.',
+            ),
+        ]
+
+        changed = False
+        for name, slug, fallback_image_url, description in homepage_categories:
+            category = Category.query.filter_by(slug=slug).first()
+            if not category:
+                category = Category.query.filter_by(name=name).first()
+
+            if not category:
+                category = Category(
+                    name=name,
+                    slug=slug,
+                    image_url=fallback_image_url,
+                    description=description,
+                    show_in_menu=True,
+                )
+                db.session.add(category)
+                changed = True
+            else:
+                if category.name != name:
+                    category.name = name
+                    changed = True
+                if category.slug != slug:
+                    category.slug = slug
+                    changed = True
+                if not (category.image_url or '').strip():
+                    category.image_url = fallback_image_url
+                    changed = True
+                if category.description != description:
+                    category.description = description
+                    changed = True
+                if hasattr(category, 'show_in_menu') and category.show_in_menu is not True:
+                    category.show_in_menu = True
+                    changed = True
+
+            if hasattr(category, 'seo_generated') and category.seo_generated is not False:
+                category.seo_generated = False
+                changed = True
+            if hasattr(category, 'seo_published') and category.seo_published is not True:
+                category.seo_published = True
+                changed = True
+
+        if changed:
             db.session.commit()
 
     return app
