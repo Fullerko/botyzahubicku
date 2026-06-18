@@ -51,6 +51,17 @@ def create_app():
 
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
+        # Primárně servírujeme persistentní upload složku (/data/uploads).
+        # Pokud soubor existuje jen v projektové složce /uploads, použije se jako fallback.
+        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if os.path.exists(upload_path):
+            return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+        local_uploads = os.path.join(app.root_path, '..', 'uploads')
+        local_path = os.path.join(local_uploads, filename)
+        if os.path.exists(local_path):
+            return send_from_directory(local_uploads, filename)
+
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
@@ -133,12 +144,25 @@ Sitemap: {sitemap}
             nav_categories_query = nav_categories_query.filter(db.or_(Category.seo_generated.is_(False), Category.seo_generated.is_(None)))
         nav_categories = nav_categories_query.order_by(Category.name.asc()).all()
         cart_count = sum(item.get('quantity', 0) for item in get_cart().values())
+
+        def resolved_image_url(value):
+            value = (value or '').strip()
+            if value.startswith(('http://', 'https://', '/')):
+                return value
+            return url_for('uploaded_file', filename=(value or 'default-product.svg'))
+
+        def category_home_image_url(category):
+            filename = (getattr(category, 'image_url', '') or '').strip()
+            if not filename and getattr(category, 'slug', None):
+                filename = f'{category.slug}.jpg'
+            return resolved_image_url(filename)
+
         return {
             'settings': settings_rows,
             'nav_categories': nav_categories,
             'cart_count': cart_count,
-            'image_url': lambda value: value if (value and value.startswith(('http://', 'https://')))
-            else url_for('uploaded_file', filename=(value or 'default-product.svg')),
+            'image_url': resolved_image_url,
+            'category_home_image_url': category_home_image_url,
         }
 
     from .routes_shop import shop_bp

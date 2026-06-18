@@ -73,6 +73,21 @@ Požadavky:
     </div>
 
     <div class="mb-3">
+      <label class="form-label fw-semibold">Obrázek kategorie na hlavní stránce</label>
+      <input name="image_url" value="{{ category.image_url or '' }}" class="form-control" placeholder="Např. panske.jpg, damske.jpg, bezecke.jpg nebo celá URL">
+      <div class="form-text">
+        Zadej název souboru uloženého v <code>/uploads</code>. Když pole necháš prázdné, hlavní stránka zkusí použít <code>{{ category.slug or 'slug' }}.jpg</code>. Když soubor neexistuje, karta zůstane čistě bílá bez rozbité ikony.
+      </div>
+      {% if category.image_url %}
+        <div class="mt-3 p-3 border rounded-4 bg-light">
+          <div class="small text-secondary mb-2">Aktuální náhled</div>
+          <img src="{{ image_url(category.image_url) }}" alt="{{ category.name }}" style="width:180px;height:120px;object-fit:cover;border-radius:14px;background:#fff;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <div class="small text-secondary" style="display:none;">Soubor se zatím nepodařilo načíst. Zkontroluj, že existuje v <code>/uploads</code>.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
       <label class="form-label fw-semibold">Product rules JSON</label>
       <textarea name="seo_product_rules" rows="6" class="form-control">{{ category.seo_product_rules }}</textarea>
       <div class="form-text">

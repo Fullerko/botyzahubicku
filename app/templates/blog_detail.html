@@ -34,19 +34,36 @@
     pointer-events: none;
   }
 
-  .seo-product-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
+  .seo-content .seo-product-section {
+    margin: 1.5rem 0;
+  }
+
+  .seo-content .seo-product-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)) !important;
+    gap: 14px !important;
+    align-items: stretch;
+    margin: 14px 0 0 !important;
+    padding: 0 !important;
+  }
+
+  .seo-content .seo-product-grid::before,
+  .seo-content .seo-product-grid::after {
+    display: none !important;
+    content: none !important;
   }
 
   .seo-product-card {
-    display: flex;
+    display: flex !important;
     gap: 12px;
     border: 1px solid rgba(0,0,0,.12);
     border-radius: 18px;
     padding: 10px;
     background: #fff;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0;
+    margin: 0 !important;
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
 
@@ -93,7 +110,7 @@
     top: 110px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
     max-height: calc(100vh - 130px);
     overflow-y: auto;
     padding-bottom: 12px;
@@ -108,9 +125,32 @@
     border-radius: 999px;
   }
 
+  .sidebar-product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
   .sidebar-product-link {
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
     background: #fff;
+    min-height: 74px;
+  }
+
+  .sidebar-product-link img {
+    width: 62px;
+    height: 62px;
+    object-fit: cover;
+    border-radius: 14px;
+    flex: 0 0 62px;
+  }
+
+  .sidebar-product-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.2;
   }
 
   .sidebar-product-link:hover {
@@ -166,18 +206,17 @@
           <div class="info-card">
             <h2 class="h4 mb-3">Doporučené produkty z článku</h2>
 
-            <div class="vstack gap-3">
-              {% for product in related_products[:6] %}
-              <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="sidebar-product-link d-flex gap-3 text-decoration-none text-dark border rounded-4 p-2">
+            <div class="sidebar-product-list">
+              {% for product in related_products[:10] %}
+              <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="sidebar-product-link d-flex gap-2 text-decoration-none text-dark border rounded-4 p-2">
                 <img
                   src="{{ image_url(product.image) }}"
                   alt="{{ product.image_alt or product.name }}"
-                  style="width:72px;height:72px;object-fit:cover;border-radius:14px;"
                   loading="lazy"
                 >
-                <span>
-                  <strong class="d-block">{{ product.name }}</strong>
-                  <span class="text-secondary">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</span>
+                <span class="min-w-0">
+                  <strong class="sidebar-product-title">{{ product.name }}</strong>
+                  <span class="text-secondary small">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</span>
                 </span>
               </a>
               {% endfor %}

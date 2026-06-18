@@ -760,27 +760,78 @@ def _already_done_blog(title):
     return BlogPost.query.filter(BlogPost.slug.in_([slug, base])).first() is not None
 
 
-def products_for_blog_post(post, limit=8):
+def _product_slugs_from_html(html):
+    """Return unique /produkt/<slug> links found in manually written blog HTML."""
+    if not html:
+        return []
+
+    slugs = []
+    seen = set()
+    for raw_slug in re.findall(r'href=[\"\']/produkt/([^\"\'#?]+)', html):
+        slug = (raw_slug or '').strip().strip('/')
+        if slug and slug not in seen:
+            seen.add(slug)
+            slugs.append(slug)
+    return slugs
+
+
+def _append_unique_products(target, candidates, seen_ids, limit):
+    for product in candidates or []:
+        if not product or product.id in seen_ids:
+            continue
+        seen_ids.add(product.id)
+        target.append(product)
+        if len(target) >= limit:
+            break
+    return target
+
+
+def products_for_blog_post(post, limit=12):
+    """Products for the blog sidebar.
+
+    Priority:
+    1) manually selected product IDs from admin,
+    2) product links inserted directly in the HTML article,
+    3) fallback products inferred from blog title/keyword/meta.
+
+    This keeps the sidebar aligned with manually written articles even when
+    Related product IDs JSON is left empty.
+    """
+    related = []
+    seen_ids = set()
+
     ids = []
     try:
-        ids = json.loads(post.related_product_ids or '[]')
+        parsed = json.loads(post.related_product_ids or '[]')
+        if isinstance(parsed, list):
+            ids = [int(x) for x in parsed if str(x).strip().isdigit()]
     except Exception:
         ids = []
 
-    products = []
     if ids:
         products = Product.query.filter(Product.id.in_(ids), Product.active.is_(True)).all()
         by_id = {p.id: p for p in products}
-        products = [by_id[i] for i in ids if i in by_id]
-    if products:
-        return products[:limit]
+        ordered = [by_id[i] for i in ids if i in by_id]
+        _append_unique_products(related, ordered, seen_ids, limit)
 
-    rules = infer_product_rules(
-        title=getattr(post, 'title', '') or '',
-        keyword=getattr(post, 'target_keyword', '') or '',
-        description=getattr(post, 'meta_description', '') or '',
-    )
-    return select_products_for_rules(rules, limit=limit)
+    if len(related) < limit:
+        slugs = _product_slugs_from_html(getattr(post, 'content', '') or '')
+        if slugs:
+            products = Product.query.filter(Product.slug.in_(slugs), Product.active.is_(True)).all()
+            by_slug = {p.slug: p for p in products}
+            ordered = [by_slug[slug] for slug in slugs if slug in by_slug]
+            _append_unique_products(related, ordered, seen_ids, limit)
+
+    if len(related) < limit:
+        rules = infer_product_rules(
+            title=getattr(post, 'title', '') or '',
+            keyword=getattr(post, 'target_keyword', '') or '',
+            description=getattr(post, 'meta_description', '') or '',
+        )
+        fallback = select_products_for_rules(rules, limit=limit * 2)
+        _append_unique_products(related, fallback, seen_ids, limit)
+
+    return related[:limit]
 
 
 def _category_intent_score(base_rules, other_category):

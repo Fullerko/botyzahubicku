@@ -1201,6 +1201,7 @@ def seo_category_new():
     category = Category(
         name='',
         slug='',
+        image_url='',
         description='',
         meta_description='',
         seo_title='',
@@ -1224,6 +1225,7 @@ def seo_category_new():
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
+        category.image_url = request.form.get('image_url', '').strip()
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         category.seo_generated = True
@@ -1260,9 +1262,11 @@ def seo_category_edit(category_id):
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
+        category.image_url = request.form.get('image_url', '').strip()
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
-        category.seo_generated = True
+        # U existujících reálných produktových kategorií nesmíme přepnout seo_generated na True,
+        # jinak by zmizely z homepage bloku kategorií a produktového filtru.
 
         raw_rules = request.form.get('seo_product_rules', '').strip()
         if raw_rules and raw_rules != '{}':
