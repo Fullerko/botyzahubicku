@@ -1201,7 +1201,6 @@ def seo_category_new():
     category = Category(
         name='',
         slug='',
-        image_url='',
         description='',
         meta_description='',
         seo_title='',
@@ -1225,7 +1224,6 @@ def seo_category_new():
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
-        category.image_url = request.form.get('image_url', '').strip()
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
         category.seo_generated = True
@@ -1262,11 +1260,9 @@ def seo_category_edit(category_id):
         category.seo_title = request.form.get('seo_title', '').strip()
         category.seo_target_keyword = request.form.get('seo_target_keyword', '').strip()
         category.meta_description = request.form.get('meta_description', '').strip()
-        category.image_url = request.form.get('image_url', '').strip()
         category.description = request.form.get('description', '').strip()
         category.show_in_menu = bool(request.form.get('show_in_menu'))
-        # U existujících reálných produktových kategorií nesmíme přepnout seo_generated na True,
-        # jinak by zmizely z homepage bloku kategorií a produktového filtru.
+        category.seo_generated = True
 
         raw_rules = request.form.get('seo_product_rules', '').strip()
         if raw_rules and raw_rules != '{}':
@@ -1350,6 +1346,14 @@ def settings():
             ('featured_subtitle', 'Podnadpis top produktů'),
             ('newest_title', 'Nadpis novinek'),
             ('newest_subtitle', 'Podnadpis novinek'),
+        ],
+        'Obrázky kategorií na hlavní stránce': [
+            ('homepage_category_image_panske', 'Pánské - soubor v /uploads, např. panske.jpg'),
+            ('homepage_category_image_damske', 'Dámské - soubor v /uploads, např. damske.jpg'),
+            ('homepage_category_image_bezecke', 'Běžecké boty - soubor v /uploads, např. bezecke.jpg'),
+            ('homepage_category_image_tenisky', 'Tenisky - soubor v /uploads, např. tenisky.jpg'),
+            ('homepage_category_image_kotnikove_boty', 'Kotníkové boty - soubor v /uploads, např. kotnikove.jpg'),
+            ('homepage_category_image_zimni', 'Zimní - soubor v /uploads, např. zimni.jpg'),
         ],
         'Kontakt a footer': [
             ('contact_email', 'Kontaktní e-mail'),
