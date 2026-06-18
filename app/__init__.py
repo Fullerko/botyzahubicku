@@ -124,6 +124,240 @@ Sitemap: {sitemap}
         xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(urls) + '\n</urlset>\n'
         return Response(xml, mimetype='application/xml; charset=utf-8')
 
+
+    @app.route('/merchant-feed.xml')
+    def merchant_feed_xml():
+        """Google Merchant Center product feed for free listings.
+
+        URL pro Merchant Center:
+        https://botyzahubicku.cz/merchant-feed.xml
+        """
+        from datetime import datetime
+        from xml.sax.saxutils import escape
+        import html
+        import re
+        from .models import Product
+
+        STORE_NAME = 'BotyZaHubicku.cz'
+        CURRENCY = 'CZK'
+        GOOGLE_PRODUCT_CATEGORY = 'Apparel & Accessories > Shoes'
+
+        def clean_text(value, fallback='', max_length=5000):
+            value = html.unescape(str(value or fallback or ''))
+            value = re.sub(r'<[^>]+>', ' ', value)
+            value = re.sub(r'\s+', ' ', value).strip()
+            if len(value) > max_length:
+                value = value[:max_length - 1].rstrip() + '…'
+            return value
+
+        def absolute_url(value):
+            value = (value or '').strip()
+            if value.startswith(('http://', 'https://')):
+                return value
+            if value.startswith('/'):
+                return url_for('shop.index', _external=True).rstrip('/') + value
+            return url_for('uploaded_file', filename=(value or 'default-product.svg'), _external=True)
+
+        def product_image_url(product):
+            image = (getattr(product, 'image', '') or '').strip()
+            if not image:
+                image = 'default-product.svg'
+            # Pokud by se do hlavního obrázku omylem dostal seznam, vezmeme první hodnotu.
+            image = image.split(',')[0].strip()
+            return absolute_url(image)
+
+        def product_description(product):
+            return clean_text(
+                getattr(product, 'meta_description', '')
+                or getattr(product, 'short_description', '')
+                or getattr(product, 'description', ''),
+                fallback=f'{product.name} - pohodlná obuv z nabídky {STORE_NAME}.',
+                max_length=5000,
+            )
+
+        def product_type(product):
+            category = getattr(product, 'category', None)
+            category_name = clean_text(getattr(category, 'name', ''), fallback='Boty', max_length=120)
+            return f'Boty > {category_name}' if category_name.lower() != 'boty' else 'Boty'
+
+        def normalized_gender(product):
+            raw = f"{getattr(product, 'gender', '')} {getattr(product, 'name', '')}".lower()
+            if any(token in raw for token in ['dáms', 'dams', 'žensk', 'zensk', 'women', 'female']):
+                return 'female'
+            if any(token in raw for token in ['pánsk', 'pansk', 'muž', 'muz', 'men', 'male']):
+                return 'male'
+            return 'unisex'
+
+        def inferred_color(product, variant_color=''):
+            raw_color = clean_text(variant_color or getattr(product, 'colors', ''), max_length=120)
+            if raw_color:
+                return raw_color.split(',')[0].strip()
+
+            name = f"{getattr(product, 'name', '')} {getattr(product, 'slug', '')}".lower()
+            color_map = [
+                (['bíl', 'bile', 'bila', 'white', '-bl-'], 'bílá'),
+                (['čern', 'cern', 'black'], 'černá'),
+                (['šed', 'sed', 'gray', 'grey'], 'šedá'),
+                (['modr', 'blue'], 'modrá'),
+                (['béž', 'bez', 'beige'], 'béžová'),
+                (['hněd', 'hned', 'brown'], 'hnědá'),
+                (['růž', 'ruz', 'pink'], 'růžová'),
+                (['zelen', 'green'], 'zelená'),
+                (['červen', 'cerven', 'red'], 'červená'),
+                (['žlut', 'zlut', 'yellow'], 'žlutá'),
+                (['fial', 'purple'], 'fialová'),
+                (['oranž', 'oranz', 'orange'], 'oranžová'),
+            ]
+            for tokens, color in color_map:
+                if any(token in name for token in tokens):
+                    return color
+            return 'vícebarevná'
+
+        def safe_id_part(value):
+            value = clean_text(value, max_length=80)
+            value = re.sub(r'[^A-Za-z0-9_-]+', '-', value).strip('-')
+            return value or 'default'
+
+        def product_stock(product):
+            try:
+                if getattr(product, 'stock', 0) and int(product.stock) > 0:
+                    return int(product.stock)
+            except Exception:
+                pass
+            try:
+                return sum(max(0, int(row.stock or 0)) for row in getattr(product, 'sizes', []) or [])
+            except Exception:
+                return 0
+
+        def variants_for_product(product):
+            variants = []
+
+            # Priorita: detailní varianty velikost + barva, pokud existují.
+            for variant in getattr(product, 'variants', []) or []:
+                size = clean_text(getattr(variant, 'size', ''), max_length=40)
+                color = clean_text(getattr(variant, 'color', ''), max_length=80)
+                stock = int(getattr(variant, 'stock', 0) or 0)
+                if size or color:
+                    variants.append({
+                        'id_suffix': safe_id_part(f'{size}-{color}' if color else size),
+                        'size': size,
+                        'color': color,
+                        'stock': stock,
+                    })
+
+            if variants:
+                return variants
+
+            # Fallback: původní velikosti produktu.
+            for size_row in getattr(product, 'sizes', []) or []:
+                size = clean_text(getattr(size_row, 'size', ''), max_length=40)
+                stock = int(getattr(size_row, 'stock', 0) or 0)
+                if size:
+                    variants.append({
+                        'id_suffix': safe_id_part(size),
+                        'size': size,
+                        'color': '',
+                        'stock': stock,
+                    })
+
+            if variants:
+                return variants
+
+            # Poslední fallback: jeden item pro produkt bez velikostí.
+            return [{
+                'id_suffix': '',
+                'size': '',
+                'color': '',
+                'stock': product_stock(product),
+            }]
+
+        def xml_tag(name, value):
+            return f'<{name}>{escape(clean_text(value))}</{name}>'
+
+        def render_item(product, variant):
+            product_url = url_for('shop.product_detail', slug=product.slug, _external=True)
+            image_url = product_image_url(product)
+            price = max(float(getattr(product, 'price', 0) or 0), 0)
+            size = variant.get('size', '')
+            color = inferred_color(product, variant.get('color', ''))
+            stock = int(variant.get('stock', 0) or 0)
+            in_stock = stock > 0 or (not size and product_stock(product) > 0)
+            availability = 'in_stock' if in_stock else 'out_of_stock'
+            item_id = f'BZH-{product.id}' + (f'-{variant["id_suffix"]}' if variant.get('id_suffix') else '')
+            title = clean_text(product.name, max_length=150)
+            if size:
+                title = clean_text(f'{title} - velikost {size}', max_length=150)
+
+            parts = [
+                '    <item>',
+                f'      <g:id>{escape(item_id)}</g:id>',
+                f'      <g:item_group_id>BZH-{product.id}</g:item_group_id>',
+                f'      <title>{escape(title)}</title>',
+                f'      <description>{escape(product_description(product))}</description>',
+                f'      <link>{escape(product_url)}</link>',
+                f'      <g:image_link>{escape(image_url)}</g:image_link>',
+                f'      <g:availability>{availability}</g:availability>',
+                f'      <g:price>{price:.2f} {CURRENCY}</g:price>',
+                '      <g:condition>new</g:condition>',
+                f'      <g:brand>{escape(clean_text(getattr(product, "brand", "") or STORE_NAME, max_length=70))}</g:brand>',
+                f'      <g:google_product_category>{escape(GOOGLE_PRODUCT_CATEGORY)}</g:google_product_category>',
+                f'      <g:product_type>{escape(product_type(product))}</g:product_type>',
+                '      <g:identifier_exists>no</g:identifier_exists>',
+                '      <g:adult>no</g:adult>',
+                '      <g:age_group>adult</g:age_group>',
+                f'      <g:gender>{normalized_gender(product)}</g:gender>',
+                f'      <g:color>{escape(color)}</g:color>',
+            ]
+            if size:
+                parts.append(f'      <g:size>{escape(size)}</g:size>')
+            supplier_sku = clean_text(getattr(product, 'supplier_sku', ''), max_length=120)
+            if supplier_sku:
+                parts.append(f'      <g:mpn>{escape(supplier_sku)}</g:mpn>')
+            parts.extend([
+                '      <g:shipping>',
+                '        <g:country>CZ</g:country>',
+                '        <g:service>Doprava zdarma</g:service>',
+                f'        <g:price>0.00 {CURRENCY}</g:price>',
+                '      </g:shipping>',
+                '    </item>',
+            ])
+            return '\n'.join(parts)
+
+        items = []
+        try:
+            products = Product.query.filter_by(active=True).order_by(Product.id.desc()).all()
+            for product in products:
+                if not getattr(product, 'slug', None):
+                    continue
+                if float(getattr(product, 'price', 0) or 0) <= 0:
+                    continue
+                if not product_image_url(product):
+                    continue
+                for variant in variants_for_product(product):
+                    # Do feedu dáváme i vyprodané varianty jako out_of_stock.
+                    # Google tak může stav správně zobrazit; aktivní produkty se neztratí.
+                    items.append(render_item(product, variant))
+        except Exception as exc:
+            items.append(
+                '    <!-- Feed se nepodařilo kompletně vygenerovat: '
+                + escape(clean_text(str(exc), max_length=500))
+                + ' -->'
+            )
+
+        now = datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S +0000')
+        xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n'
+            '  <channel>\n'
+            f'    <title>{escape(STORE_NAME)} produktový feed</title>\n'
+            f'    <link>{escape(url_for("shop.index", _external=True))}</link>\n'
+            f'    <description>Automatický produktový feed pro Google Merchant Center.</description>\n'
+            f'    <lastBuildDate>{now}</lastBuildDate>\n'
+            + '\n'.join(items)
+            + '\n  </channel>\n</rss>\n'
+        )
+        return Response(xml, mimetype='application/xml; charset=utf-8')
+
     db.init_app(app)
     login_manager.init_app(app)
 
