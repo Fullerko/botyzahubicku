@@ -39,6 +39,14 @@ body { background: var(--bg); color: var(--dark); font-family: Inter, system-ui,
   transform: scale(1.0) translateY(0px);
 }
 .category-photo-overlay { position: absolute; inset: auto 0 0 0; padding: 1.4rem; color: #fff; background: linear-gradient(180deg, transparent, rgba(17,24,39,.88)); }
+.category-photo-overlay p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+
 .product-card { overflow: hidden; transition: .2s ease; }
 .product-card:hover, .category-photo-card:hover, .info-card:hover { transform: translateY(-4px); }
 .product-image-wrap {

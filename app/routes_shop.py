@@ -4,11 +4,11 @@ import random
 import string
 import qrcode
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for, jsonify
+from flask import Blueprint, current_app, abort, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
 
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest, User
 from .utils import get_cart, setting
 from datetime import datetime
 from werkzeug.security import generate_password_hash
@@ -59,6 +59,23 @@ def _ensure_affiliate_coupon(partner, preferred_split='5_5'):
 
 
 META_CURRENCY = 'CZK'
+
+
+def _visible_shop_categories():
+    """Categories shown in homepage/product filters.
+
+    SEO landing pages stay available on /k/<slug>, but they must not be
+    rendered as homepage category cards or product-filter categories.
+    """
+    q = Category.query.filter(Category.slug != 'sandaly')
+
+    if hasattr(Category, 'show_in_menu'):
+        q = q.filter(db.or_(Category.show_in_menu.is_(True), Category.show_in_menu.is_(None)))
+
+    if hasattr(Category, 'seo_generated'):
+        q = q.filter(db.or_(Category.seo_generated.is_(False), Category.seo_generated.is_(None)))
+
+    return q.order_by(Category.name.asc()).all()
 
 
 def _money(value):
@@ -416,7 +433,9 @@ def order_status(order_number):
 
 @shop_bp.route('/blog')
 def blog():
-    return render_template('blog.html')
+    generated_posts = BlogPost.query.filter_by(status='published').order_by(BlogPost.published_at.desc(), BlogPost.created_at.desc()).all()
+    return render_template('blog.html', generated_posts=generated_posts)
+
     
 @shop_bp.route('/blog/jak-vybrat-tenisky')
 def blog_jak_vybrat():
@@ -472,6 +491,16 @@ def blog9():
 def blog10():
     return render_template('blog/jak-vybrat-velikost-tenisek.html')
     
+@shop_bp.route('/blog/<slug>')
+def blog_dynamic(slug):
+    post = BlogPost.query.filter_by(slug=slug, status='published').first_or_404()
+    from .seo_generator import products_for_blog_post, visible_related_categories
+    related_products = products_for_blog_post(post, limit=8)
+    related_categories = visible_related_categories(limit=8)
+    return render_template('blog_detail.html', post=post, related_products=related_products, related_categories=related_categories)
+
+
+
 @shop_bp.route('/obchodni-podminky')
 def terms():
     return render_template('legal/terms.html')
@@ -545,7 +574,7 @@ def create_qr_for_order(order):
 def index():
     featured = Product.query.filter_by(active=True, featured=True).limit(8).all()
     newest = Product.query.filter_by(active=True).order_by(Product.created_at.desc()).limit(12).all()
-    categories = Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all()
+    categories = _visible_shop_categories()
     coupons = Coupon.query.filter_by(active=True).order_by(Coupon.created_at.desc()).limit(3).all()
     return render_template('shop/index.html', featured=featured, newest=newest, categories=categories, coupons=coupons)
 
@@ -605,7 +634,7 @@ def products():
     products = q.all()
     brands = _product_filter_brands()
     sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47']
-    categories = Category.query.filter(Category.slug != 'sandaly').order_by(Category.name.asc()).all()
+    categories = _visible_shop_categories()
 
     return render_template(
         'shop/products.html',
@@ -1071,29 +1100,52 @@ def affiliate_portal():
     }
     return render_template('shop/affiliate_portal.html', partner=partner, coupons=coupons, orders=orders, stats=stats)
 
-
 @shop_bp.route('/k/<slug>')
 def category_landing(slug):
+    """Dynamická SEO landing page.
+
+    Produkty, počty, ceny a související kategorie se počítají vždy z aktuální DB.
+    Žádná čísla ani výpis produktů nejsou natvrdo uložené v textu kategorie.
+    """
     category = Category.query.filter_by(slug=slug).first_or_404()
-    products = Product.query.filter_by(category_id=category.id).all()
-    return render_template('category_landing.html', category=category, products=products)
 
-@shop_bp.route('/sitemap.xml')
-def sitemap():
-    products = Product.query.filter_by(active=True).all()
-    categories = Category.query.all()
+    if hasattr(category, "seo_published") and not category.seo_published:
+        abort(404)
 
-    urls = []
+    from .seo_generator import (
+        build_product_stats,
+        infer_product_rules_for_category,
+        products_for_landing_category,
+        visible_related_categories,
+    )
 
-    # homepage
-    urls.append('/')
+    products = products_for_landing_category(category, limit=None)
+    product_stats = build_product_stats(products)
+    rules = infer_product_rules_for_category(category)
+    related_categories = visible_related_categories(current_id=category.id, limit=10)
 
-    # produkty
-    for p in products:
-        urls.append(f"/produkt/{p.slug}")
+    stats = {
+        "count": product_stats.get("count", len(products)),
+        "stock_count": product_stats.get("in_stock", 0),
+        "in_stock": product_stats.get("in_stock", 0),
+        "price_min": product_stats.get("min_price"),
+        "price_max": product_stats.get("max_price"),
+        "min_price": product_stats.get("min_price"),
+        "max_price": product_stats.get("max_price"),
+        "avg_price": product_stats.get("avg_price"),
+        "average_price": product_stats.get("avg_price"),
+        "brands": product_stats.get("brands", []),
+        "cheapest_product": product_stats.get("cheapest_product"),
+        "cheapest_name": product_stats.get("cheapest_name", ""),
+        "cheapest_price": product_stats.get("cheapest_price"),
+    }
 
-    # landing pages (kategorie SEO)
-    for c in categories:
-        urls.append(f"/k/{c.slug}")
-
-    return render_template("sitemap.xml", urls=urls)
+    return render_template(
+        "category_landing.html",
+        category=category,
+        products=products,
+        stats=stats,
+        rules=rules,
+        intent=rules,
+        related_categories=related_categories,
+    )
