@@ -463,14 +463,62 @@ def _limit_products(products, limit):
     return products[:int(limit)]
 
 
-def _assigned_products_for_category(category):
+def _category_alias_ids(category):
+    """Return ids for the requested category and close SEO/shop aliases.
+
+    This keeps landing pages like /k/zimni connected to products that are
+    assigned to a real shop category such as Zimní or Zimní boty, even when
+    the product name itself does not contain the word zimní.
+    """
     if not category or not getattr(category, 'id', None):
+        return []
+
+    ids = {category.id}
+    slug = _lower(getattr(category, 'slug', '') or '')
+    name = _lower(getattr(category, 'name', '') or '')
+
+    alias_slugs = []
+    alias_names = []
+
+    if 'zimn' in slug or 'zimn' in name:
+        alias_slugs.extend([
+            'zimni',
+            'zimni-boty',
+            'zimni-obuv',
+            'snehule',
+            'panske-zimni-boty',
+            'damske-zimni-boty',
+        ])
+        alias_names.extend([
+            'Zimní',
+            'Zimní boty',
+            'Zimní obuv',
+            'Sněhule',
+            'Pánské zimní boty',
+            'Dámské zimní boty',
+        ])
+
+    if alias_slugs or alias_names:
+        matches = Category.query.filter(
+            db.or_(
+                Category.slug.in_(alias_slugs or ['__none__']),
+                Category.name.in_(alias_names or ['__none__'])
+            )
+        ).all()
+        ids.update(c.id for c in matches)
+
+    return list(ids)
+
+
+def _assigned_products_for_category(category):
+    category_ids = _category_alias_ids(category)
+    if not category_ids:
         return []
     return Product.query.filter(
         Product.active.is_(True),
         db.or_(
-            Product.category_id == category.id,
-            Product.categories.any(Category.id == category.id)
+            Product.category_id.in_(category_ids),
+            Product.categories.any(Category.id.in_(category_ids))
         )
     ).order_by(Product.created_at.desc()).all()
 
@@ -505,15 +553,25 @@ def products_for_landing_category(category, limit=48):
     stored_rules = _as_rules(getattr(category, 'seo_product_rules', '') or '')
     rules = stored_rules if _manual_rules_enabled(stored_rules) else inferred_rules
 
+    # Products explicitly assigned to the category are authoritative.
+    # Do not remove them just because their product name/description does not
+    # contain the inferred SEO terms. This is what keeps real category products
+    # visible on pages such as /k/zimni. Rules only add matching products.
     assigned = _assigned_products_for_category(category)
+    assigned_ids = {p.id for p in assigned}
     rule_matches = select_products_for_rules(rules, limit=None)
 
-    if _has_hard_filters(rules):
-        products = _unique_products([p for p in assigned if _product_passes_hard_filters(p, rules)] + rule_matches)
-    else:
-        products = _unique_products(assigned + rule_matches)
-
-    products.sort(key=lambda p: (_score_product(p, rules), p.stock or 0, -_price(p), p.created_at or datetime.utcnow()), reverse=True)
+    products = _unique_products(assigned + rule_matches)
+    products.sort(
+        key=lambda p: (
+            1 if p.id in assigned_ids else 0,
+            _score_product(p, rules),
+            p.stock or 0,
+            -_price(p),
+            p.created_at or datetime.utcnow(),
+        ),
+        reverse=True,
+    )
     return _limit_products(products, limit)
 
 

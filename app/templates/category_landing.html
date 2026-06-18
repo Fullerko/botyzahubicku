@@ -164,6 +164,28 @@
     margin: 4px 0 8px;
   }
 
+  .landing-sort-control label {
+    display: block;
+    color: #6b7280;
+    font-size: .8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+  }
+
+  .landing-sort-control select {
+    min-width: 220px;
+    height: 42px;
+    border: 1px solid rgba(15, 23, 42, .16);
+    border-radius: 999px;
+    background-color: #fff;
+    color: #0f172a;
+    font-size: .925rem;
+    font-weight: 800;
+    padding: 0 36px 0 15px;
+    cursor: pointer;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .05);
+  }
+
   .seo-product-card__desc {
     color: #6c757d;
     font-size: .9rem;
@@ -287,12 +309,25 @@
             <p class="text-muted mb-0">Zatím nejsou dostupné odpovídající produkty.</p>
           {% endif %}
         </div>
+
+        {% if products %}
+        <form method="get" class="landing-sort-control">
+          <div>
+            <label for="landingProductSort">Řazení produktů</label>
+            <select id="landingProductSort" name="sort" aria-label="Řazení produktů" onchange="this.form.submit()">
+              <option value="newest" {% if product_sort == 'newest' %}selected{% endif %}>Novinky</option>
+              <option value="price_asc" {% if product_sort == 'price_asc' %}selected{% endif %}>Od nejlevnějších</option>
+              <option value="price_desc" {% if product_sort == 'price_desc' %}selected{% endif %}>Od nejdražších</option>
+            </select>
+          </div>
+        </form>
+        {% endif %}
       </div>
 
       {% if products %}
       <div class="seo-product-grid">
         {% for product in products %}
-        <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="seo-product-card">
+        <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="seo-product-card" data-created-at="{{ product.created_at.isoformat() if product.created_at else '' }}">
           <div class="seo-product-card__image">
             <img src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}" loading="lazy">
           </div>
