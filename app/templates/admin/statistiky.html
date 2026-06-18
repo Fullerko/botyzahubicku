@@ -3,70 +3,530 @@
 {% block title %}Statistiky webu | Admin{% endblock %}
 
 {% block content %}
-<section class="py-5">
+<style>
+  .ga-shell {
+    background: #f6f7fb;
+    min-height: 100vh;
+  }
+
+  .ga-hero {
+    background: radial-gradient(circle at top left, rgba(33, 37, 41, .08), transparent 34%), #fff;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 28px;
+    box-shadow: 0 18px 60px rgba(15, 23, 42, .07);
+    padding: 26px;
+  }
+
+  .ga-period-nav .btn {
+    font-weight: 800;
+  }
+
+  .ga-card {
+    background: #fff;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 22px;
+    box-shadow: 0 14px 42px rgba(15, 23, 42, .055);
+    height: 100%;
+  }
+
+  .ga-card .card-body {
+    padding: 20px;
+  }
+
+  .ga-kpi-label {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+
+  .ga-kpi-value {
+    color: #0f172a;
+    font-size: 30px;
+    font-weight: 950;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .ga-kpi-note {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 9px;
+  }
+
+  .ga-chart-wrap {
+    height: 330px;
+    position: relative;
+  }
+
+  .ga-chart-wrap-sm {
+    height: 260px;
+    position: relative;
+  }
+
+  .ga-table {
+    font-size: 13px;
+  }
+
+  .ga-table th {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .ga-table td {
+    vertical-align: middle;
+  }
+
+  .ga-muted {
+    color: #64748b;
+  }
+
+  .ga-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: #f1f5f9;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  .ga-pill-success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .ga-pill-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .ga-pill-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .ga-pill-info {
+    background: #e0f2fe;
+    color: #075985;
+  }
+
+  .ga-insight {
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: 18px;
+    padding: 14px;
+    background: #fff;
+  }
+
+  .ga-insight + .ga-insight {
+    margin-top: 10px;
+  }
+
+  .ga-insight-title {
+    font-weight: 950;
+    margin-bottom: 4px;
+  }
+
+  .ga-filter {
+    border-radius: 999px;
+    height: 40px;
+    border: 1px solid rgba(15, 23, 42, .14);
+    padding: 0 14px;
+    min-width: 260px;
+  }
+
+  .ga-live-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    display: inline-block;
+    background: #16a34a;
+    box-shadow: 0 0 0 6px rgba(22, 163, 74, .13);
+  }
+
+  .ga-mini-bar {
+    height: 9px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+    min-width: 90px;
+  }
+
+  .ga-mini-bar span {
+    display: block;
+    height: 100%;
+    background: #111827;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 767px) {
+    .ga-kpi-value {
+      font-size: 25px;
+    }
+
+    .ga-chart-wrap {
+      height: 260px;
+    }
+  }
+</style>
+
+<section class="ga-shell py-5">
   <div class="container">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-      <div>
-        <span class="badge bg-warning text-dark rounded-pill px-3 py-2">Admin only</span>
-        <h1 class="display-6 fw-bold mt-3 mb-1">Statistiky webu</h1>
-        <p class="text-muted mb-0">Návštěvy, zdroje, affiliate prokliky, kampaně, produkty a objednávky.</p>
+
+    <div class="ga-hero mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="ga-live-dot"></span>
+            <span class="ga-pill ga-pill-success">Live měření</span>
+            <span class="ga-pill">Pouze reální uživatelé</span>
+          </div>
+          <h1 class="display-6 fw-bold mb-2">Statistiky webu</h1>
+          <p class="text-muted mb-0">Návštěvnost, organický vývoj, objednávky, produktový výkon, funnel, heatmapy a doporučení pro růst.</p>
+          <div class="small text-muted mt-2">Aktualizováno: <span id="generatedAt">{{ dashboard.generated_at }}</span></div>
+        </div>
+
+        <div class="ga-period-nav d-flex gap-2 flex-wrap">
+          <a class="btn btn{% if period != 'today' %}-outline{% endif %}-dark rounded-pill" href="?period=today">Dnes</a>
+          <a class="btn btn{% if period != '7d' %}-outline{% endif %}-dark rounded-pill" href="?period=7d">7 dní</a>
+          <a class="btn btn{% if period != '30d' %}-outline{% endif %}-dark rounded-pill" href="?period=30d">30 dní</a>
+          <a class="btn btn{% if period != '90d' %}-outline{% endif %}-dark rounded-pill" href="?period=90d">90 dní</a>
+          <a class="btn btn{% if period != 'all' %}-outline{% endif %}-dark rounded-pill" href="?period=all">Celkem</a>
+        </div>
       </div>
-      <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn{% if period != 'today' %}-outline{% endif %}-dark rounded-pill" href="?period=today">Dnes</a>
-        <a class="btn btn{% if period != '7d' %}-outline{% endif %}-dark rounded-pill" href="?period=7d">7 dní</a>
-        <a class="btn btn{% if period != '30d' %}-outline{% endif %}-dark rounded-pill" href="?period=30d">30 dní</a>
-        <a class="btn btn{% if period != 'month' %}-outline{% endif %}-dark rounded-pill" href="?period=month">Měsíc</a>
-        <a class="btn btn{% if period != 'all' %}-outline{% endif %}-dark rounded-pill" href="?period=all">Celkem</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="ga-kpi-label">Reální uživatelé</div>
+            <div class="ga-kpi-value" data-kpi="real_users">{{ dashboard.cards.real_users }}</div>
+            <div class="ga-kpi-note">Bez botů, crawlerů, adminu a systémových requestů.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="ga-kpi-label">Organika</div>
+            <div class="ga-kpi-value" data-kpi="organic_users">{{ dashboard.cards.organic_users }}</div>
+            <div class="ga-kpi-note"><span data-kpi="organic_share">{{ dashboard.cards.organic_share }}</span> % ze všech reálných uživatelů.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="ga-kpi-label">Objednávky</div>
+            <div class="ga-kpi-value" data-kpi="orders">{{ dashboard.cards.orders }}</div>
+            <div class="ga-kpi-note">Konverze: <span data-kpi="conversion_rate">{{ dashboard.cards.conversion_rate }}</span> %.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="ga-kpi-label">Obrat</div>
+            <div class="ga-kpi-value"><span data-kpi-money="revenue">{{ '%.0f'|format(dashboard.cards.revenue) }}</span> Kč</div>
+            <div class="ga-kpi-note">Průměr objednávky: <span data-kpi-money="average_order">{{ '%.0f'|format(dashboard.cards.average_order) }}</span> Kč.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card"><div class="card-body">
+          <div class="ga-kpi-label">Relace</div>
+          <div class="ga-kpi-value" data-kpi="sessions">{{ dashboard.cards.sessions }}</div>
+          <div class="ga-kpi-note">Počet návštěvních relací.</div>
+        </div></div>
+      </div>
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card"><div class="card-body">
+          <div class="ga-kpi-label">Zobrazení stránek</div>
+          <div class="ga-kpi-value" data-kpi="pageviews">{{ dashboard.cards.pageviews }}</div>
+          <div class="ga-kpi-note">Pouze běžné veřejné stránky.</div>
+        </div></div>
+      </div>
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card"><div class="card-body">
+          <div class="ga-kpi-label">Zobrazení produktů</div>
+          <div class="ga-kpi-value" data-kpi="product_views">{{ dashboard.cards.product_views }}</div>
+          <div class="ga-kpi-note">Detail produktu a produktový zájem.</div>
+        </div></div>
+      </div>
+      <div class="col-md-6 col-xl-3">
+        <div class="ga-card"><div class="card-body">
+          <div class="ga-kpi-label">Obrat / uživatel</div>
+          <div class="ga-kpi-value"><span data-kpi-money="revenue_per_user">{{ '%.0f'|format(dashboard.cards.revenue_per_user) }}</span> Kč</div>
+          <div class="ga-kpi-note">Kolik průměrně vydělá jeden reálný uživatel.</div>
+        </div></div>
       </div>
     </div>
 
     <div class="row g-4 mb-4">
-      {% for label, key in [('Dnes','today'),('Tento týden','week'),('Tento měsíc','month'),('Celkem','total')] %}
-      <div class="col-md-6 col-xl-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <p class="text-muted mb-1">{{ label }}</p>
-            <h2 class="fw-bold mb-1">{{ cards[key].pageviews }}</h2>
-            <div class="small text-muted">{{ cards[key].visitors }} unikátních • {{ cards[key].sessions }} sessions</div>
-            <hr>
-            <div class="small">Affiliate prokliky: <strong>{{ cards[key].affiliate_clicks }}</strong></div>
-            <div class="small">Instagram: <strong>{{ cards[key].ig_visits }}</strong></div>
-            <div class="small">Google: <strong>{{ cards[key].google_visits }}</strong></div>
+      <div class="col-xl-8">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div>
+                <h2 class="h4 fw-bold mb-1">Vývoj návštěvnosti a organiky</h2>
+                <p class="text-muted mb-0">Denní vývoj reálných uživatelů, organiky a zobrazení produktů.</p>
+              </div>
+              <span class="ga-pill">Live refresh</span>
+            </div>
+            <div class="ga-chart-wrap">
+              <canvas id="trafficChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
-      {% endfor %}
+
+      <div class="col-xl-4">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-1">Konverzní funnel</h2>
+            <p class="text-muted mb-3">Cesta uživatele od návštěvy po objednávku.</p>
+            <div class="ga-chart-wrap-sm">
+              <canvas id="funnelChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-6">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-1">Obrat a objednávky</h2>
+            <p class="text-muted mb-3">Denní prodejní vývoj ve vybraném období.</p>
+            <div class="ga-chart-wrap-sm">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-6">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-1">Zdroje návštěvnosti</h2>
+            <p class="text-muted mb-3">Odkud přicházejí reální uživatelé.</p>
+            <div class="ga-chart-wrap-sm">
+              <canvas id="sourceChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="row g-4 mb-4">
-      {% for label, key in [('Dnes','today'),('Tento týden','week'),('Tento měsíc','month'),('Celkem','total')] %}
-      <div class="col-md-6 col-xl-3">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <p class="text-muted mb-1">Objednávky – {{ label }}</p>
-            <h2 class="fw-bold mb-1">{{ order_cards[key].orders }}</h2>
-            <div class="small text-muted">Tržby: <strong>{{ '%.0f'|format(order_cards[key].revenue) }} Kč</strong></div>
-            <hr>
-            <div class="small">Affiliate objednávky: <strong>{{ order_cards[key].affiliate_orders }}</strong></div>
-            <div class="small">Affiliate tržby: <strong>{{ '%.0f'|format(order_cards[key].affiliate_revenue) }} Kč</strong></div>
+      <div class="col-xl-5">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-3">Doporučení</h2>
+            <div id="insightsList">
+              {% for item in dashboard.recommendations %}
+              <div class="ga-insight">
+                <span class="ga-pill ga-pill-{{ item.level }}">{{ item.level }}</span>
+                <div class="ga-insight-title mt-2">{{ item.title }}</div>
+                <div class="text-muted small">{{ item.text }}</div>
+              </div>
+              {% else %}
+              <div class="text-muted">Zatím nejsou data pro doporučení.</div>
+              {% endfor %}
+            </div>
           </div>
         </div>
       </div>
-      {% endfor %}
+
+      <div class="col-xl-7">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div>
+                <h2 class="h4 fw-bold mb-1">Produktový revenue dashboard</h2>
+                <p class="text-muted mb-0">Produkty podle obratu a objednávek.</p>
+              </div>
+              <input class="ga-filter" data-table-filter="#productRevenueTable" placeholder="Hledat produkt...">
+            </div>
+
+            <div class="table-responsive">
+              <table class="table ga-table align-middle" id="productRevenueTable" data-sort-table>
+                <thead>
+                  <tr>
+                    <th>Produkt</th>
+                    <th>Objednávky</th>
+                    <th>Kusů</th>
+                    <th>Obrat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for product in dashboard.top_product_revenue %}
+                  <tr>
+                    <td><a href="/produkt/{{ product.slug }}" target="_blank">{{ product.name }}</a></td>
+                    <td data-sort-value="{{ product.orders }}">{{ product.orders }}</td>
+                    <td data-sort-value="{{ product.quantity }}">{{ product.quantity }}</td>
+                    <td data-sort-value="{{ product.revenue }}">{{ '%.0f'|format(product.revenue) }} Kč</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="text-muted">Zatím žádné objednávky ve vybraném období.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-xl-6">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div>
+                <h2 class="h4 fw-bold mb-1">Nejnavštěvovanější produkty</h2>
+                <p class="text-muted mb-0">Co zákazníky nejvíc zajímá.</p>
+              </div>
+              <input class="ga-filter" data-table-filter="#productViewsTable" placeholder="Hledat produkt...">
+            </div>
+            <div class="table-responsive">
+              <table class="table ga-table align-middle" id="productViewsTable" data-sort-table>
+                <thead><tr><th>Produkt</th><th>Zobrazení</th><th>Uživatelé</th></tr></thead>
+                <tbody>
+                  {% for product in dashboard.top_product_views %}
+                  <tr>
+                    <td><a href="/produkt/{{ product.slug }}" target="_blank">{{ product.name }}</a></td>
+                    <td data-sort-value="{{ product.views }}">{{ product.views }}</td>
+                    <td data-sort-value="{{ product.users }}">{{ product.users }}</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="3" class="text-muted">Zatím žádné produktové návštěvy.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-6">
+        <div class="ga-card">
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div>
+                <h2 class="h4 fw-bold mb-1">Nejsilnější stránky</h2>
+                <p class="text-muted mb-0">Stránky podle reálných návštěv a organiky.</p>
+              </div>
+              <input class="ga-filter" data-table-filter="#pagesTable" placeholder="Hledat URL...">
+            </div>
+            <div class="table-responsive">
+              <table class="table ga-table align-middle" id="pagesTable" data-sort-table>
+                <thead><tr><th>URL</th><th>Zobrazení</th><th>Uživatelé</th><th>Organika</th></tr></thead>
+                <tbody>
+                  {% for page in dashboard.top_pages %}
+                  <tr>
+                    <td><a href="{{ page.path }}" target="_blank"><code>{{ page.path }}</code></a></td>
+                    <td data-sort-value="{{ page.pageviews }}">{{ page.pageviews }}</td>
+                    <td data-sort-value="{{ page.users }}">{{ page.users }}</td>
+                    <td data-sort-value="{{ page.organic_pageviews }}">{{ page.organic_pageviews }}</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="text-muted">Zatím žádná data.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-xl-6">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-3">Výkon obsahu</h2>
+            <div class="table-responsive">
+              <table class="table ga-table align-middle" data-sort-table>
+                <thead><tr><th>Stránka</th><th>Skóre</th><th>Organika</th><th>Uživatelé</th></tr></thead>
+                <tbody>
+                  {% for page in dashboard.seo %}
+                  <tr>
+                    <td><a href="{{ page.path }}" target="_blank"><code>{{ page.path }}</code></a></td>
+                    <td data-sort-value="{{ page.score }}">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="ga-mini-bar"><span style="width: {{ page.score }}%"></span></div>
+                        <strong>{{ page.score }}</strong>
+                      </div>
+                    </td>
+                    <td data-sort-value="{{ page.organic_pageviews }}">{{ page.organic_pageviews }}</td>
+                    <td data-sort-value="{{ page.users }}">{{ page.users }}</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="text-muted">Zatím žádná data.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-6">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-3">Heatmapa kliknutí</h2>
+            <div class="table-responsive">
+              <table class="table ga-table align-middle" data-sort-table>
+                <thead><tr><th>Stránka</th><th>Prvek</th><th>Text</th><th>Kliky</th></tr></thead>
+                <tbody>
+                  {% for click in dashboard.heatmap %}
+                  <tr>
+                    <td><code>{{ click.path }}</code></td>
+                    <td>{{ click.selector }}</td>
+                    <td>{{ click.text }}</td>
+                    <td data-sort-value="{{ click.clicks }}">{{ click.clicks }}</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="text-muted">Heatmapa se začne plnit po kliknutí zákazníků na webu.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="small text-muted mb-0">Kliky se měří na veřejném webu, ne v administraci.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="row g-4">
-      <div class="col-lg-7">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Denní vývoj</h2>
+      <div class="col-xl-4">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-3">Zařízení</h2>
             <div class="table-responsive">
-              <table class="table align-middle">
-                <thead><tr><th>Datum</th><th>Pageviews</th><th>Unikátní</th><th>Sessions</th></tr></thead>
+              <table class="table ga-table align-middle" data-sort-table>
+                <thead><tr><th>Zařízení</th><th>Uživatelé</th></tr></thead>
                 <tbody>
-                  {% for date, views, visitors, sessions in daily %}
-                  <tr><td>{{ date.strftime('%d.%m.%Y') }}</td><td>{{ views }}</td><td>{{ visitors }}</td><td>{{ sessions }}</td></tr>
-                  {% else %}<tr><td colspan="4" class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+                  {% for row in dashboard.devices %}
+                  <tr><td>{{ row.device }}</td><td data-sort-value="{{ row.users }}">{{ row.users }}</td></tr>
+                  {% else %}
+                  <tr><td colspan="2" class="text-muted">Zatím žádná data.</td></tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
@@ -74,120 +534,55 @@
         </div>
       </div>
 
-      <div class="col-lg-5">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Zdroje návštěv</h2>
+      <div class="col-xl-4">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-3">Kampaně</h2>
             <div class="table-responsive">
-              <table class="table align-middle">
-                <thead><tr><th>Zdroj</th><th>Medium</th><th>Návštěvy</th></tr></thead>
+              <table class="table ga-table align-middle" data-sort-table>
+                <thead><tr><th>Kampaň</th><th>Source</th><th>Uživatelé</th></tr></thead>
                 <tbody>
-                  {% for source, medium, cnt in top_sources %}
-                  <tr><td>{{ source or 'unknown' }}</td><td>{{ medium or '-' }}</td><td>{{ cnt }}</td></tr>
-                  {% else %}<tr><td colspan="3" class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
+                  {% for row in dashboard.campaigns %}
+                  <tr><td>{{ row.campaign }}</td><td>{{ row.source }} / {{ row.medium }}</td><td data-sort-value="{{ row.users }}">{{ row.users }}</td></tr>
+                  {% else %}
+                  <tr><td colspan="3" class="text-muted">Zatím žádné kampaně.</td></tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
-            <p class="small text-muted mb-0">IG reklamy měř přes URL s UTM: <code>?utm_source=instagram&utm_medium=paid_social&utm_campaign=nazev</code></p>
+            <p class="small text-muted mb-0">Používej UTM odkazy: <code>?utm_source=instagram&utm_medium=paid_social&utm_campaign=nazev</code></p>
           </div>
         </div>
       </div>
 
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Affiliate prokliky</h2>
+      <div class="col-xl-4">
+        <div class="ga-card">
+          <div class="card-body">
+            <h2 class="h4 fw-bold mb-3">Affiliate</h2>
             <div class="table-responsive">
-              <table class="table align-middle">
-                <thead><tr><th>Kód</th><th>Partner</th><th>Prokliky</th><th>Unikátní</th></tr></thead>
+              <table class="table ga-table align-middle" data-sort-table>
+                <thead><tr><th>Kód</th><th>Partner</th><th>Uživatelé</th></tr></thead>
                 <tbody>
-                  {% for code, partner, clicks, visitors in affiliate_rows %}
-                  <tr><td><code>{{ code }}</code></td><td>{{ partner or '-' }}</td><td>{{ clicks }}</td><td>{{ visitors }}</td></tr>
-                  {% else %}<tr><td colspan="4" class="text-muted">Zatím žádné affiliate prokliky.</td></tr>{% endfor %}
+                  {% for row in dashboard.affiliates %}
+                  <tr><td><code>{{ row.code }}</code></td><td>{{ row.partner }}</td><td data-sort-value="{{ row.users }}">{{ row.users }}</td></tr>
+                  {% else %}
+                  <tr><td colspan="3" class="text-muted">Zatím žádné affiliate prokliky.</td></tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
-            <p class="small text-muted mb-0">Affiliate odkaz: <code>https://botyzahubicku.cz/?aff=KOD</code> nebo <code>/produkty?aff=KOD</code></p>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">UTM kampaně</h2>
-            <div class="table-responsive">
-              <table class="table align-middle">
-                <thead><tr><th>Source</th><th>Medium</th><th>Kampaň</th><th>Návštěvy</th></tr></thead>
-                <tbody>
-                  {% for source, medium, campaign, cnt in campaign_rows %}
-                  <tr><td>{{ source }}</td><td>{{ medium }}</td><td>{{ campaign }}</td><td>{{ cnt }}</td></tr>
-                  {% else %}<tr><td colspan="4" class="text-muted">Zatím žádné kampaně.</td></tr>{% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Nejnavštěvovanější stránky</h2>
-            <div class="table-responsive">
-              <table class="table align-middle">
-                <thead><tr><th>Stránka</th><th>Návštěvy</th><th>Unikátní</th></tr></thead>
-                <tbody>
-                  {% for path, cnt, vis in top_pages %}
-                  <tr><td><code>{{ path }}</code></td><td>{{ cnt }}</td><td>{{ vis }}</td></tr>
-                  {% else %}<tr><td colspan="3" class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Nejnavštěvovanější produkty</h2>
-            <div class="table-responsive">
-              <table class="table align-middle">
-                <thead><tr><th>Produkt</th><th>URL</th><th>Návštěvy</th></tr></thead>
-                <tbody>
-                  {% for name, slug, cnt in top_products %}
-                  <tr><td>{{ name }}</td><td><a href="/produkt/{{ slug }}">/produkt/{{ slug }}</a></td><td>{{ cnt }}</td></tr>
-                  {% else %}<tr><td colspan="3" class="text-muted">Zatím žádné produktové návštěvy.</td></tr>{% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Zařízení</h2>
-            <div class="table-responsive"><table class="table align-middle"><tbody>
-              {% for device, cnt in device_rows %}<tr><td>{{ device }}</td><td>{{ cnt }}</td></tr>{% else %}<tr><td class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
-            </tbody></table></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-          <div class="card-body p-4">
-            <h2 class="h4 fw-bold">Prohlížeče</h2>
-            <div class="table-responsive"><table class="table align-middle"><tbody>
-              {% for browser, cnt in browser_rows %}<tr><td>{{ browser }}</td><td>{{ cnt }}</td></tr>{% else %}<tr><td class="text-muted">Zatím žádná data.</td></tr>{% endfor %}
-            </tbody></table></div>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </section>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+  window.BZH_ANALYTICS_DASHBOARD = {{ dashboard|tojson }};
+  window.BZH_ANALYTICS_PERIOD = {{ period|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/admin-statistiky.js') }}"></script>
 {% endblock %}
