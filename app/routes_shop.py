@@ -71,6 +71,28 @@ HOME_CATEGORY_SLUGS = [
     'zimni',
 ]
 
+CATEGORY_FILTER_ALIASES = {
+    'zimni': {
+        'slugs': [
+            'zimni',
+            'zimni-boty',
+            'zimni-obuv',
+            'snehule',
+            'panske-zimni-boty',
+            'damske-zimni-boty',
+        ],
+        'names': [
+            'Zimní',
+            'Zimní boty',
+            'Zímní boty',
+            'Zimní obuv',
+            'Sněhule',
+            'Pánské zimní boty',
+            'Dámské zimní boty',
+        ],
+    },
+}
+
 
 def _visible_shop_categories():
     """Return only real shop categories, never SEO landing pages."""
@@ -605,12 +627,31 @@ def products():
 
     if category_slug:
         category = Category.query.filter_by(slug=category_slug).first()
+        alias_data = CATEGORY_FILTER_ALIASES.get(category_slug, {})
+        alias_slugs = set(alias_data.get('slugs', [])) | {category_slug}
+        alias_names = set(alias_data.get('names', []))
+
+        category_matches = Category.query.filter(
+            db.or_(
+                Category.slug.in_(alias_slugs),
+                Category.name.in_(alias_names),
+            )
+        ).all()
+
         if category:
             page_title = category.name
+        elif category_matches:
+            page_title = category_matches[0].name
+
+        category_ids = [cat.id for cat in category_matches]
+        if category and category.id not in category_ids:
+            category_ids.append(category.id)
+
+        if category_ids:
             q = q.filter(
                 db.or_(
-                    Product.category_id == category.id,
-                    Product.categories.any(Category.id == category.id)
+                    Product.category_id.in_(category_ids),
+                    Product.categories.any(Category.id.in_(category_ids)),
                 )
             )
 

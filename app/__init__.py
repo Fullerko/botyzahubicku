@@ -4,6 +4,7 @@ from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask import send_from_directory
 from dotenv import load_dotenv
+from sqlalchemy import inspect as sqlalchemy_inspect
 load_dotenv()  # Načte proměnné z .env souboru
 
 # Nyní můžeš načíst proměnné jako SYNC_SECRET
@@ -115,7 +116,7 @@ Sitemap: {sitemap}
     db.init_app(app)
     login_manager.init_app(app)
 
-    from .models import Category, SiteSetting, User
+    from .models import Category, Product, SiteSetting, User
     from .utils import get_cart
 
     @login_manager.user_loader
@@ -174,41 +175,56 @@ Sitemap: {sitemap}
                 'tenisky',
                 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1400&q=80',
                 'Streetwear a pohodlné boty na každý den.',
+                [],
+                [],
             ),
             (
                 'Běžecké boty',
                 'bezecke-boty',
                 'https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=1400&q=80',
                 'Lehké modely pro běh i aktivní chůzi.',
+                [],
+                [],
             ),
             (
                 'Kotníkové boty',
                 'kotnikove-boty',
                 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
                 'Vyšší střih, stabilita a výrazný look.',
+                [],
+                [],
             ),
             (
                 'Pánské',
                 'panske',
                 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1400&q=80',
                 'Pánské modely do města i na každý den.',
+                [],
+                [],
             ),
             (
                 'Dámské',
                 'damske',
                 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=1400&q=80',
                 'Vybrané trendy dámské modely.',
+                [],
+                [],
             ),
             (
                 'Zimní',
                 'zimni',
                 'zimni.jpg',
                 'Teplé modely do zimy a chladného počasí.',
+                ['zimni-boty', 'zimni-obuv', 'snehule', 'panske-zimni-boty', 'damske-zimni-boty'],
+                ['Zimní boty', 'Zímní boty', 'Zimní obuv', 'Sněhule', 'Pánské zimní boty', 'Dámské zimní boty'],
             ),
         ]
 
+        existing_tables = set(sqlalchemy_inspect(db.engine).get_table_names())
+        has_product_categories_table = 'product_categories' in existing_tables
+
         changed = False
-        for name, slug, fallback_image_url, description in homepage_categories:
+        for name, slug, fallback_image_url, description, alias_slugs, alias_names in homepage_categories:
             category = Category.query.filter_by(slug=slug).first()
             if not category:
                 category = Category.query.filter_by(name=name).first()
@@ -222,6 +238,7 @@ Sitemap: {sitemap}
                     show_in_menu=True,
                 )
                 db.session.add(category)
+                db.session.flush()
                 changed = True
             else:
                 if category.name != name:
@@ -246,6 +263,31 @@ Sitemap: {sitemap}
             if hasattr(category, 'seo_published') and category.seo_published is not True:
                 category.seo_published = True
                 changed = True
+
+            if alias_slugs or alias_names:
+                aliases = Category.query.filter(
+                    db.or_(
+                        Category.slug.in_(alias_slugs),
+                        Category.name.in_(alias_names),
+                    )
+                ).all()
+
+                for alias in aliases:
+                    if alias.id == category.id:
+                        continue
+
+                    moved = Product.query.filter_by(category_id=alias.id).update(
+                        {'category_id': category.id},
+                        synchronize_session=False,
+                    )
+                    if moved:
+                        changed = True
+
+                    if has_product_categories_table:
+                        for product in Product.query.filter(Product.categories.any(Category.id == alias.id)).all():
+                            if category not in product.categories:
+                                product.categories.append(category)
+                                changed = True
 
         if changed:
             db.session.commit()
