@@ -3,6 +3,7 @@ import hmac
 import random
 import string
 import qrcode
+from types import SimpleNamespace
 
 from flask import Blueprint, current_app, abort, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
@@ -71,8 +72,78 @@ HOME_CATEGORY_SLUGS = [
     'zimni',
 ]
 
+HOME_CATEGORY_DEFINITIONS = [
+    {
+        'name': 'Pánské',
+        'slug': 'panske',
+        'image_url': '',
+        'description': 'Pánské modely do města i na každý den.',
+        'alias_slugs': [],
+        'alias_names': ['Pánské'],
+    },
+    {
+        'name': 'Dámské',
+        'slug': 'damske',
+        'image_url': '',
+        'description': 'Vybrané trendy dámské modely.',
+        'alias_slugs': [],
+        'alias_names': ['Dámské'],
+    },
+    {
+        'name': 'Běžecké boty',
+        'slug': 'bezecke-boty',
+        'image_url': '',
+        'description': 'Lehké modely pro běh i aktivní chůzi.',
+        'alias_slugs': ['bezecke'],
+        'alias_names': ['Běžecké', 'Běžecké boty'],
+    },
+    {
+        'name': 'Tenisky',
+        'slug': 'tenisky',
+        'image_url': '',
+        'description': 'Streetwear a pohodlné boty na každý den.',
+        'alias_slugs': [],
+        'alias_names': ['Tenisky'],
+    },
+    {
+        'name': 'Kotníkové boty',
+        'slug': 'kotnikove-boty',
+        'image_url': '',
+        'description': 'Vyšší střih, stabilita a výrazný look.',
+        'alias_slugs': ['kotnikove'],
+        'alias_names': ['Kotníkové', 'Kotníkové boty'],
+    },
+    {
+        'name': 'Zimní',
+        'slug': 'zimni',
+        'image_url': 'zimni.jpg',
+        'description': 'Teplé modely do zimy a chladného počasí.',
+        'alias_slugs': ['zimni-boty', 'zimni-obuv', 'snehule', 'panske-zimni-boty', 'damske-zimni-boty'],
+        'alias_names': ['Zimní', 'Zimní boty', 'Zímní boty', 'Zimní obuv', 'Sněhule', 'Pánské zimní boty', 'Dámské zimní boty'],
+    },
+]
+
 CATEGORY_FILTER_ALIASES = {
     'zimni': {
+        'slugs': [
+            'zimni',
+            'zimni-boty',
+            'zimni-obuv',
+            'snehule',
+            'panske-zimni-boty',
+            'damske-zimni-boty',
+        ],
+        'names': [
+            'Zimní',
+            'Zimní boty',
+            'Zímní boty',
+            'Zimní obuv',
+            'Sněhule',
+            'Pánské zimní boty',
+            'Dámské zimní boty',
+        ],
+    },
+    'zimni-boty': {
         'slugs': [
             'zimni',
             'zimni-boty',
@@ -94,19 +165,72 @@ CATEGORY_FILTER_ALIASES = {
 }
 
 
+def _homepage_category_proxy(definition, source=None):
+    """Return a lightweight homepage category with canonical slug/name.
+
+    This keeps the homepage block stable even when the real product category is
+    stored as an alias such as zimni-boty, while links still filter via zimni.
+    """
+    return SimpleNamespace(
+        id=getattr(source, 'id', None),
+        name=definition['name'],
+        slug=definition['slug'],
+        image_url=(getattr(source, 'image_url', '') or definition.get('image_url', '') or ''),
+        description=(getattr(source, 'description', '') or definition.get('description', '') or ''),
+        show_in_menu=True,
+        seo_generated=False,
+        seo_published=True,
+    )
+
+
 def _visible_shop_categories():
-    """Return only real shop categories, never SEO landing pages."""
-    q = Category.query.filter(Category.slug.in_(HOME_CATEGORY_SLUGS))
+    """Return the fixed homepage categories in the intended order.
 
-    if hasattr(Category, 'show_in_menu'):
-        q = q.filter(db.or_(Category.show_in_menu.is_(True), Category.show_in_menu.is_(None)))
+    The DB may contain winter products under Zimní, zimni-boty, zimni-obuv or
+    similar older category names. The homepage still shows one canonical Zimní
+    tile and links it to category=zimni, where the product filter handles aliases.
+    """
+    all_slugs = set()
+    all_names = set()
 
-    if hasattr(Category, 'seo_generated'):
-        q = q.filter(db.or_(Category.seo_generated.is_(False), Category.seo_generated.is_(None)))
+    for definition in HOME_CATEGORY_DEFINITIONS:
+        all_slugs.add(definition['slug'])
+        all_slugs.update(definition.get('alias_slugs', []))
+        all_names.add(definition['name'])
+        all_names.update(definition.get('alias_names', []))
 
-    categories = q.all()
-    order = {slug: index for index, slug in enumerate(HOME_CATEGORY_SLUGS)}
-    return sorted(categories, key=lambda category: order.get(category.slug, 999))
+    categories = Category.query.filter(
+        db.or_(
+            Category.slug.in_(all_slugs),
+            Category.name.in_(all_names),
+        )
+    ).all()
+
+    by_slug = {category.slug: category for category in categories}
+    by_name = {category.name: category for category in categories}
+
+    homepage_categories = []
+    for definition in HOME_CATEGORY_DEFINITIONS:
+        source = by_slug.get(definition['slug'])
+
+        if not source:
+            for alias_slug in definition.get('alias_slugs', []):
+                source = by_slug.get(alias_slug)
+                if source:
+                    break
+
+        if not source:
+            for alias_name in definition.get('alias_names', []):
+                source = by_name.get(alias_name)
+                if source:
+                    break
+
+        if source and source.slug == definition['slug'] and source.name == definition['name']:
+            homepage_categories.append(source)
+        else:
+            homepage_categories.append(_homepage_category_proxy(definition, source))
+
+    return homepage_categories
 
 
 def _money(value):
