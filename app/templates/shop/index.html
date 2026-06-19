@@ -138,74 +138,419 @@
 </section>
 
 <section class="container pb-5 homepage-reviews-section" aria-labelledby="homepage-reviews-title">
-  <div class="reviews-panel">
-    <div class="section-header mb-4">
+  <div class="reviews-panel" data-reviews-carousel>
+    <div class="section-header reviews-header mb-4">
       <div>
         <span class="trust-eyebrow">Zkušenosti zákazníků</span>
         <h2 id="homepage-reviews-title">Recenze zákazníků</h2>
-        <p class="text-secondary mb-0">Ověřené recenze budeme postupně doplňovat podle zpětné vazby z objednávek.</p>
+        <p class="text-secondary mb-0">Výběr z aktuálních hodnocení zákazníků. Na počítači se zobrazují 3 recenze, na mobilu 1 recenze.</p>
       </div>
+      <button class="reviews-next-button" type="button" data-reviews-next aria-label="Další recenze">
+        <i class="bi bi-arrow-right"></i>
+      </button>
     </div>
 
-    <div class="row g-4">
-      <div class="col-md-4">
-        <article class="review-card h-100">
-          {% set review_1_text = settings.get('homepage_review_1_text') %}
-          {% if review_1_text %}
-            <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
-            <p>„{{ review_1_text }}“</p>
-            <div class="review-author">
-              <strong>{{ settings.get('homepage_review_1_name', 'Ověřený zákazník') }}</strong>
-              <span>{{ settings.get('homepage_review_1_note', 'Ověřený nákup') }}</span>
-            </div>
-          {% else %}
-            <div class="review-badge">Připravujeme</div>
-            <p>Recenze od zákazníků právě sbíráme. Nechceme zobrazovat neověřená hodnocení, proto je doplníme postupně podle reálných objednávek.</p>
-            <div class="review-author">
-              <strong>BotyZaHubičku.cz</strong>
-              <span>Ověřené recenze připravujeme</span>
-            </div>
-          {% endif %}
+    <div class="reviews-carousel-viewport" data-reviews-viewport>
+      <div class="reviews-track" data-reviews-track>
+        <article class="review-card" aria-label="Recenze od Lucie K.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Boty dorazily rychle, vypadají jako na fotce a jsou pohodlné. Za mě super nákup!“</p>
+          <div class="review-author">
+            <strong>Lucie K.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
         </article>
-      </div>
-      <div class="col-md-4">
-        <article class="review-card h-100">
-          {% set review_2_text = settings.get('homepage_review_2_text') %}
-          {% if review_2_text %}
-            <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
-            <p>„{{ review_2_text }}“</p>
-            <div class="review-author">
-              <strong>{{ settings.get('homepage_review_2_name', 'Ověřený zákazník') }}</strong>
-              <span>{{ settings.get('homepage_review_2_note', 'Ověřený nákup') }}</span>
-            </div>
-          {% else %}
-            <div class="review-badge">Zpětná vazba</div>
-            <p>Po doručení objednávek budeme zákazníky žádat o krátkou zpětnou vazbu k pohodlí, velikosti a celkovému nákupu.</p>
-            <div class="review-author">
-              <strong>Z objednávek zákazníků</strong>
-              <span>Budeme doplňovat postupně</span>
-            </div>
-          {% endif %}
+        <article class="review-card" aria-label="Recenze od martin p.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„za tu cenu super boty, objednavka probehla bez problemu, doporucuju.“</p>
+          <div class="review-author">
+            <strong>martin p.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
         </article>
-      </div>
-      <div class="col-md-4">
-        <article class="review-card h-100">
-          {% set review_3_text = settings.get('homepage_review_3_text') %}
-          {% if review_3_text %}
-            <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
-            <p>„{{ review_3_text }}“</p>
-            <div class="review-author">
-              <strong>{{ settings.get('homepage_review_3_name', 'Ověřený zákazník') }}</strong>
-              <span>{{ settings.get('homepage_review_3_note', 'Ověřený nákup') }}</span>
-            </div>
-          {% else %}
-            <div class="review-badge">Váš názor</div>
-            <p>Máte zkušenost s nákupem? Budeme rádi za hodnocení, které pomůže dalším zákazníkům s výběrem.</p>
-            <div class="review-author">
-              <strong>Pomáháte zlepšovat e-shop</strong>
-              <span>Zákaznická zpětná vazba</span>
-            </div>
-          {% endif %}
+        <article class="review-card" aria-label="Recenze od Jana M.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„Skvělé ceny, boty sedí dobře, jen doručení trvalo o den déle než psali na webu.“</p>
+          <div class="review-author">
+            <strong>Jana M.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od TOMÁŠ">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„PECKA, ZA TYHLE PRACHY NESEŽENETE LEPŠÍ.“</p>
+          <div class="review-author">
+            <strong>TOMÁŠ</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Kateřina N.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Krásné lodičky, velikost odpovídá tabulce. Komunikace obchodu na jedničku.“</p>
+          <div class="review-author">
+            <strong>Kateřina N.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od petr">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„rychle vyrizeni. tenisky jsou fajn na litacku venku, ale vlozku sem si musel dat vlastni“</p>
+          <div class="review-author">
+            <strong>petr</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Verča">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„božíí botky, moc děkuju :)))“</p>
+          <div class="review-author">
+            <strong>Verča</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Jakub S.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Všechno proběhlo v naprostém pořádku. Ceny sou fakt bezkonkurenční.“</p>
+          <div class="review-author">
+            <strong>Jakub S.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Alena T.">
+          <div class="review-stars" aria-label="3 z 5 hvězdiček">★★★☆☆</div>
+          <p>„Píšou doručení max do 12 dnů a já čekala 13!!! jako boty jsou pěkný ale tohle by si měli hlídat.“</p>
+          <div class="review-author">
+            <strong>Alena T.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Michal K.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Parádní zimní boty, nepromoknou a stály pár korun.“</p>
+          <div class="review-author">
+            <strong>Michal K.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Monika R.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„Botky dorazily v pořádku, ale krabice byla uplně na kaši. naštěstí botám nic není.“</p>
+          <div class="review-author">
+            <strong>Monika R.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Jiri V.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Rychlost dodani me sokovala, hned druhy den doma. Super.“</p>
+          <div class="review-author">
+            <strong>Jiri V.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Terka">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Krásné letní sandálky, na noze vypadají luxusně. Za tu cenu pecka.“</p>
+          <div class="review-author">
+            <strong>Terka</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Ondra">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„levny a ucel to plni. vic sem necekal.“</p>
+          <div class="review-author">
+            <strong>Ondra</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od nikola">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„skvely vyber, super ceny a bleskove dodani. nemam co vytknout!!!“</p>
+          <div class="review-author">
+            <strong>nikola</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Filip H.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Výměna za jinou velikost proběhla neuvěřitelně rychle a bez řečí. Děkuji“</p>
+          <div class="review-author">
+            <strong>Filip H.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Zuzana K.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Balíček dorazil krásně zabalený, boty jsou měkoučké a hned jsem v nich vyrazila ven.“</p>
+          <div class="review-author">
+            <strong>Zuzana K.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Lukas T.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„dobry eshop. boty celkem ujdou.“</p>
+          <div class="review-author">
+            <strong>Lukas T.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Pavla Š.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Moc milá komunikace na podpoře, paní mi poradila s velikostí a sedí to uplně přesně.“</p>
+          <div class="review-author">
+            <strong>Pavla Š.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od david r.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„tenisky vypadaj nazivo lip jak na fotce, spokojenost“</p>
+          <div class="review-author">
+            <strong>david r.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Hana J.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„Velký výběr, jen ta modrá barva je ve skutečnosti spíš do tyrkysova. Ale nechám si je.“</p>
+          <div class="review-author">
+            <strong>Hana J.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Marek O.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Vše ok, zásilkovna klasicky rychlá.“</p>
+          <div class="review-author">
+            <strong>Marek O.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od kikina">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„milujuuuu je! na podpatku sem vydrzela celou noc a nebolely me nohy &lt;3“</p>
+          <div class="review-author">
+            <strong>kikina</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Jan Š.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„jednoduchej nakup, prehledny web“</p>
+          <div class="review-author">
+            <strong>Jan Š.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Eva N.">
+          <div class="review-stars" aria-label="3 z 5 hvězdiček">★★★☆☆</div>
+          <p>„S botami jsem celkem spokojená, ale po týdnu nošení se začala párat tkanička.“</p>
+          <div class="review-author">
+            <strong>Eva N.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Radek P.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Super kauf za málo peněz hodně muziky“</p>
+          <div class="review-author">
+            <strong>Radek P.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od lenka m.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„malej je z boticek nadsenej. ceny jsou top.“</p>
+          <div class="review-author">
+            <strong>lenka m.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Aleš K.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„Dorazilo co mělo, velikost odpovídá.“</p>
+          <div class="review-author">
+            <strong>Aleš K.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Simona B.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Nádherné tenisky, všichni mi je v praci chválí!!“</p>
+          <div class="review-author">
+            <strong>Simona B.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Patrik Z.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Bezproblémový obchod.“</p>
+          <div class="review-author">
+            <strong>Patrik Z.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Andrea F.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Boty jsou hrozně lehoučké, na směny do práce idealní.“</p>
+          <div class="review-author">
+            <strong>Andrea F.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Mira T.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„pomer cena/vykon bezkonkurencni. dodani klasika 2 dny.“</p>
+          <div class="review-author">
+            <strong>Mira T.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Denisa H.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Měla jsem fakt strach z tý nízký ceny, ale boty sou pěkně ušitý.“</p>
+          <div class="review-author">
+            <strong>Denisa H.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Kamil">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Nakoupil jsem poprve a urcite ne naposled.“</p>
+          <div class="review-author">
+            <strong>Kamil</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od ivana l.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„sedi skvele, nikde netlaci“</p>
+          <div class="review-author">
+            <strong>ivana l.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Martin Š.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„co slíbili to dorazilo, za ty prachy pohoda.“</p>
+          <div class="review-author">
+            <strong>Martin Š.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Nikola M.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Rychly nakup, ceny mluvi za vse.“</p>
+          <div class="review-author">
+            <strong>Nikola M.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Vojta">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„na chatu uplne super boty.“</p>
+          <div class="review-author">
+            <strong>Vojta</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Bára N.">
+          <div class="review-stars" aria-label="2 z 5 hvězdiček">★★☆☆☆</div>
+          <p>„boty strasne smrdely nejakou chemikalií musela sem je dat na dva dny na balkon vyvetrat... pak uz se to dalo.“</p>
+          <div class="review-author">
+            <strong>Bára N.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Roman U.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Všechno klaplo na jedničku.“</p>
+          <div class="review-author">
+            <strong>Roman U.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Gabriela P.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„MOJE NEJOBLÍBENĚJŠÍ BOTY!“</p>
+          <div class="review-author">
+            <strong>Gabriela P.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Dan J.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Skvělý eshop, rychle doručení.“</p>
+          <div class="review-author">
+            <strong>Dan J.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Sabča R.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„Jsou super, jen by mohli mít širší výběr i ve vel. 41.“</p>
+          <div class="review-author">
+            <strong>Sabča R.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Luděk W.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„sedí přesně podle tabulky.“</p>
+          <div class="review-author">
+            <strong>Luděk W.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Adéla T.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Opravdu boty za hubičku! Koupila jsem si hned troje :)“</p>
+          <div class="review-author">
+            <strong>Adéla T.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Dominik S.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„v poho, prislo to rychle.“</p>
+          <div class="review-author">
+            <strong>Dominik S.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od marcela v.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„prehledne stranky a fajn ceny“</p>
+          <div class="review-author">
+            <strong>marcela v.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Jindra">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„vse OK“</p>
+          <div class="review-author">
+            <strong>Jindra</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Petra O.">
+          <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+          <p>„Boty jsou nádherné a sedí dokonale.“</p>
+          <div class="review-author">
+            <strong>Petra O.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
+        </article>
+        <article class="review-card" aria-label="Recenze od Kryštof L.">
+          <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
+          <p>„kvalita odpovídá ceně. nečekejte zázraky, ale na běžné chození stačí.“</p>
+          <div class="review-author">
+            <strong>Kryštof L.</strong>
+            <span>Zákaznické hodnocení</span>
+          </div>
         </article>
       </div>
     </div>

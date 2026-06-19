@@ -161,3 +161,66 @@ document.addEventListener('DOMContentLoaded', () => {
     checkoutEmail.addEventListener('blur', sendCheckoutLead);
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-reviews-carousel]').forEach((carousel) => {
+    const track = carousel.querySelector('[data-reviews-track]');
+    const cards = Array.from(track?.querySelectorAll('.review-card') || []);
+    const nextButton = carousel.querySelector('[data-reviews-next]');
+
+    if (!track || !cards.length || !nextButton) return;
+
+    let currentIndex = 0;
+    let autoplayTimer = null;
+
+    const cardsPerView = () => window.matchMedia('(max-width: 767px)').matches ? 1 : 3;
+    const maxIndex = () => Math.max(0, cards.length - cardsPerView());
+    const gapSize = () => parseFloat(window.getComputedStyle(track).gap) || 0;
+
+    const moveTo = (index) => {
+      const max = maxIndex();
+      if (index > max) {
+        currentIndex = 0;
+      } else if (index < 0) {
+        currentIndex = max;
+      } else {
+        currentIndex = index;
+      }
+
+      const cardWidth = cards[0].getBoundingClientRect().width;
+      const offset = (cardWidth + gapSize()) * currentIndex;
+      track.style.transform = `translate3d(${-offset}px, 0, 0)`;
+    };
+
+    const next = () => moveTo(currentIndex + 1);
+
+    const stopAutoplay = () => {
+      if (autoplayTimer) {
+        window.clearInterval(autoplayTimer);
+        autoplayTimer = null;
+      }
+    };
+
+    const startAutoplay = () => {
+      stopAutoplay();
+      if (cards.length <= cardsPerView()) return;
+      autoplayTimer = window.setInterval(next, 4500);
+    };
+
+    nextButton.addEventListener('click', () => {
+      next();
+      startAutoplay();
+    });
+
+    carousel.addEventListener('mouseenter', stopAutoplay);
+    carousel.addEventListener('mouseleave', startAutoplay);
+    carousel.addEventListener('focusin', stopAutoplay);
+    carousel.addEventListener('focusout', startAutoplay);
+
+    window.addEventListener('resize', () => moveTo(0));
+
+    moveTo(0);
+    startAutoplay();
+  });
+});
+
