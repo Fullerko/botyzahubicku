@@ -170,6 +170,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!track || !cards.length || !nextButton) return;
 
+    const getRating = (card) => {
+      const explicitRating = Number.parseFloat(card.dataset.rating || '');
+      if (Number.isFinite(explicitRating)) return explicitRating;
+
+      const starsLabel = card.querySelector('.review-stars')?.getAttribute('aria-label') || '';
+      const labelMatch = starsLabel.match(/([0-5](?:[.,]\d+)?)\s*z\s*5/i);
+      if (labelMatch) return Number.parseFloat(labelMatch[1].replace(',', '.'));
+
+      const starsText = card.querySelector('.review-stars')?.textContent || '';
+      const filledStars = (starsText.match(/★/g) || []).length;
+      return filledStars || null;
+    };
+
+    const updateReviewSummary = () => {
+      const ratings = cards
+        .map(getRating)
+        .filter((rating) => Number.isFinite(rating) && rating > 0);
+
+      if (!ratings.length) return;
+
+      const average = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+      const averageText = average.toFixed(1);
+      const averageEl = carousel.querySelector('[data-reviews-average]');
+      const countEl = carousel.querySelector('[data-reviews-count]');
+      const starsEl = carousel.querySelector('[data-reviews-summary-stars]');
+
+      if (averageEl) averageEl.textContent = averageText;
+      if (countEl) countEl.textContent = String(ratings.length);
+      if (starsEl) starsEl.setAttribute('aria-label', `${averageText} z 5 hvězdiček`);
+    };
+
+    updateReviewSummary();
+
     let currentIndex = 0;
     let autoplayTimer = null;
 

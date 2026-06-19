@@ -143,7 +143,14 @@
       <div>
         <span class="trust-eyebrow">Zkušenosti zákazníků</span>
         <h2 id="homepage-reviews-title">Recenze zákazníků</h2>
-        <p class="text-secondary mb-0">Výběr z aktuálních hodnocení zákazníků. Na počítači se zobrazují 3 recenze, na mobilu 1 recenze.</p>
+        <p class="text-secondary mb-0">Výběr z aktuálních hodnocení zákazníků.</p>
+      </div>
+      <div class="reviews-summary" aria-label="Souhrn zákaznických recenzí">
+        <div class="reviews-summary-score">
+          <span data-reviews-average>4.6</span><span>/5</span>
+        </div>
+        <div class="reviews-summary-stars" data-reviews-summary-stars aria-hidden="true">★★★★★</div>
+        <div class="reviews-summary-count">z <span data-reviews-count>50</span> zákaznických recenzí</div>
       </div>
       <button class="reviews-next-button" type="button" data-reviews-next aria-label="Další recenze">
         <i class="bi bi-arrow-right"></i>
@@ -152,7 +159,7 @@
 
     <div class="reviews-carousel-viewport" data-reviews-viewport>
       <div class="reviews-track" data-reviews-track>
-        <article class="review-card" aria-label="Recenze od Lucie K.">
+        <article class="review-card" aria-label="Recenze od Lucie K." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Boty dorazily rychle, vypadají jako na fotce a jsou pohodlné. Za mě super nákup!“</p>
           <div class="review-author">
@@ -160,7 +167,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od martin p.">
+        <article class="review-card" aria-label="Recenze od martin p." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„za tu cenu super boty, objednavka probehla bez problemu, doporucuju.“</p>
           <div class="review-author">
@@ -168,7 +175,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Jana M.">
+        <article class="review-card" aria-label="Recenze od Jana M." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„Skvělé ceny, boty sedí dobře, jen doručení trvalo o den déle než psali na webu.“</p>
           <div class="review-author">
@@ -176,7 +183,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od TOMÁŠ">
+        <article class="review-card" aria-label="Recenze od TOMÁŠ" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„PECKA, ZA TYHLE PRACHY NESEŽENETE LEPŠÍ.“</p>
           <div class="review-author">
@@ -184,7 +191,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Kateřina N.">
+        <article class="review-card" aria-label="Recenze od Kateřina N." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Krásné lodičky, velikost odpovídá tabulce. Komunikace obchodu na jedničku.“</p>
           <div class="review-author">
@@ -192,7 +199,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od petr">
+        <article class="review-card" aria-label="Recenze od petr" data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„rychle vyrizeni. tenisky jsou fajn na litacku venku, ale vlozku sem si musel dat vlastni“</p>
           <div class="review-author">
@@ -200,7 +207,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Verča">
+        <article class="review-card" aria-label="Recenze od Verča" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„božíí botky, moc děkuju :)))“</p>
           <div class="review-author">
@@ -208,7 +215,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Jakub S.">
+        <article class="review-card" aria-label="Recenze od Jakub S." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Všechno proběhlo v naprostém pořádku. Ceny sou fakt bezkonkurenční.“</p>
           <div class="review-author">
@@ -216,7 +223,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Alena T.">
+        <article class="review-card" aria-label="Recenze od Alena T." data-rating="3">
           <div class="review-stars" aria-label="3 z 5 hvězdiček">★★★☆☆</div>
           <p>„Píšou doručení max do 12 dnů a já čekala 13!!! jako boty jsou pěkný ale tohle by si měli hlídat.“</p>
           <div class="review-author">
@@ -224,7 +231,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Michal K.">
+        <article class="review-card" aria-label="Recenze od Michal K." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Parádní zimní boty, nepromoknou a stály pár korun.“</p>
           <div class="review-author">
@@ -232,7 +239,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Monika R.">
+        <article class="review-card" aria-label="Recenze od Monika R." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„Botky dorazily v pořádku, ale krabice byla uplně na kaši. naštěstí botám nic není.“</p>
           <div class="review-author">
@@ -240,7 +247,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Jiri V.">
+        <article class="review-card" aria-label="Recenze od Jiri V." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Rychlost dodani me sokovala, hned druhy den doma. Super.“</p>
           <div class="review-author">
@@ -248,7 +255,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Terka">
+        <article class="review-card" aria-label="Recenze od Terka" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Krásné letní sandálky, na noze vypadají luxusně. Za tu cenu pecka.“</p>
           <div class="review-author">
@@ -256,7 +263,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Ondra">
+        <article class="review-card" aria-label="Recenze od Ondra" data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„levny a ucel to plni. vic sem necekal.“</p>
           <div class="review-author">
@@ -264,7 +271,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od nikola">
+        <article class="review-card" aria-label="Recenze od nikola" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„skvely vyber, super ceny a bleskove dodani. nemam co vytknout!!!“</p>
           <div class="review-author">
@@ -272,7 +279,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Filip H.">
+        <article class="review-card" aria-label="Recenze od Filip H." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Výměna za jinou velikost proběhla neuvěřitelně rychle a bez řečí. Děkuji“</p>
           <div class="review-author">
@@ -280,7 +287,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Zuzana K.">
+        <article class="review-card" aria-label="Recenze od Zuzana K." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Balíček dorazil krásně zabalený, boty jsou měkoučké a hned jsem v nich vyrazila ven.“</p>
           <div class="review-author">
@@ -288,7 +295,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Lukas T.">
+        <article class="review-card" aria-label="Recenze od Lukas T." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„dobry eshop. boty celkem ujdou.“</p>
           <div class="review-author">
@@ -296,7 +303,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Pavla Š.">
+        <article class="review-card" aria-label="Recenze od Pavla Š." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Moc milá komunikace na podpoře, paní mi poradila s velikostí a sedí to uplně přesně.“</p>
           <div class="review-author">
@@ -304,7 +311,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od david r.">
+        <article class="review-card" aria-label="Recenze od david r." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„tenisky vypadaj nazivo lip jak na fotce, spokojenost“</p>
           <div class="review-author">
@@ -312,7 +319,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Hana J.">
+        <article class="review-card" aria-label="Recenze od Hana J." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„Velký výběr, jen ta modrá barva je ve skutečnosti spíš do tyrkysova. Ale nechám si je.“</p>
           <div class="review-author">
@@ -320,7 +327,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Marek O.">
+        <article class="review-card" aria-label="Recenze od Marek O." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Vše ok, zásilkovna klasicky rychlá.“</p>
           <div class="review-author">
@@ -328,7 +335,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od kikina">
+        <article class="review-card" aria-label="Recenze od kikina" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„milujuuuu je! na podpatku sem vydrzela celou noc a nebolely me nohy &lt;3“</p>
           <div class="review-author">
@@ -336,7 +343,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Jan Š.">
+        <article class="review-card" aria-label="Recenze od Jan Š." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„jednoduchej nakup, prehledny web“</p>
           <div class="review-author">
@@ -344,7 +351,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Eva N.">
+        <article class="review-card" aria-label="Recenze od Eva N." data-rating="3">
           <div class="review-stars" aria-label="3 z 5 hvězdiček">★★★☆☆</div>
           <p>„S botami jsem celkem spokojená, ale po týdnu nošení se začala párat tkanička.“</p>
           <div class="review-author">
@@ -352,7 +359,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Radek P.">
+        <article class="review-card" aria-label="Recenze od Radek P." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Super kauf za málo peněz hodně muziky“</p>
           <div class="review-author">
@@ -360,7 +367,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od lenka m.">
+        <article class="review-card" aria-label="Recenze od lenka m." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„malej je z boticek nadsenej. ceny jsou top.“</p>
           <div class="review-author">
@@ -368,7 +375,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Aleš K.">
+        <article class="review-card" aria-label="Recenze od Aleš K." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„Dorazilo co mělo, velikost odpovídá.“</p>
           <div class="review-author">
@@ -376,7 +383,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Simona B.">
+        <article class="review-card" aria-label="Recenze od Simona B." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Nádherné tenisky, všichni mi je v praci chválí!!“</p>
           <div class="review-author">
@@ -384,7 +391,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Patrik Z.">
+        <article class="review-card" aria-label="Recenze od Patrik Z." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Bezproblémový obchod.“</p>
           <div class="review-author">
@@ -392,7 +399,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Andrea F.">
+        <article class="review-card" aria-label="Recenze od Andrea F." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Boty jsou hrozně lehoučké, na směny do práce idealní.“</p>
           <div class="review-author">
@@ -400,7 +407,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Mira T.">
+        <article class="review-card" aria-label="Recenze od Mira T." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„pomer cena/vykon bezkonkurencni. dodani klasika 2 dny.“</p>
           <div class="review-author">
@@ -408,7 +415,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Denisa H.">
+        <article class="review-card" aria-label="Recenze od Denisa H." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Měla jsem fakt strach z tý nízký ceny, ale boty sou pěkně ušitý.“</p>
           <div class="review-author">
@@ -416,7 +423,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Kamil">
+        <article class="review-card" aria-label="Recenze od Kamil" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Nakoupil jsem poprve a urcite ne naposled.“</p>
           <div class="review-author">
@@ -424,7 +431,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od ivana l.">
+        <article class="review-card" aria-label="Recenze od ivana l." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„sedi skvele, nikde netlaci“</p>
           <div class="review-author">
@@ -432,7 +439,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Martin Š.">
+        <article class="review-card" aria-label="Recenze od Martin Š." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„co slíbili to dorazilo, za ty prachy pohoda.“</p>
           <div class="review-author">
@@ -440,7 +447,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Nikola M.">
+        <article class="review-card" aria-label="Recenze od Nikola M." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Rychly nakup, ceny mluvi za vse.“</p>
           <div class="review-author">
@@ -448,7 +455,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Vojta">
+        <article class="review-card" aria-label="Recenze od Vojta" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„na chatu uplne super boty.“</p>
           <div class="review-author">
@@ -456,7 +463,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Bára N.">
+        <article class="review-card" aria-label="Recenze od Bára N." data-rating="2">
           <div class="review-stars" aria-label="2 z 5 hvězdiček">★★☆☆☆</div>
           <p>„boty strasne smrdely nejakou chemikalií musela sem je dat na dva dny na balkon vyvetrat... pak uz se to dalo.“</p>
           <div class="review-author">
@@ -464,7 +471,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Roman U.">
+        <article class="review-card" aria-label="Recenze od Roman U." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Všechno klaplo na jedničku.“</p>
           <div class="review-author">
@@ -472,7 +479,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Gabriela P.">
+        <article class="review-card" aria-label="Recenze od Gabriela P." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„MOJE NEJOBLÍBENĚJŠÍ BOTY!“</p>
           <div class="review-author">
@@ -480,7 +487,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Dan J.">
+        <article class="review-card" aria-label="Recenze od Dan J." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Skvělý eshop, rychle doručení.“</p>
           <div class="review-author">
@@ -488,7 +495,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Sabča R.">
+        <article class="review-card" aria-label="Recenze od Sabča R." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„Jsou super, jen by mohli mít širší výběr i ve vel. 41.“</p>
           <div class="review-author">
@@ -496,7 +503,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Luděk W.">
+        <article class="review-card" aria-label="Recenze od Luděk W." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„sedí přesně podle tabulky.“</p>
           <div class="review-author">
@@ -504,7 +511,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Adéla T.">
+        <article class="review-card" aria-label="Recenze od Adéla T." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Opravdu boty za hubičku! Koupila jsem si hned troje :)“</p>
           <div class="review-author">
@@ -512,7 +519,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Dominik S.">
+        <article class="review-card" aria-label="Recenze od Dominik S." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„v poho, prislo to rychle.“</p>
           <div class="review-author">
@@ -520,7 +527,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od marcela v.">
+        <article class="review-card" aria-label="Recenze od marcela v." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„prehledne stranky a fajn ceny“</p>
           <div class="review-author">
@@ -528,7 +535,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Jindra">
+        <article class="review-card" aria-label="Recenze od Jindra" data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„vse OK“</p>
           <div class="review-author">
@@ -536,7 +543,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Petra O.">
+        <article class="review-card" aria-label="Recenze od Petra O." data-rating="5">
           <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
           <p>„Boty jsou nádherné a sedí dokonale.“</p>
           <div class="review-author">
@@ -544,7 +551,7 @@
             <span>Zákaznické hodnocení</span>
           </div>
         </article>
-        <article class="review-card" aria-label="Recenze od Kryštof L.">
+        <article class="review-card" aria-label="Recenze od Kryštof L." data-rating="4">
           <div class="review-stars" aria-label="4 z 5 hvězdiček">★★★★☆</div>
           <p>„kvalita odpovídá ceně. nečekejte zázraky, ale na běžné chození stačí.“</p>
           <div class="review-author">
