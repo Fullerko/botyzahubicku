@@ -186,6 +186,7 @@
         <h6>Rychlé odkazy</h6>
         <ul class="list-unstyled footer-links">
           <li><a href="{{ url_for('shop.products') }}">Produkty</a></li>
+          <li><a href="{{ url_for('shop.blog') }}">Blog / Články</a></li>
 
           {% if settings.get('footer_affiliate_label', '').strip() %}
             <li><a href="{{ settings.get('footer_affiliate_url', '#') }}">
