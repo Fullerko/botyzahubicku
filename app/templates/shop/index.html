@@ -95,6 +95,123 @@
   </div>
 </section>
 
+
+<section class="container py-5 homepage-trust-section" aria-labelledby="homepage-trust-title">
+  <div class="section-header mb-3">
+    <div>
+      <span class="trust-eyebrow">Bezpečný a přehledný nákup</span>
+      <h2 id="homepage-trust-title">Proč nakupovat u nás</h2>
+      <p class="text-secondary mb-0">Stylové boty za dostupné ceny, férové informace a jasný průběh objednávky.</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6 col-xl-3">
+      <article class="trust-card h-100">
+        <div class="trust-icon"><i class="bi bi-shield-check"></i></div>
+        <h3>Bezpečný nákup</h3>
+        <p>Nakupujete v přehledném prostředí s jasnými podmínkami a bez skrytých poplatků.</p>
+      </article>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <article class="trust-card h-100">
+        <div class="trust-icon"><i class="bi bi-box-seam"></i></div>
+        <h3>Rychlé vyřízení</h3>
+        <p>Objednávky zpracováváme co nejrychleji, abyste měli nové boty brzy doma.</p>
+      </article>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <article class="trust-card h-100">
+        <div class="trust-icon"><i class="bi bi-award"></i></div>
+        <h3>Záruka 2 roky</h3>
+        <p>Na zboží se vztahuje zákonná záruka 2 roky, takže nakupujete bez zbytečných obav.</p>
+      </article>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <article class="trust-card h-100">
+        <div class="trust-icon"><i class="bi bi-stars"></i></div>
+        <h3>Styl za dobrou cenu</h3>
+        <p>Vybíráme modely, které dobře vypadají a zároveň dávají smysl cenou.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="container pb-5 homepage-reviews-section" aria-labelledby="homepage-reviews-title">
+  <div class="reviews-panel">
+    <div class="section-header mb-4">
+      <div>
+        <span class="trust-eyebrow">Zkušenosti zákazníků</span>
+        <h2 id="homepage-reviews-title">Recenze zákazníků</h2>
+        <p class="text-secondary mb-0">Ověřené recenze budeme postupně doplňovat podle zpětné vazby z objednávek.</p>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <article class="review-card h-100">
+          {% set review_1_text = settings.get('homepage_review_1_text') %}
+          {% if review_1_text %}
+            <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+            <p>„{{ review_1_text }}“</p>
+            <div class="review-author">
+              <strong>{{ settings.get('homepage_review_1_name', 'Ověřený zákazník') }}</strong>
+              <span>{{ settings.get('homepage_review_1_note', 'Ověřený nákup') }}</span>
+            </div>
+          {% else %}
+            <div class="review-badge">Připravujeme</div>
+            <p>Recenze od zákazníků právě sbíráme. Nechceme zobrazovat neověřená hodnocení, proto je doplníme postupně podle reálných objednávek.</p>
+            <div class="review-author">
+              <strong>BotyZaHubičku.cz</strong>
+              <span>Ověřené recenze připravujeme</span>
+            </div>
+          {% endif %}
+        </article>
+      </div>
+      <div class="col-md-4">
+        <article class="review-card h-100">
+          {% set review_2_text = settings.get('homepage_review_2_text') %}
+          {% if review_2_text %}
+            <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+            <p>„{{ review_2_text }}“</p>
+            <div class="review-author">
+              <strong>{{ settings.get('homepage_review_2_name', 'Ověřený zákazník') }}</strong>
+              <span>{{ settings.get('homepage_review_2_note', 'Ověřený nákup') }}</span>
+            </div>
+          {% else %}
+            <div class="review-badge">Zpětná vazba</div>
+            <p>Po doručení objednávek budeme zákazníky žádat o krátkou zpětnou vazbu k pohodlí, velikosti a celkovému nákupu.</p>
+            <div class="review-author">
+              <strong>Z objednávek zákazníků</strong>
+              <span>Budeme doplňovat postupně</span>
+            </div>
+          {% endif %}
+        </article>
+      </div>
+      <div class="col-md-4">
+        <article class="review-card h-100">
+          {% set review_3_text = settings.get('homepage_review_3_text') %}
+          {% if review_3_text %}
+            <div class="review-stars" aria-label="5 z 5 hvězdiček">★★★★★</div>
+            <p>„{{ review_3_text }}“</p>
+            <div class="review-author">
+              <strong>{{ settings.get('homepage_review_3_name', 'Ověřený zákazník') }}</strong>
+              <span>{{ settings.get('homepage_review_3_note', 'Ověřený nákup') }}</span>
+            </div>
+          {% else %}
+            <div class="review-badge">Váš názor</div>
+            <p>Máte zkušenost s nákupem? Budeme rádi za hodnocení, které pomůže dalším zákazníkům s výběrem.</p>
+            <div class="review-author">
+              <strong>Pomáháte zlepšovat e-shop</strong>
+              <span>Zákaznická zpětná vazba</span>
+            </div>
+          {% endif %}
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="container py-5">
   <div class="section-header mb-3">
     <div>
