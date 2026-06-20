@@ -944,7 +944,7 @@ def order_success(order_number):
         bank_account=setting('bank_account', ''),
         bank_iban=setting('bank_iban', ''),
         track_purchase=(order.payment_status == 'paid'),
-        meta_purchase=_meta_order_payload(order),
+        meta_purchase=_meta_order_payload(order) if order.payment_status == 'paid' else None,
     )
 
 

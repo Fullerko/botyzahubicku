@@ -339,7 +339,7 @@ def _heatmap_base(start):
 
 
 def _orders_base(start, paid_only=False):
-    q = Order.query.filter(Order.created_at >= start)
+    q = Order.query.filter(Order.created_at >= start, Order.payment_status == 'paid')
     if paid_only:
         q = q.filter(Order.payment_status == 'paid')
     return q
@@ -374,7 +374,7 @@ def _money(value):
 
 
 def _order_stats(start):
-    all_orders = _orders_base(start, paid_only=False).all()
+    all_orders = _orders_base(start, paid_only=True).all()
     paid_orders = [o for o in all_orders if (o.payment_status or '').lower() == 'paid']
     total_revenue = sum(_money(o.total_price) for o in all_orders)
     paid_revenue = sum(_money(o.total_price) for o in paid_orders)
@@ -422,7 +422,7 @@ def _daily_series(start, end):
         func.sum(case((AnalyticsVisit.product_id.isnot(None), 1), else_=0)).label('product_views'),
     ).group_by(AnalyticsVisit.visit_date).all()
 
-    order_rows = Order.query.filter(Order.created_at >= datetime.combine(days[0], datetime.min.time())).with_entities(
+    order_rows = Order.query.filter(Order.payment_status == 'paid', Order.created_at >= datetime.combine(days[0], datetime.min.time())).with_entities(
         func.date(Order.created_at).label('date_key'),
         func.count(Order.id).label('orders'),
         func.coalesce(func.sum(Order.total_price), 0).label('revenue'),
@@ -466,7 +466,7 @@ def _top_product_revenue(start, limit=20):
         func.coalesce(func.sum(OrderItem.quantity * OrderItem.unit_price), 0).label('revenue'),
         func.count(func.distinct(OrderItem.order_id)).label('orders'),
     ).join(OrderItem, OrderItem.product_id == Product.id).join(Order, Order.id == OrderItem.order_id).filter(
-        Order.created_at >= start
+        Order.created_at >= start, Order.payment_status == 'paid'
     ).group_by(Product.id).order_by(desc('revenue')).limit(limit).all()
     return [
         {
