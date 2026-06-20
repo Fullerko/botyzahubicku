@@ -404,12 +404,14 @@ Sitemap: {sitemap}
     from .routes_admin import admin_bp
     from .routes_emailing import emailing_bp
     from .analytics import analytics_bp
+    from app.meta_feed import meta_feed_bp
 
     app.register_blueprint(shop_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(emailing_bp)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(meta_feed_bp)
 
     with app.app_context():
         from . import models
