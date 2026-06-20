@@ -17,7 +17,7 @@ def meta_feed():
             <description>{p.description or p.name}</description>
             <link>https://botyzahubicku.cz/produkt/{p.id}</link>
             <g:image_link>https://botyzahubicku.cz/static/uploads/{p.image}</g:image_link>
-            <g:availability>{"in stock" if p.in_stock else "out of stock"}</g:availability>
+            <g:availability>availability = "in stock"</g:availability>
             <g:price>{p.price} CZK</g:price>
             <g:condition>new</g:condition>
         </item>
