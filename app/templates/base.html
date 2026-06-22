@@ -69,7 +69,7 @@
     gtag('config', 'G-SVQB72JKNK');
   </script>
   
-  {# Meta Pixel: ID můžeš později změnit v admin nastavení klíčem meta_pixel_id. #}
+  {# Meta Pixel: aktuální Pixel ID. #}
   {% set meta_pixel_id = '1336678564638484' %}
   {% set meta_pixel_enabled = not request.path.startswith('/admin') %}
   {% if meta_pixel_enabled %}

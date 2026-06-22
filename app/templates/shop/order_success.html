@@ -41,6 +41,29 @@
   </div>
 </section>
 <script>
+(function () {
+  const orderNumber = {{ order.order_number|tojson }};
+  const storageKey = `meta_purchase_tracked_${orderNumber}`;
+
+  window.trackMetaPurchaseOnce = function (payload) {
+    if (!payload || typeof fbq !== "function") return;
+
+    try {
+      if (window.localStorage && localStorage.getItem(storageKey) === "1") return;
+    } catch (error) {
+      // Když localStorage není dostupné, Purchase se stále pošle, ale jen pro zaplacenou objednávku.
+    }
+
+    fbq('track', 'Purchase', payload);
+
+    try {
+      if (window.localStorage) localStorage.setItem(storageKey, "1");
+    } catch (error) {
+      // Ignorujeme chybu ukládání do localStorage.
+    }
+  };
+})();
+
 document.addEventListener("DOMContentLoaded", function () {
   const btn = document.getElementById("checkPaymentBtn");
   const messageBox = document.getElementById("paymentStatusMessage");
@@ -61,6 +84,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.paid === true) {
         messageBox.className = "mt-3 fw-semibold text-success";
         messageBox.innerText = "Děkujeme za Vaši objednávku, podrobnosti jsme Vám zaslali emailem.";
+
+        if (data.meta_purchase && window.trackMetaPurchaseOnce) {
+          window.trackMetaPurchaseOnce(data.meta_purchase);
+        }
       } else {
         messageBox.className = "mt-3 fw-semibold text-warning";
         messageBox.innerText = "Platba neexistuje, nebo stále nedorazila, vyčkejte prosím 30 vteřin a zkuste zkontrolovat stav znovu.";
@@ -79,10 +106,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 {% block tracking %}
-{% if meta_purchase %}
+{% if track_purchase and meta_purchase %}
 <script>
-  if (typeof fbq === 'function') {
-    fbq('track', 'Purchase', {{ meta_purchase|tojson }});
+  if (window.trackMetaPurchaseOnce) {
+    window.trackMetaPurchaseOnce({{ meta_purchase|tojson }});
   }
 </script>
 {% endif %}

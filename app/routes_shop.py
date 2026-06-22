@@ -168,7 +168,7 @@ def _meta_cart_payload(items, total):
 
 
 def _meta_order_payload(order):
-    """Payload pro Meta Pixel Purchase po vytvoření objednávky."""
+    """Payload pro Meta Pixel Purchase pouze pro opravdu zaplacenou objednávku."""
     contents = []
     content_ids = []
     num_items = 0
@@ -458,9 +458,14 @@ def order_status(order_number):
         or bool(order.paid_at)
     )
 
-    return {
+    response = {
         "paid": is_paid
     }
+
+    if is_paid:
+        response["meta_purchase"] = _meta_order_payload(order)
+
+    return response
 
 @shop_bp.route('/blog')
 def blog():
@@ -914,7 +919,6 @@ def checkout():
         capture_cart_lead(order.email, name=order.customer_name, phone=order.phone, session_id=request.cookies.get(current_app.config.get('SESSION_COOKIE_NAME', 'session'), ''))
         upsert_contact_from_order(order)
         db.session.commit()
-        session['meta_purchase_order_number'] = order.order_number
         session['cart'] = {}
         session.pop('coupon', None)
         flash(f'Objednávka {order.order_number} byla úspěšně vytvořena.', 'success')
@@ -937,14 +941,19 @@ def checkout():
 @shop_bp.route('/objednavka/<order_number>')
 def order_success(order_number):
     order = Order.query.filter_by(order_number=order_number).first_or_404()
+    is_paid = (
+        order.payment_status == 'paid'
+        or order.status == 'Zaplaceno'
+        or bool(order.paid_at)
+    )
 
     return render_template(
         'shop/order_success.html',
         order=order,
         bank_account=setting('bank_account', ''),
         bank_iban=setting('bank_iban', ''),
-        track_purchase=(order.payment_status == 'paid'),
-        meta_purchase=_meta_order_payload(order) if session.pop('meta_purchase_order_number', None) == order.order_number else None,
+        track_purchase=is_paid,
+        meta_purchase=_meta_order_payload(order) if is_paid else None,
     )
 
 
