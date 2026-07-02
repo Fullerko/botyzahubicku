@@ -371,6 +371,30 @@ class PublicProductListing(db.Model):
         return self.size or 'Dle dostupnosti'
 
 
+class PublicProductReservation(db.Model):
+    """Rezervace z veřejných stránek /objednano a /sklad.
+
+    Používá se pro běžné produkty i ručně přidané položky. Položky ze
+    StoreStockItem dál využívají StoreReservation, aby se správně blokoval
+    fyzický sklad prodejny.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    listing_type = db.Column(db.String(20), nullable=False, index=True)  # ordered / stock
+    item_type = db.Column(db.String(20), nullable=False, index=True)  # product / manual
+    item_id = db.Column(db.Integer, nullable=False, index=True)
+    product_name = db.Column(db.String(180), nullable=False)
+    brand = db.Column(db.String(80), default='')
+    size = db.Column(db.String(40), nullable=False)
+    color = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(160), nullable=False, index=True)
+    phone = db.Column(db.String(40), nullable=False)
+    customer_name = db.Column(db.String(140), default='')
+    status = db.Column(db.String(30), default='nová', index=True)
+    note = db.Column(db.Text, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class StoreReservation(db.Model):
     """Bezplatná rezervace obuvi na prodejně na 3 dny."""
     id = db.Column(db.Integer, primary_key=True)

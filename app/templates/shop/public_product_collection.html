@@ -48,50 +48,108 @@
     <div class="col-lg-9">
       <div class="row g-4">
         {% for product in products %}
-          {% include 'components/product_card.html' %}
+          {% set reserve = reservation_data['product'].get(product.id|string) %}
+          <div class="col-md-6 col-xl-3">
+            <div class="product-card h-100 d-flex flex-column">
+              <a href="{{ url_for('shop.product_detail', slug=product.slug) }}" class="text-decoration-none text-dark">
+                <div class="product-image-wrap">
+                  {% if product.discount_percent %}<span class="discount-badge">-{{ product.discount_percent }} %</span>{% endif %}
+                  <img class="product-image" src="{{ image_url(product.image) }}" alt="{{ product.image_alt or product.name }}" loading="lazy">
+                </div>
+              </a>
+              <div class="p-3 d-flex flex-column flex-grow-1">
+                <div class="text-secondary small mb-1">{{ product.brand }}</div>
+                <h2 class="h5 product-title">{{ product.name }}</h2>
+                {% if product.short_description %}<p class="text-secondary small mb-2">{{ product.short_description }}</p>{% endif %}
+                <div class="mt-auto">
+                  <div class="mb-3">
+                    <strong class="fs-5">{{ '{:,.0f}'.format(product.price).replace(',', ' ') }} Kč</strong>
+                    {% if product.original_price %}<div class="old-price">{{ '{:,.0f}'.format(product.original_price).replace(',', ' ') }} Kč</div>{% endif %}
+                  </div>
+                  <div class="d-grid gap-2 d-sm-flex">
+                    <a class="btn btn-dark rounded-pill flex-fill" href="{{ url_for('shop.product_detail', slug=product.slug) }}">Detail</a>
+                    <button
+                      type="button"
+                      class="btn btn-outline-dark rounded-pill flex-fill"
+                      data-bs-toggle="modal"
+                      data-bs-target="#reserveModal"
+                      data-reserve-title="{{ product.name }}"
+                      data-reserve-action="{{ url_for('shop.public_reserve', listing_type=listing_type, item_type='product', item_id=product.id) }}"
+                      data-reserve-sizes='{{ (reserve.sizes if reserve else ['Dle dostupnosti'])|tojson|forceescape }}'
+                      data-reserve-colors='{{ (reserve.colors if reserve else ['Dle dostupnosti'])|tojson|forceescape }}'
+                    >Rezervovat</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         {% endfor %}
 
         {% for item in manual_items %}
-        <div class="col-md-6 col-xl-3">
-          <div class="product-card h-100 d-flex flex-column">
-            <div class="product-image-wrap">
-              <img class="product-image" src="{{ image_url(item.display_image) }}" alt="{{ item.display_name }}" loading="lazy">
-            </div>
-            <div class="p-3 d-flex flex-column flex-grow-1">
-              <div class="text-secondary small mb-1">{{ item.display_brand }}</div>
-              <h2 class="h5 product-title">{{ item.display_name }}</h2>
-              {% if item.size %}<div class="mb-2"><span class="badge rounded-pill text-bg-light border px-3 py-2">{{ item.size_label }}</span></div>{% endif %}
-              {% if item.note %}<p class="text-secondary small mb-2">{{ item.note }}</p>{% endif %}
-              <div class="mt-auto">
-                {% if item.display_price %}<strong class="fs-5">{{ '{:,.0f}'.format(item.display_price).replace(',', ' ') }} Kč</strong>{% endif %}
-                <div class="small text-secondary mt-2">{{ 'Skladem' if listing_type == 'stock' else 'Objednáno' }}</div>
+          {% set reserve = reservation_data['manual'].get(item.id|string) %}
+          <div class="col-md-6 col-xl-3">
+            <div class="product-card h-100 d-flex flex-column">
+              <div class="product-image-wrap">
+                <img class="product-image" src="{{ image_url(item.display_image) }}" alt="{{ item.display_name }}" loading="lazy">
+              </div>
+              <div class="p-3 d-flex flex-column flex-grow-1">
+                <div class="text-secondary small mb-1">{{ item.display_brand }}</div>
+                <h2 class="h5 product-title">{{ item.display_name }}</h2>
+                {% if item.size %}<div class="mb-2"><span class="badge rounded-pill text-bg-light border px-3 py-2">{{ item.size_label }}</span></div>{% endif %}
+                {% if item.note %}<p class="text-secondary small mb-2">{{ item.note }}</p>{% endif %}
+                <div class="mt-auto">
+                  {% if item.display_price %}<strong class="fs-5">{{ '{:,.0f}'.format(item.display_price).replace(',', ' ') }} Kč</strong>{% endif %}
+                  <div class="small text-secondary mt-2">{{ 'Skladem' if listing_type == 'stock' else 'Objednáno' }}</div>
+                  <button
+                    type="button"
+                    class="btn btn-outline-dark rounded-pill w-100 mt-3"
+                    data-bs-toggle="modal"
+                    data-bs-target="#reserveModal"
+                    data-reserve-title="{{ item.display_name }}"
+                    data-reserve-action="{{ url_for('shop.public_reserve', listing_type=listing_type, item_type='manual', item_id=item.id) }}"
+                    data-reserve-sizes='{{ (reserve.sizes if reserve else ['Dle dostupnosti'])|tojson|forceescape }}'
+                    data-reserve-colors='{{ (reserve.colors if reserve else ['Dle dostupnosti'])|tojson|forceescape }}'
+                  >Rezervovat</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         {% endfor %}
 
         {% for item in store_items %}
-        <div class="col-md-6 col-xl-3">
-          <div class="product-card h-100 d-flex flex-column">
-            <div class="product-image-wrap">
-              <img class="product-image" src="{{ image_url(item.display_image) }}" alt="{{ item.display_name }} velikost {{ item.size }}" loading="lazy">
-            </div>
-            <div class="p-3 d-flex flex-column flex-grow-1">
-              <div class="text-secondary small mb-1">{{ item.display_brand or 'BotyZaHubicku.cz' }}</div>
-              <h2 class="h5 product-title">{{ item.display_name }}</h2>
-              <div class="d-flex gap-2 flex-wrap mb-2">
-                <span class="badge rounded-pill text-bg-dark px-3 py-2">Vel. {{ item.size }}</span>
-                <span class="badge rounded-pill text-bg-light border px-3 py-2">Skladem {{ item.available_quantity }} ks</span>
+          {% set reserve = reservation_data['store'].get(item.id|string) %}
+          <div class="col-md-6 col-xl-3">
+            <div class="product-card h-100 d-flex flex-column">
+              <div class="product-image-wrap">
+                <img class="product-image" src="{{ image_url(item.display_image) }}" alt="{{ item.display_name }} velikost {{ item.size }}" loading="lazy">
               </div>
-              {% if item.note %}<p class="text-secondary small mb-2">{{ item.note }}</p>{% endif %}
-              <div class="mt-auto">
-                <strong class="fs-5">{{ '{:,.0f}'.format(item.display_price or 0).replace(',', ' ') }} Kč</strong>
-                {% if item.product and item.product.slug %}<a class="btn btn-dark rounded-pill w-100 mt-3" href="{{ url_for('shop.product_detail', slug=item.product.slug) }}">Detail</a>{% endif %}
+              <div class="p-3 d-flex flex-column flex-grow-1">
+                <div class="text-secondary small mb-1">{{ item.display_brand or 'BotyZaHubicku.cz' }}</div>
+                <h2 class="h5 product-title">{{ item.display_name }}</h2>
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                  <span class="badge rounded-pill text-bg-dark px-3 py-2">Vel. {{ item.size }}</span>
+                  <span class="badge rounded-pill text-bg-light border px-3 py-2">Skladem {{ item.available_quantity }} ks</span>
+                </div>
+                {% if item.note %}<p class="text-secondary small mb-2">{{ item.note }}</p>{% endif %}
+                <div class="mt-auto">
+                  <strong class="fs-5">{{ '{:,.0f}'.format(item.display_price or 0).replace(',', ' ') }} Kč</strong>
+                  <div class="d-grid gap-2 d-sm-flex mt-3">
+                    {% if item.product and item.product.slug %}<a class="btn btn-dark rounded-pill flex-fill" href="{{ url_for('shop.product_detail', slug=item.product.slug) }}">Detail</a>{% endif %}
+                    <button
+                      type="button"
+                      class="btn btn-outline-dark rounded-pill flex-fill"
+                      data-bs-toggle="modal"
+                      data-bs-target="#reserveModal"
+                      data-reserve-title="{{ item.display_name }}"
+                      data-reserve-action="{{ url_for('shop.public_reserve', listing_type=listing_type, item_type='store', item_id=item.id) }}"
+                      data-reserve-sizes='{{ (reserve.sizes if reserve else [item.size])|tojson|forceescape }}'
+                      data-reserve-colors='{{ (reserve.colors if reserve else ['Dle dostupnosti'])|tojson|forceescape }}'
+                    >Rezervovat</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
         {% endfor %}
 
         {% if not products and not manual_items and not store_items %}
@@ -101,4 +159,90 @@
     </div>
   </div>
 </section>
+
+<div class="modal fade" id="reserveModal" tabindex="-1" aria-labelledby="reserveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <form id="reserveModalForm" method="post">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <p class="text-uppercase small text-secondary fw-semibold mb-1">Rezervace produktu</p>
+            <h2 class="modal-title h4" id="reserveModalLabel">Rezervovat</h2>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavřít"></button>
+        </div>
+        <div class="modal-body pt-3">
+          <p class="text-secondary small mb-4">Vyberte velikost a barvu, doplňte kontakt a my se vám ozveme s potvrzením rezervace.</p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="reserveSizeSelect">Velikost</label>
+              <select class="form-select" id="reserveSizeSelect" name="size" required></select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="reserveColorSelect">Barva</label>
+              <select class="form-select" id="reserveColorSelect" name="color" required></select>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="reserveEmailInput">E-mail</label>
+              <input class="form-control" id="reserveEmailInput" type="email" name="email" placeholder="vas@email.cz" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="reservePhoneInput">Telefon</label>
+              <input class="form-control" id="reservePhoneInput" name="phone" placeholder="+420 777 123 456" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold" for="reserveNameInput">Jméno <span class="text-secondary fw-normal">(volitelné)</span></label>
+              <input class="form-control" id="reserveNameInput" name="customer_name" placeholder="Jméno a příjmení">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0 d-grid d-sm-flex">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Zavřít</button>
+          <button class="btn btn-dark rounded-pill px-4">Odeslat rezervaci</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const modal = document.getElementById('reserveModal');
+    if (!modal) return;
+
+    const form = document.getElementById('reserveModalForm');
+    const title = document.getElementById('reserveModalLabel');
+    const sizeSelect = document.getElementById('reserveSizeSelect');
+    const colorSelect = document.getElementById('reserveColorSelect');
+
+    function readOptions(rawValue) {
+      try {
+        const parsed = JSON.parse(rawValue || '[]');
+        return Array.isArray(parsed) && parsed.length ? parsed : ['Dle dostupnosti'];
+      } catch (error) {
+        return ['Dle dostupnosti'];
+      }
+    }
+
+    function fillSelect(select, options) {
+      select.innerHTML = '';
+      options.forEach(function (value) {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+      });
+    }
+
+    modal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      if (!button) return;
+
+      title.textContent = button.getAttribute('data-reserve-title') || 'Rezervovat produkt';
+      form.action = button.getAttribute('data-reserve-action') || '';
+      fillSelect(sizeSelect, readOptions(button.getAttribute('data-reserve-sizes')));
+      fillSelect(colorSelect, readOptions(button.getAttribute('data-reserve-colors')));
+    });
+  })();
+</script>
 {% endblock %}

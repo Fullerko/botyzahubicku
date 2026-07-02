@@ -4,13 +4,14 @@ import random
 import string
 import qrcode
 import base64
+import html
 from io import BytesIO
 
 from flask import Blueprint, current_app, abort, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
 
 from . import db
-from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, StoreReservation, StoreStockItem, PublicProductListing, AffiliatePayoutRequest, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, StoreReservation, StoreStockItem, PublicProductListing, PublicProductReservation, AffiliatePayoutRequest, User
 from .utils import get_cart, setting
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
@@ -230,6 +231,95 @@ def _clean_brand(value):
 
 def _blocked_brand(value):
     return _clean_brand(value).casefold() == 'wc'
+
+
+def _split_public_options(value):
+    """Vrátí čistý unikátní seznam voleb pro velikosti/barvy z textového pole."""
+    raw = str(value or '')
+    for separator in ['\n', ';', '|']:
+        raw = raw.replace(separator, ',')
+
+    options = []
+    seen = set()
+    for part in raw.split(','):
+        option = part.strip()
+        key = option.casefold()
+        if option and key not in seen:
+            options.append(option)
+            seen.add(key)
+    return options
+
+
+def _product_reservation_options(product):
+    sizes = []
+    colors = []
+
+    for variant in getattr(product, 'variants', []) or []:
+        if getattr(variant, 'size', ''):
+            sizes.append(str(variant.size).strip())
+        if getattr(variant, 'color', ''):
+            colors.append(str(variant.color).strip())
+
+    if not sizes:
+        for size_row in getattr(product, 'sizes', []) or []:
+            if getattr(size_row, 'size', ''):
+                sizes.append(str(size_row.size).strip())
+
+    colors.extend(_split_public_options(getattr(product, 'colors', '') or ''))
+    return {
+        'sizes': _split_public_options(','.join(sizes)) or ['Dle dostupnosti'],
+        'colors': _split_public_options(','.join(colors)) or ['Dle dostupnosti'],
+    }
+
+
+def _manual_reservation_options(item):
+    return {
+        'sizes': _split_public_options(getattr(item, 'size', '') or '') or ['Dle dostupnosti'],
+        'colors': ['Dle dostupnosti'],
+    }
+
+
+def _store_item_reservation_options(item):
+    colors = []
+    if getattr(item, 'product', None):
+        colors = _product_reservation_options(item.product).get('colors', [])
+    return {
+        'sizes': [str(item.size).strip()] if getattr(item, 'size', '') else ['Dle dostupnosti'],
+        'colors': colors or ['Dle dostupnosti'],
+    }
+
+
+def _public_collection_redirect(listing_type):
+    endpoint = 'shop.store_stock' if listing_type == 'stock' else 'shop.ordered_products'
+    return redirect(request.referrer or url_for(endpoint))
+
+
+def _valid_public_reservation_email(email):
+    return '@' in email and '.' in email.split('@')[-1]
+
+
+def _send_public_reservation_email(listing_type, product_name, brand, size, color, email, phone, customer_name='', source_label=''):
+    admin_email = setting('contact_email', '')
+    if not admin_email:
+        return
+
+    def esc(value):
+        return html.escape(str(value or '—'))
+
+    page_label = '/sklad' if listing_type == 'stock' else '/objednano'
+    subject = f'Nová rezervace {page_label}: {product_name} vel. {size}'
+    html_body = (
+        f'<h2>Nová rezervace {esc(page_label)}</h2>'
+        f'<p><strong>Produkt:</strong> {esc(product_name)}<br>'
+        f'<strong>Značka:</strong> {esc(brand)}<br>'
+        f'<strong>Velikost:</strong> {esc(size)}<br>'
+        f'<strong>Barva:</strong> {esc(color)}<br>'
+        f'<strong>Jméno:</strong> {esc(customer_name)}<br>'
+        f'<strong>E-mail:</strong> {esc(email)}<br>'
+        f'<strong>Telefon:</strong> {esc(phone)}<br>'
+        f'<strong>Zdroj:</strong> {esc(source_label or page_label)}</p>'
+    )
+    send_email(subject=subject, to_email=admin_email, html_body=html_body)
 
 
 def _product_filter_brands():
@@ -681,10 +771,19 @@ def _public_product_collection(listing_type):
             if item.size:
                 size_values.add(str(item.size))
 
-    title = 'Skladem' if is_stock else 'Objednáno'
-    subtitle = 'Produkty, které už máme skladem a klienti je mohou vidět na jednom místě.' if is_stock else 'Produkty, které jsou objednané a brzy dorazí do nabídky.'
+    title = 'Sklad' if is_stock else 'Objednáno'
+    subtitle = (
+        'Produkty, které už jsou dostupné na naší prodejně, zarezervujte si je ještě dnes'
+        if is_stock
+        else 'Produkty, které jsou objednané a brzy dorazí do skladu, zarezervujte si je ještě dnes'
+    )
     endpoint = 'shop.store_stock' if is_stock else 'shop.ordered_products'
     public_url = url_for(endpoint, _external=True)
+    reservation_data = {
+        'product': {str(product.id): _product_reservation_options(product) for product in products},
+        'manual': {str(item.id): _manual_reservation_options(item) for item in manual_items},
+        'store': {str(item.id): _store_item_reservation_options(item) for item in store_items},
+    }
 
     return render_template(
         'shop/public_product_collection.html',
@@ -702,6 +801,7 @@ def _public_product_collection(listing_type):
         selected_sort=sort,
         endpoint=endpoint,
         public_url=public_url,
+        reservation_data=reservation_data,
     )
 
 
@@ -713,6 +813,112 @@ def ordered_products():
 @shop_bp.route('/sklad')
 def store_stock():
     return _public_product_collection('stock')
+
+
+@shop_bp.route('/rezervace/<listing_type>/<item_type>/<int:item_id>', methods=['POST'])
+def public_reserve(listing_type, item_type, item_id):
+    if listing_type not in {'ordered', 'stock'}:
+        abort(404)
+
+    size = (request.form.get('size') or '').strip() or 'Dle dostupnosti'
+    color = (request.form.get('color') or '').strip() or 'Dle dostupnosti'
+    email = (request.form.get('email') or '').strip()
+    phone = (request.form.get('phone') or '').strip()
+    customer_name = (request.form.get('customer_name') or '').strip()
+
+    if not _valid_public_reservation_email(email):
+        flash('Zadejte platný e-mail pro potvrzení rezervace.', 'warning')
+        return _public_collection_redirect(listing_type)
+
+    if len(phone) < 6:
+        flash('Zadejte platný telefon, abychom vás mohli kontaktovat.', 'warning')
+        return _public_collection_redirect(listing_type)
+
+    if item_type == 'store':
+        if listing_type != 'stock':
+            abort(404)
+        item = StoreStockItem.query.filter_by(id=item_id, active=True).first_or_404()
+        if item.available_quantity < 1:
+            flash('Tato velikost už není na prodejně volná k rezervaci.', 'warning')
+            return _public_collection_redirect(listing_type)
+
+        reservation = StoreReservation(
+            store_item_id=item.id,
+            customer_name=customer_name,
+            email=email,
+            phone=phone,
+            quantity=1,
+            status='aktivní',
+            note=f'Barva: {color}',
+            reserved_until=datetime.utcnow() + timedelta(days=3),
+        )
+        db.session.add(reservation)
+        db.session.commit()
+
+        try:
+            _send_public_reservation_email(
+                listing_type='stock',
+                product_name=item.display_name,
+                brand=item.display_brand or 'BotyZaHubicku.cz',
+                size=item.size,
+                color=color,
+                email=email,
+                phone=phone,
+                customer_name=customer_name,
+                source_label='/sklad — sklad prodejny',
+            )
+        except Exception as exc:
+            current_app.logger.warning('Nepodařilo se odeslat e-mail o rezervaci: %s', exc)
+
+        flash('Rezervace byla vytvořena. Produkt držíme 3 dny a kontaktujeme vás přes telefon nebo e-mail.', 'success')
+        return _public_collection_redirect(listing_type)
+
+    if item_type == 'product':
+        product_query = Product.query.filter_by(id=item_id, active=True)
+        product_query = product_query.filter(Product.show_stock.is_(True) if listing_type == 'stock' else Product.show_ordered.is_(True))
+        product = product_query.first_or_404()
+        product_name = product.name
+        brand = product.brand or 'BotyZaHubicku.cz'
+    elif item_type == 'manual':
+        item = PublicProductListing.query.filter_by(id=item_id, active=True, listing_type=listing_type).first_or_404()
+        product_name = item.display_name
+        brand = item.display_brand
+    else:
+        abort(404)
+
+    reservation = PublicProductReservation(
+        listing_type=listing_type,
+        item_type=item_type,
+        item_id=item_id,
+        product_name=product_name,
+        brand=brand,
+        size=size,
+        color=color,
+        email=email,
+        phone=phone,
+        customer_name=customer_name,
+        status='nová',
+    )
+    db.session.add(reservation)
+    db.session.commit()
+
+    try:
+        _send_public_reservation_email(
+            listing_type=listing_type,
+            product_name=product_name,
+            brand=brand,
+            size=size,
+            color=color,
+            email=email,
+            phone=phone,
+            customer_name=customer_name,
+            source_label=f'/{"sklad" if listing_type == "stock" else "objednano"} — {item_type}',
+        )
+    except Exception as exc:
+        current_app.logger.warning('Nepodařilo se odeslat e-mail o rezervaci: %s', exc)
+
+    flash('Rezervace byla vytvořena. Ozveme se vám přes telefon nebo e-mail.', 'success')
+    return _public_collection_redirect(listing_type)
 
 
 @shop_bp.route('/sklad/rezervace/<int:item_id>', methods=['POST'])

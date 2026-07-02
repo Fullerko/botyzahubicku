@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from . import db
-from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, StoreReservation, StoreStockItem, PublicProductListing, SiteSetting, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, StoreReservation, StoreStockItem, PublicProductListing, PublicProductReservation, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
@@ -60,7 +60,7 @@ def dashboard():
         'store_stock': StoreStockItem.query.filter_by(active=True).count(),
         'public_ordered': Product.query.filter_by(active=True, show_ordered=True).count() + PublicProductListing.query.filter_by(active=True, listing_type='ordered').count(),
         'public_stock': Product.query.filter_by(active=True, show_stock=True).count() + PublicProductListing.query.filter_by(active=True, listing_type='stock').count(),
-        'store_reservations': StoreReservation.query.filter_by(status='aktivní').count(),
+        'store_reservations': StoreReservation.query.filter_by(status='aktivní').count() + PublicProductReservation.query.filter_by(status='nová').count(),
     }
 
     latest_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
@@ -428,11 +428,13 @@ def ordered_stock_admin():
 
     products = products_query.order_by(Product.created_at.desc()).all()
     manual_items = PublicProductListing.query.order_by(PublicProductListing.active.desc(), PublicProductListing.created_at.desc()).all()
+    public_reservations = PublicProductReservation.query.order_by(PublicProductReservation.created_at.desc()).limit(50).all()
 
     return render_template(
         'admin/ordered_stock.html',
         products=products,
         manual_items=manual_items,
+        public_reservations=public_reservations,
         search_query=search_query,
         format_product_sizes=format_product_sizes,
         ordered_url=url_for('shop.ordered_products', _external=True),
@@ -472,6 +474,27 @@ def public_listing_delete(item_id):
     db.session.delete(item)
     db.session.commit()
     flash('Ruční veřejná položka byla smazána.', 'info')
+    return redirect(url_for('admin.ordered_stock_admin'))
+
+
+@admin_bp.route('/objednano/rezervace/<int:reservation_id>/<action>', methods=['POST'])
+@admin_required
+def public_reservation_update(reservation_id, action):
+    reservation = PublicProductReservation.query.get_or_404(reservation_id)
+    if action == 'done':
+        reservation.status = 'vyřízená'
+        flash('Rezervace byla označena jako vyřízená.', 'success')
+    elif action == 'cancel':
+        reservation.status = 'zrušená'
+        flash('Rezervace byla zrušena.', 'info')
+    elif action == 'new':
+        reservation.status = 'nová'
+        flash('Rezervace byla vrácena mezi nové.', 'success')
+    else:
+        flash('Neznámá akce rezervace.', 'warning')
+        return redirect(url_for('admin.ordered_stock_admin'))
+
+    db.session.commit()
     return redirect(url_for('admin.ordered_stock_admin'))
 
 

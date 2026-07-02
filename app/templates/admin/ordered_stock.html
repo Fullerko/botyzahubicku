@@ -158,5 +158,59 @@
       </div>
     </div>
   </div>
+
+  <div class="info-card mb-5">
+    <div class="section-header mb-3">
+      <div>
+        <h2 class="h4 mb-1">Rezervace z /objednano a /sklad</h2>
+        <p class="text-secondary mb-0">Posledních 50 rezervací z nového popupu. Rezervace ze skladu prodejny, které blokují kusy na 3 dny, zůstávají také v části Sklad prodejny.</p>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Produkt</th>
+            <th>Stránka</th>
+            <th>Velikost / barva</th>
+            <th>Kontakt</th>
+            <th>Status</th>
+            <th>Akce</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reservation in public_reservations %}
+          <tr>
+            <td class="small text-secondary">{{ reservation.created_at.strftime('%d.%m.%Y %H:%M') if reservation.created_at else '—' }}</td>
+            <td style="min-width:240px;">
+              <div class="fw-semibold">{{ reservation.product_name }}</div>
+              <div class="small text-secondary">{{ reservation.brand or '—' }}</div>
+            </td>
+            <td><span class="badge rounded-pill text-bg-light border px-3 py-2">/{{ 'sklad' if reservation.listing_type == 'stock' else 'objednano' }}</span></td>
+            <td>
+              <div>Vel. {{ reservation.size }}</div>
+              <div class="small text-secondary">{{ reservation.color }}</div>
+            </td>
+            <td style="min-width:210px;">
+              {% if reservation.customer_name %}<div>{{ reservation.customer_name }}</div>{% endif %}
+              <div><a href="mailto:{{ reservation.email }}">{{ reservation.email }}</a></div>
+              <div><a href="tel:{{ reservation.phone }}">{{ reservation.phone }}</a></div>
+            </td>
+            <td><span class="badge rounded-pill text-bg-{{ 'warning' if reservation.status == 'nová' else 'success' if reservation.status == 'vyřízená' else 'secondary' }} px-3 py-2">{{ reservation.status }}</span></td>
+            <td style="width:210px;">
+              <div class="d-flex gap-2 flex-wrap">
+                <form method="post" action="{{ url_for('admin.public_reservation_update', reservation_id=reservation.id, action='done') }}"><button class="btn btn-sm btn-outline-success rounded-pill">Vyřízeno</button></form>
+                <form method="post" action="{{ url_for('admin.public_reservation_update', reservation_id=reservation.id, action='cancel') }}"><button class="btn btn-sm btn-outline-secondary rounded-pill">Zrušit</button></form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-secondary py-4">Zatím žádné rezervace z /objednano ani /sklad.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </section>
 {% endblock %}
