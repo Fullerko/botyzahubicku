@@ -255,11 +255,12 @@ CZECH_VALUE_TRANSLATIONS = {
     'canceled': 'Cancelled',
 
     # Shipping methods
-    'kuryr az domu zdarma': 'Home courier delivery - free of charge',
-    'kuryr domu zdarma': 'Home courier delivery - free of charge',
+    'balikovna balik do ruky': 'Balikovna parcel to hand',
+    'kuryr az domu zdarma': 'Home courier delivery - free over threshold',
+    'kuryr domu zdarma': 'Home courier delivery - free over threshold',
     'kuryr az domu': 'Home courier delivery',
     'kuryr': 'Courier delivery',
-    'doprava zdarma': 'Free shipping',
+    'doprava zdarma': 'Free shipping over threshold',
     'osobni odber': 'Personal pickup',
     'zasilkovna': 'Packeta pickup point',
     'balikovna': 'Balikovna pickup point',

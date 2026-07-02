@@ -52,7 +52,7 @@ LANDING_TOPICS = [
     _rule('boty-na-kazdy-den', 'Boty na každý den', required_groups=[['kazdoden', 'každoden', 'daily', 'everyday', 'mesto', 'město', 'pohodl']], terms=['každodenní', 'pohodlné', 'město'], intent='daily'),
     _rule('platformove-tenisky', 'Platformové tenisky', required_groups=[['platform']], terms=['platformové', 'platforma', 'tenisky'], intent='platform'),
     _rule('unisex-tenisky', 'Unisex tenisky', gender='unisex', required_groups=[['tenisk', 'sneaker']], terms=['unisex', 'tenisky', 'sneaker'], intent='unisex'),
-    _rule('boty-s-dopravou-zdarma', 'Boty s dopravou zdarma', terms=['boty', 'tenisky', 'obuv'], intent='shipping'),
+    _rule('boty-s-dopravou-zdarma-od-1199', 'Boty s dopravou zdarma od 1199 Kč', terms=['boty', 'tenisky', 'obuv'], intent='shipping'),
 ]
 
 BLOG_TOPICS = [

@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from . import db
-from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, SiteSetting, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, StoreReservation, StoreStockItem, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
@@ -57,6 +57,8 @@ def dashboard():
         'affiliate_balance': sum((p.commission_balance or 0) for p in AffiliatePartner.query.all()),
         'email_contacts': EmailContact.query.filter(EmailContact.deleted_at.is_(None)).count(),
         'seo_drafts': BlogPost.query.filter_by(status='draft').count() + Category.query.filter_by(seo_generated=True, seo_published=False).count(),
+        'store_stock': StoreStockItem.query.filter_by(active=True).count(),
+        'store_reservations': StoreReservation.query.filter_by(status='aktivní').count(),
     }
 
     latest_orders = Order.query.order_by(Order.created_at.desc()).limit(8).all()
@@ -218,6 +220,147 @@ def import_1688():
     flash('Import z 1688 je vypnutý. Produkt prosím přidej ručně.', 'info')
     return redirect(url_for('admin.products'))
 
+
+
+@admin_bp.route('/sklad', methods=['GET', 'POST'])
+@admin_required
+def store_stock_admin():
+    products = Product.query.filter_by(active=True).order_by(Product.name.asc()).all()
+    product_sizes = ProductSize.query.join(Product).filter(Product.active.is_(True)).order_by(Product.name.asc(), ProductSize.size.asc()).all()
+
+    if request.method == 'POST':
+        mode = request.form.get('mode', 'existing')
+        quantity = max(0, _int_form('stock', 1))
+        price = _float_form('price', 0)
+        note = (request.form.get('note') or '').strip()
+
+        if mode == 'existing':
+            product_size_id = request.form.get('product_size_id')
+            size_row = ProductSize.query.get(int(product_size_id)) if product_size_id else None
+            if not size_row or not size_row.product:
+                flash('Vyber produkt a velikost ze stávající nabídky.', 'warning')
+                return redirect(url_for('admin.store_stock_admin'))
+
+            product = size_row.product
+            item = StoreStockItem.query.filter_by(product_id=product.id, name=product.name, size=size_row.size).first()
+            if not item:
+                item = StoreStockItem(
+                    product_id=product.id,
+                    name=product.name,
+                    brand=product.brand or '',
+                    size=size_row.size,
+                    price=price or product.price or 0,
+                    image=product.image or '',
+                    stock=0,
+                    active=True,
+                )
+                db.session.add(item)
+
+            item.stock = max(0, int(item.stock or 0) + quantity)
+            item.price = price or item.price or product.price or 0
+            item.brand = product.brand or item.brand or ''
+            item.image = product.image or item.image or ''
+            item.note = note or item.note or ''
+            item.active = True
+            db.session.commit()
+            flash(f'Sklad prodejny doplněn: {item.display_name}, vel. {item.size}, +{quantity} ks.', 'success')
+            return redirect(url_for('admin.store_stock_admin'))
+
+        name = (request.form.get('name') or '').strip()
+        brand = (request.form.get('brand') or '').strip()
+        size = (request.form.get('size') or '').strip()
+        image_url = (request.form.get('image_url') or '').strip()
+        uploaded_image = save_image(request.files.get('image'))
+
+        if not name or not size:
+            flash('U nového produktu vyplň název a velikost.', 'warning')
+            return redirect(url_for('admin.store_stock_admin'))
+
+        item = StoreStockItem(
+            product_id=None,
+            name=name,
+            brand=brand,
+            size=size,
+            price=price,
+            image=uploaded_image or image_url or 'default-product.svg',
+            note=note,
+            stock=quantity,
+            active=True,
+        )
+        db.session.add(item)
+        db.session.commit()
+        flash(f'Nový skladový produkt byl přidán: {item.display_name}, vel. {item.size}.', 'success')
+        return redirect(url_for('admin.store_stock_admin'))
+
+    items = StoreStockItem.query.order_by(StoreStockItem.active.desc(), StoreStockItem.created_at.desc()).all()
+    reservations = StoreReservation.query.order_by(StoreReservation.created_at.desc()).limit(80).all()
+    public_url = url_for('shop.store_stock', _external=True)
+    return render_template(
+        'admin/store_stock.html',
+        products=products,
+        product_sizes=product_sizes,
+        items=items,
+        reservations=reservations,
+        public_url=public_url,
+    )
+
+
+@admin_bp.route('/sklad/<int:item_id>/update', methods=['POST'])
+@admin_required
+def store_stock_update(item_id):
+    item = StoreStockItem.query.get_or_404(item_id)
+    item.name = (request.form.get('name') or item.name).strip()
+    item.brand = (request.form.get('brand') or '').strip()
+    item.size = (request.form.get('size') or item.size).strip()
+    item.price = _float_form('price', item.price or 0)
+    item.stock = max(0, _int_form('stock', item.stock or 0))
+    item.note = (request.form.get('note') or '').strip()
+    item.active = bool(request.form.get('active'))
+
+    image_url = (request.form.get('image_url') or '').strip()
+    uploaded_image = save_image(request.files.get('image'))
+    if uploaded_image:
+        item.image = uploaded_image
+    elif image_url:
+        item.image = image_url
+
+    db.session.commit()
+    flash('Skladová položka byla upravena.', 'success')
+    return redirect(url_for('admin.store_stock_admin'))
+
+
+@admin_bp.route('/sklad/<int:item_id>/delete', methods=['POST'])
+@admin_required
+def store_stock_delete(item_id):
+    item = StoreStockItem.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+    flash('Skladová položka byla smazána.', 'info')
+    return redirect(url_for('admin.store_stock_admin'))
+
+
+@admin_bp.route('/sklad/rezervace/<int:reservation_id>/<action>', methods=['POST'])
+@admin_required
+def store_reservation_action(reservation_id, action):
+    reservation = StoreReservation.query.get_or_404(reservation_id)
+
+    if action == 'sold':
+        reservation.status = 'vyzvednuto'
+        if reservation.store_item:
+            reservation.store_item.stock = max(0, int(reservation.store_item.stock or 0) - int(reservation.quantity or 1))
+        flash('Rezervace označena jako vyzvednutá/prodaná a sklad byl ponížen.', 'success')
+    elif action == 'cancel':
+        reservation.status = 'zrušeno'
+        flash('Rezervace byla zrušena a kus se uvolnil.', 'info')
+    elif action == 'release':
+        reservation.status = 'propadlá'
+        flash('Rezervace byla označena jako propadlá.', 'info')
+    else:
+        flash('Neznámá akce rezervace.', 'warning')
+        return redirect(url_for('admin.store_stock_admin'))
+
+    db.session.commit()
+    return redirect(url_for('admin.store_stock_admin'))
 
 @admin_bp.route('/products')
 @admin_required

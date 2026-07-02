@@ -45,9 +45,9 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = upload_folder
     app.config['QR_FOLDER'] = qr_folder
     app.config['EMAIL_ATTACHMENT_FOLDER'] = email_attachment_folder
-    app.config['FREE_SHIPPING_THRESHOLD'] = 0
-    app.config['SHIPPING_PRICE'] = 0
-    app.config['DELIVERY_TEXT'] = 'Doručení 8–12 dní až ke dveřím zdarma.'
+    app.config['FREE_SHIPPING_THRESHOLD'] = 1199
+    app.config['SHIPPING_PRICE'] = 99
+    app.config['DELIVERY_TEXT'] = 'Doručení 8–12 dní. Balíkovna balík do ruky za 99 Kč, od 1199 Kč zdarma.'
 
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
@@ -102,6 +102,7 @@ Sitemap: {sitemap}
         urls = [
             xml_url(url_for('shop.index', _external=True), '1.0', 'daily'),
             xml_url(url_for('shop.products', _external=True), '0.9', 'daily'),
+            xml_url(url_for('shop.store_stock', _external=True), '0.8', 'daily'),
         ]
 
         try:
@@ -316,8 +317,8 @@ Sitemap: {sitemap}
             parts.extend([
                 '      <g:shipping>',
                 '        <g:country>CZ</g:country>',
-                '        <g:service>Doprava zdarma</g:service>',
-                f'        <g:price>0.00 {CURRENCY}</g:price>',
+                '        <g:service>Balíkovna balík do ruky</g:service>',
+                f'        <g:price>99.00 {CURRENCY}</g:price>',
                 '      </g:shipping>',
                 '    </item>',
             ])

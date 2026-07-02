@@ -6,12 +6,13 @@
     <div class="hero-shell">
       <div class="row g-4 align-items-center">
         <div class="col-lg-6">
-          <span class="badge rounded-pill text-bg-warning mb-3">{{ settings.get('hero_badge', 'Doprava zdarma') }}</span>
+          <span class="badge rounded-pill text-bg-warning mb-3">{{ settings.get('hero_badge', 'Doprava zdarma od 1199 Kč') }}</span>
           <h1>{{ settings.get('hero_title', 'Běžecké, sportovní i elegantní boty') }}</h1>
           <p>{{ settings.get('hero_subtitle', 'Lehké, stylové a pohodlné modely pro každý den. Vyberte si své oblíbené boty ještě dnes.') }}</p>
           <div class="d-flex gap-3 flex-wrap mt-4 justify-content-center justify-content-md-start hero-btn-shift">
             <a class="btn btn-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_primary_text', 'Nakupovat') }}</a>
             <a class="btn btn-outline-dark btn-lg rounded-pill px-4" href="{{ url_for('shop.products') }}">{{ settings.get('hero_secondary_text', 'Produkty') }}</a>
+            <a class="btn btn-warning btn-lg rounded-pill px-4" href="{{ url_for('shop.store_stock') }}">Sklad prodejny</a>
           </div>
 
           <!-- Hero bublinky -->

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 from flask_login import UserMixin
 from sqlalchemy.orm import validates
@@ -48,10 +48,10 @@ class Settings(db.Model):
     hero_title = db.Column(db.String(200), default="Běžecké, sportovní i elegantní boty")
     hero_subtitle = db.Column(db.String(300), default="Lehké, stylové a pohodlné boty pro každý den")
 
-    promo_bar = db.Column(db.String(200), default="Doprava zdarma")
+    promo_bar = db.Column(db.String(200), default="Doprava zdarma od 1199 Kč")
 
     contact_email = db.Column(db.String(120))
-    delivery_text = db.Column(db.String(200), default="Doručení 8–12 dní")
+    delivery_text = db.Column(db.String(200), default="Doručení 8–12 dní. Balíkovna balík do ruky za 99 Kč, od 1199 Kč zdarma.")
     menu_items = db.Column(db.Text, default="Všechny boty,Běžecké boty,Dámské,Kotníkové boty,Pánské,Sandály")
 
 
@@ -270,6 +270,87 @@ class AffiliatePayoutRequest(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     partner = db.relationship('AffiliatePartner', backref='payout_requests')
+
+class StoreStockItem(db.Model):
+    """Sklad prodejny zobrazovaný na veřejné stránce /sklad.
+
+    Je oddělený od běžného e-shopového skladu produktu. Jeden řádek odpovídá
+    jednomu produktu v jedné velikosti na prodejně.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=True, index=True)
+    name = db.Column(db.String(180), nullable=False)
+    brand = db.Column(db.String(80), default='')
+    size = db.Column(db.String(20), nullable=False, index=True)
+    price = db.Column(db.Float, default=0)
+    image = db.Column(db.String(500), default='')
+    note = db.Column(db.Text, default='')
+    stock = db.Column(db.Integer, default=0)
+    active = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    product = db.relationship('Product', backref=db.backref('store_stock_items', lazy=True))
+    reservations = db.relationship('StoreReservation', backref='store_item', lazy=True, cascade='all, delete-orphan')
+
+    __table_args__ = (db.UniqueConstraint('product_id', 'name', 'size', name='uq_store_stock_product_name_size'),)
+
+    @property
+    def display_name(self):
+        return self.name or (self.product.name if self.product else '')
+
+    @property
+    def display_brand(self):
+        return self.brand or (self.product.brand if self.product else '')
+
+    @property
+    def display_price(self):
+        if self.price and self.price > 0:
+            return self.price
+        if self.product:
+            return self.product.price or 0
+        return 0
+
+    @property
+    def display_image(self):
+        return self.image or (self.product.image if self.product else '') or 'default-product.svg'
+
+    @property
+    def active_reserved_quantity(self):
+        now = datetime.utcnow()
+        return sum(
+            max(0, int(reservation.quantity or 0))
+            for reservation in self.reservations
+            if reservation.status == 'aktivní' and reservation.reserved_until and reservation.reserved_until >= now
+        )
+
+    @property
+    def available_quantity(self):
+        return max(0, int(self.stock or 0) - self.active_reserved_quantity)
+
+
+class StoreReservation(db.Model):
+    """Bezplatná rezervace obuvi na prodejně na 3 dny."""
+    id = db.Column(db.Integer, primary_key=True)
+    store_item_id = db.Column(db.Integer, db.ForeignKey('store_stock_item.id'), nullable=False, index=True)
+    customer_name = db.Column(db.String(140), default='')
+    email = db.Column(db.String(160), nullable=False, index=True)
+    phone = db.Column(db.String(40), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    status = db.Column(db.String(30), default='aktivní', index=True)
+    note = db.Column(db.Text, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reserved_until = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=3), index=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def is_active(self):
+        return self.status == 'aktivní' and self.reserved_until and self.reserved_until >= datetime.utcnow()
+
+    @property
+    def is_expired(self):
+        return self.status == 'aktivní' and self.reserved_until and self.reserved_until < datetime.utcnow()
+
 
 class SiteSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)

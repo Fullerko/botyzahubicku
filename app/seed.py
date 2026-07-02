@@ -183,22 +183,22 @@ def seed_data():
 
     defaults = {
         'site_name': 'BotyZaHubicku.cz',
-        'meta_description': 'BotyZaHubicku.cz – stylový e-shop s botami, dopravou zdarma a přehledným adminem.',
+        'meta_description': 'BotyZaHubicku.cz – stylový e-shop s botami, dopravou zdarma od 1199 Kč a přehledným adminem.',
         'logo_url': 'logo-bzh.svg',
-        'promo_bar': 'Doprava zdarma',
+        'promo_bar': 'Doprava zdarma od 1199 Kč',
         'search_placeholder': 'Hledat',
         'menu_items': 'Všechny boty,Běžecké,Dámské,Pánské,Sandály',
-        'hero_badge': 'Doprava zdarma',
+        'hero_badge': 'Doprava zdarma od 1199 Kč',
         'hero_title': 'Běžecké, sportovní i elegantní boty',
         'hero_subtitle': 'Lehké, stylové a pohodlné modely pro každý den.',
         'hero_primary_text': 'Nakupovat boty',
         'hero_secondary_text': 'Produkty',
-        'hero_feature_1': 'Kurýrem až domů',
+        'hero_feature_1': 'Balíkovna balík do ruky',
         'hero_feature_2': '8–12 dní doručení',
         'hero_feature_3': 'Zabezpečená platba',
         'hero_image_url': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1600&q=80',
-        'hero_stat_1_title': 'Doprava zdarma',
-        'hero_stat_1_text': 'na každou objednávku',
+        'hero_stat_1_title': 'Doprava zdarma od 1199 Kč',
+        'hero_stat_1_text': 'při nákupu nad limit',
         'hero_stat_2_title': 'Nové modely',
         'hero_stat_2_text': 'pravidelně skladem',
         'categories_title': 'Nakupujte podle kategorií',
@@ -215,7 +215,7 @@ def seed_data():
         'bank_account': '2301234567/2010',
         'bank_iban': 'CZ6508000000192000145399',
         'payment_sync_secret': '',
-        'delivery_text': 'Doručení 8–12 dní až ke dveřím zákazníka zdarma.',
+        'delivery_text': 'Doručení 8–12 dní. Balíkovna balík do ruky za 99 Kč, od 1199 Kč zdarma.',
         'smtp_host': '',
         'smtp_port': '587',
         'smtp_username': '',
@@ -265,6 +265,21 @@ def seed_data():
     for key, value in defaults.items():
         if not SiteSetting.query.filter_by(key=key).first():
             db.session.add(SiteSetting(key=key, value=value))
+
+
+    shipping_setting_updates = {
+        'promo_bar': ('Doprava zdarma', 'Doprava zdarma od 1199 Kč'),
+        'hero_badge': ('Doprava zdarma', 'Doprava zdarma od 1199 Kč'),
+        'hero_stat_1_title': ('Doprava zdarma', 'Doprava zdarma od 1199 Kč'),
+        'hero_stat_1_text': ('na každou objednávku', 'při nákupu nad limit'),
+        'hero_feature_1': ('Kurýrem až domů', 'Balíkovna balík do ruky'),
+        'delivery_text': ('Doručení 8–12 dní až ke dveřím zákazníka zdarma.', 'Doručení 8–12 dní. Balíkovna balík do ruky za 99 Kč, od 1199 Kč zdarma.'),
+        'meta_description': ('BotyZaHubicku.cz – stylový e-shop s botami, dopravou zdarma a přehledným adminem.', 'BotyZaHubicku.cz – stylový e-shop s botami, dopravou zdarma od 1199 Kč a přehledným adminem.'),
+    }
+    for key, (old_value, new_value) in shipping_setting_updates.items():
+        row = SiteSetting.query.filter_by(key=key).first()
+        if row and row.value == old_value:
+            row.value = new_value
 
     if AffiliatePartner.query.count() == 0:
         pepa = AffiliatePartner(name='Pepa', email='pepa@affiliate.local', instagram='@pepa', note='Ukázkový partner')

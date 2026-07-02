@@ -3,14 +3,16 @@ import hmac
 import random
 import string
 import qrcode
+import base64
+from io import BytesIO
 
 from flask import Blueprint, current_app, abort, flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user
 
 from . import db
-from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, AffiliatePayoutRequest, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, StoreReservation, StoreStockItem, AffiliatePayoutRequest, User
 from .utils import get_cart, setting
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 from .utils import send_email
 from .invoice_utils import generate_invoice_pdf
@@ -21,6 +23,33 @@ shop_bp = Blueprint('shop', __name__)
 
 AFF_COOKIE = 'bzh_affiliate_code'
 AFF_COOKIE_MAX_AGE = 60 * 60 * 24 * 90
+
+
+SHIPPING_FREE_THRESHOLD = 1199
+SHIPPING_FLAT_PRICE = 99
+SHIPPING_METHOD_LABEL = 'Balíkovna balík do ruky'
+
+
+def shipping_price_for_subtotal(subtotal):
+    subtotal = float(subtotal or 0)
+    if subtotal <= 0 or subtotal >= SHIPPING_FREE_THRESHOLD:
+        return 0
+    return SHIPPING_FLAT_PRICE
+
+
+def shipping_label(shipping):
+    return 'Zdarma' if float(shipping or 0) <= 0 else f'{int(shipping)} Kč'
+
+
+def qr_data_uri(payload):
+    qr = qrcode.QRCode(box_size=7, border=2)
+    qr.add_data(payload)
+    qr.make(fit=True)
+    image = qr.make_image(fill_color='black', back_color='white')
+    buffer = BytesIO()
+    image.save(buffer, format='PNG')
+    encoded = base64.b64encode(buffer.getvalue()).decode('ascii')
+    return f'data:image/png;base64,{encoded}'
 
 
 def _affiliate_code_for_partner(partner):
@@ -168,7 +197,7 @@ def _meta_cart_payload(items, total):
 
 
 def _meta_order_payload(order):
-    """Payload pro Meta Pixel Purchase pouze pro opravdu zaplacenou objednávku."""
+    """Payload pro Meta Pixel Purchase po vytvoření objednávky."""
     contents = []
     content_ids = []
     num_items = 0
@@ -458,14 +487,9 @@ def order_status(order_number):
         or bool(order.paid_at)
     )
 
-    response = {
+    return {
         "paid": is_paid
     }
-
-    if is_paid:
-        response["meta_purchase"] = _meta_order_payload(order)
-
-    return response
 
 @shop_bp.route('/blog')
 def blog():
@@ -556,6 +580,95 @@ def complaints():
 def cookies():
     return render_template('legal/cookies.html')
 
+
+@shop_bp.route('/sklad')
+def store_stock():
+    q = StoreStockItem.query.filter_by(active=True)
+    search = (request.args.get('q') or '').strip()
+    size = (request.args.get('size') or '').strip()
+
+    if search:
+        q = q.filter(
+            db.or_(
+                StoreStockItem.name.ilike(f'%{search}%'),
+                StoreStockItem.brand.ilike(f'%{search}%'),
+            )
+        )
+    if size:
+        q = q.filter(StoreStockItem.size == size)
+
+    items = q.order_by(StoreStockItem.created_at.desc(), StoreStockItem.name.asc()).all()
+    items = [item for item in items if item.available_quantity > 0]
+    sizes = sorted({item.size for item in StoreStockItem.query.filter_by(active=True).all() if item.size}, key=lambda value: (len(str(value)), str(value)))
+    public_url = url_for('shop.store_stock', _external=True)
+    return render_template(
+        'shop/store_stock.html',
+        items=items,
+        sizes=sizes,
+        search=search,
+        selected_size=size,
+        public_url=public_url,
+        qr_image=qr_data_uri(public_url),
+    )
+
+
+@shop_bp.route('/sklad/rezervace/<int:item_id>', methods=['POST'])
+def store_reserve(item_id):
+    item = StoreStockItem.query.filter_by(id=item_id, active=True).first_or_404()
+    customer_name = (request.form.get('customer_name') or '').strip()
+    email = (request.form.get('email') or '').strip()
+    phone = (request.form.get('phone') or '').strip()
+    note = (request.form.get('note') or '').strip()
+    quantity = 1
+
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        flash('Zadejte platný e-mail pro potvrzení rezervace.', 'warning')
+        return redirect(url_for('shop.store_stock'))
+
+    if len(phone) < 6:
+        flash('Zadejte platný telefon, abychom vás mohli kontaktovat.', 'warning')
+        return redirect(url_for('shop.store_stock'))
+
+    if item.available_quantity < quantity:
+        flash('Tato velikost už není na prodejně volná k rezervaci.', 'warning')
+        return redirect(url_for('shop.store_stock'))
+
+    reservation = StoreReservation(
+        store_item_id=item.id,
+        customer_name=customer_name,
+        email=email,
+        phone=phone,
+        quantity=quantity,
+        status='aktivní',
+        note=note,
+        reserved_until=datetime.utcnow() + timedelta(days=3),
+    )
+    db.session.add(reservation)
+    db.session.commit()
+
+    admin_email = setting('contact_email', '')
+    if admin_email:
+        try:
+            send_email(
+                subject=f'Nová rezervace na prodejně: {item.display_name} vel. {item.size}',
+                to_email=admin_email,
+                html_body=(
+                    f'<h2>Nová rezervace /sklad</h2>'
+                    f'<p><strong>Produkt:</strong> {item.display_name}<br>'
+                    f'<strong>Velikost:</strong> {item.size}<br>'
+                    f'<strong>Jméno:</strong> {customer_name or "—"}<br>'
+                    f'<strong>E-mail:</strong> {email}<br>'
+                    f'<strong>Telefon:</strong> {phone}<br>'
+                    f'<strong>Platnost:</strong> 3 dny</p>'
+                    f'<p>{note}</p>'
+                ),
+            )
+        except Exception as exc:
+            current_app.logger.warning('Nepodařilo se odeslat e-mail o rezervaci: %s', exc)
+
+    flash('Rezervace byla vytvořena. Zboží držíme 3 dny a kontaktujeme vás přes telefon nebo e-mail.', 'success')
+    return redirect(url_for('shop.store_stock'))
+
 def cart_detail():
     items = []
     subtotal = 0
@@ -567,7 +680,7 @@ def cart_detail():
         line_total = product.price * item['quantity']
         subtotal += line_total
         items.append({'key': key, 'product': product, 'size': item['size'], 'quantity': item['quantity'], 'line_total': line_total})
-    shipping = 0
+    shipping = shipping_price_for_subtotal(subtotal)
     coupon_info = session.get('coupon', {})
     discount_amount = 0
 
@@ -751,6 +864,8 @@ def cart():
         discount_amount=discount_amount,
         total=total,
         meta_add_to_cart=meta_add_to_cart,
+        shipping_threshold=SHIPPING_FREE_THRESHOLD,
+        shipping_label=shipping_label(shipping),
     )
 
 
@@ -877,7 +992,7 @@ def checkout():
             street=request.form.get('street', '').strip(),
             city=request.form.get('city', '').strip(),
             postal_code=request.form.get('postal_code', '').strip(),
-            shipping_method='Kurýr až domů zdarma',
+            shipping_method=SHIPPING_METHOD_LABEL,
             payment_method='QR kód / bankovní převod',
             shipping_price=shipping,
             subtotal=subtotal,
@@ -919,6 +1034,7 @@ def checkout():
         capture_cart_lead(order.email, name=order.customer_name, phone=order.phone, session_id=request.cookies.get(current_app.config.get('SESSION_COOKIE_NAME', 'session'), ''))
         upsert_contact_from_order(order)
         db.session.commit()
+        session['meta_purchase_order_number'] = order.order_number
         session['cart'] = {}
         session.pop('coupon', None)
         flash(f'Objednávka {order.order_number} byla úspěšně vytvořena.', 'success')
@@ -935,25 +1051,23 @@ def checkout():
         bank_account=setting('bank_account', ''),
         bank_iban=setting('bank_iban', ''),
         meta_checkout=_meta_cart_payload(items, total),
+        shipping_threshold=SHIPPING_FREE_THRESHOLD,
+        shipping_label=shipping_label(shipping),
+        shipping_method_label=SHIPPING_METHOD_LABEL,
     )
 
 
 @shop_bp.route('/objednavka/<order_number>')
 def order_success(order_number):
     order = Order.query.filter_by(order_number=order_number).first_or_404()
-    is_paid = (
-        order.payment_status == 'paid'
-        or order.status == 'Zaplaceno'
-        or bool(order.paid_at)
-    )
 
     return render_template(
         'shop/order_success.html',
         order=order,
         bank_account=setting('bank_account', ''),
         bank_iban=setting('bank_iban', ''),
-        track_purchase=is_paid,
-        meta_purchase=_meta_order_payload(order) if is_paid else None,
+        track_purchase=(order.payment_status == 'paid'),
+        meta_purchase=_meta_order_payload(order) if session.pop('meta_purchase_order_number', None) == order.order_number else None,
     )
 
 

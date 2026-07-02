@@ -44,7 +44,8 @@
       <div class="summary-card">
         <h4>Rekapitulace</h4>
         <div class="summary-row"><span>Mezisoučet</span><strong>{{ '{:,.0f}'.format(subtotal).replace(',', ' ') }} Kč</strong></div>
-        <div class="summary-row"><span>Doprava</span><strong>Zdarma</strong></div>
+        <div class="summary-row"><span>Doprava</span><strong>{{ shipping_label }}</strong></div>
+        <div class="small text-secondary mt-2">Balíkovna balík do ruky za 99 Kč. Doprava zdarma od {{ '{:,.0f}'.format(shipping_threshold).replace(',', ' ') }} Kč.</div>
         <div class="summary-row"><span>Sleva</span><strong>-{{ '{:,.0f}'.format(discount_amount).replace(',', ' ') }} Kč</strong></div>
         <div class="summary-row total"><span>Celkem</span><strong>{{ '{:,.0f}'.format(total).replace(',', ' ') }} Kč</strong></div>
         <a class="btn btn-dark btn-lg w-100 rounded-pill mt-3" href="{{ url_for('shop.checkout') }}">Pokračovat k objednávce</a>

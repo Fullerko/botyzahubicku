@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block title %}Sklad prodejny | Admin{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="section-header mb-4">
+    <div>
+      <h1 class="h2 mb-1">Sklad prodejny</h1>
+      <p class="text-secondary mb-0">Správa veřejné stránky <code>/sklad</code>, QR odkazu a rezervací na 3 dny.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('shop.store_stock') }}" target="_blank" class="btn btn-outline-dark rounded-pill">Otevřít /sklad</a>
+      <a href="{{ url_for('admin.products') }}" class="btn btn-outline-dark rounded-pill">Produkty e-shopu</a>
+    </div>
+  </div>
+
+  <div class="info-card mb-4">
+    <div class="row g-3 align-items-center">
+      <div class="col-lg-9">
+        <h2 class="h5 mb-1">Veřejná URL pro QR kód</h2>
+        <div class="text-break"><a href="{{ public_url }}" target="_blank">{{ public_url }}</a></div>
+      </div>
+      <div class="col-lg-3 text-lg-end">
+        <span class="badge rounded-pill text-bg-light border px-3 py-2">Rezervace: telefon + e-mail</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-5">
+    <div class="col-lg-6">
+      <div class="info-card h-100">
+        <h2 class="h4 mb-3">Doplnit ze stávající nabídky</h2>
+        <form method="post" class="row g-3">
+          <input type="hidden" name="mode" value="existing">
+          <div class="col-12">
+            <label class="form-label">Produkt a velikost</label>
+            <select class="form-select" name="product_size_id" required>
+              <option value="">Vyber produkt / velikost</option>
+              {% for size_row in product_sizes %}
+                <option value="{{ size_row.id }}">{{ size_row.product.name }} — vel. {{ size_row.size }} — e-shop sklad {{ size_row.stock }} ks</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Přidat kusů na prodejnu</label>
+            <input class="form-control" type="number" min="0" name="stock" value="1" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Cena na prodejně</label>
+            <input class="form-control" type="number" step="0.01" min="0" name="price" placeholder="Nech prázdné = cena produktu">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Poznámka</label>
+            <textarea class="form-control" name="note" rows="2" placeholder="Např. připraveno na prodejně, drobná poznámka"></textarea>
+          </div>
+          <div class="col-12"><button class="btn btn-dark rounded-pill px-4">Doplnit sklad</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="info-card h-100">
+        <h2 class="h4 mb-3">Přidat nový produkt jen do prodejny</h2>
+        <form method="post" enctype="multipart/form-data" class="row g-3">
+          <input type="hidden" name="mode" value="new">
+          <div class="col-md-7"><label class="form-label">Název</label><input class="form-control" name="name" required></div>
+          <div class="col-md-5"><label class="form-label">Značka</label><input class="form-control" name="brand"></div>
+          <div class="col-md-4"><label class="form-label">Velikost</label><input class="form-control" name="size" required></div>
+          <div class="col-md-4"><label class="form-label">Kusů</label><input class="form-control" type="number" min="0" name="stock" value="1" required></div>
+          <div class="col-md-4"><label class="form-label">Cena</label><input class="form-control" type="number" step="0.01" min="0" name="price"></div>
+          <div class="col-12"><label class="form-label">URL obrázku</label><input class="form-control" name="image_url" placeholder="https://... nebo default-product.svg"></div>
+          <div class="col-12"><label class="form-label">Upload obrázku</label><input class="form-control" type="file" name="image" accept="image/*"></div>
+          <div class="col-12"><label class="form-label">Poznámka</label><textarea class="form-control" name="note" rows="2"></textarea></div>
+          <div class="col-12"><button class="btn btn-dark rounded-pill px-4">Přidat do skladu</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header mb-3">
+    <div>
+      <h2 class="h4 mb-1">Položky ve skladu prodejny</h2>
+      <p class="text-secondary mb-0">Dostupné kusy pro veřejnou stránku jsou sklad minus aktivní nepropadlé rezervace.</p>
+    </div>
+  </div>
+
+  <div class="table-responsive info-card mb-5">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Produkt</th>
+          <th>Vel.</th>
+          <th>Sklad</th>
+          <th>Rezervováno</th>
+          <th>Volné</th>
+          <th>Cena</th>
+          <th>Aktivní</th>
+          <th>Akce</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td style="min-width:280px;">
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.store_stock_update', item_id=item.id) }}" class="row g-2 align-items-center">
+              <div class="col-auto"><img src="{{ image_url(item.display_image) }}" alt="" style="width:58px;height:58px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.08);"></div>
+              <div class="col">
+                <input class="form-control form-control-sm mb-1" name="name" value="{{ item.display_name }}">
+                <input class="form-control form-control-sm mb-1" name="brand" value="{{ item.display_brand }}" placeholder="Značka">
+                <input class="form-control form-control-sm" name="image_url" value="{{ item.image }}" placeholder="Obrázek">
+                <input class="form-control form-control-sm mt-1" type="file" name="image" accept="image/*">
+              </div>
+          </td>
+          <td style="width:90px;"><input class="form-control form-control-sm" name="size" value="{{ item.size }}"></td>
+          <td style="width:110px;"><input class="form-control form-control-sm" type="number" min="0" name="stock" value="{{ item.stock }}"></td>
+          <td>{{ item.active_reserved_quantity }}</td>
+          <td><strong>{{ item.available_quantity }}</strong></td>
+          <td style="width:130px;"><input class="form-control form-control-sm" type="number" step="0.01" min="0" name="price" value="{{ item.display_price }}"></td>
+          <td style="width:90px;">
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="1" {% if item.active %}checked{% endif %}></div>
+            <textarea class="form-control form-control-sm mt-2" name="note" rows="2" placeholder="Poznámka">{{ item.note }}</textarea>
+          </td>
+          <td style="width:180px;">
+              <button class="btn btn-sm btn-outline-dark rounded-pill mb-2">Uložit</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.store_stock_delete', item_id=item.id) }}" onsubmit="return confirm('Smazat skladovou položku včetně rezervací?')">
+              <button class="btn btn-sm btn-outline-danger rounded-pill">Smazat</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-center text-secondary py-4">Sklad prodejny je zatím prázdný.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-header mb-3">
+    <div>
+      <h2 class="h4 mb-1">Rezervace</h2>
+      <p class="text-secondary mb-0">Aktivní rezervace po 3 dnech přestanou blokovat sklad; v administraci je můžeš ručně uzavřít.</p>
+    </div>
+  </div>
+
+  <div class="table-responsive info-card">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Produkt</th>
+          <th>Zákazník</th>
+          <th>Kontakt</th>
+          <th>Vytvořeno</th>
+          <th>Platí do</th>
+          <th>Stav</th>
+          <th>Akce</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reservation in reservations %}
+        <tr class="{% if reservation.is_expired %}table-warning{% endif %}">
+          <td>
+            <strong>{{ reservation.store_item.display_name if reservation.store_item else 'Smazaná položka' }}</strong>
+            {% if reservation.store_item %}<div class="small text-secondary">Vel. {{ reservation.store_item.size }} × {{ reservation.quantity }}</div>{% endif %}
+            {% if reservation.note %}<div class="small text-secondary mt-1">{{ reservation.note }}</div>{% endif %}
+          </td>
+          <td>{{ reservation.customer_name or '—' }}</td>
+          <td><a href="mailto:{{ reservation.email }}">{{ reservation.email }}</a><br><a href="tel:{{ reservation.phone }}">{{ reservation.phone }}</a></td>
+          <td>{{ reservation.created_at.strftime('%d.%m.%Y %H:%M') if reservation.created_at else '—' }}</td>
+          <td>{{ reservation.reserved_until.strftime('%d.%m.%Y %H:%M') if reservation.reserved_until else '—' }}</td>
+          <td>
+            {% if reservation.is_expired %}
+              <span class="badge text-bg-warning">propadlá časem</span>
+            {% else %}
+              <span class="badge text-bg-light border">{{ reservation.status }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-2 flex-wrap">
+              {% if reservation.status == 'aktivní' %}
+              <form method="post" action="{{ url_for('admin.store_reservation_action', reservation_id=reservation.id, action='sold') }}"><button class="btn btn-sm btn-success rounded-pill">Prodáno</button></form>
+              <form method="post" action="{{ url_for('admin.store_reservation_action', reservation_id=reservation.id, action='cancel') }}"><button class="btn btn-sm btn-outline-secondary rounded-pill">Zrušit</button></form>
+              <form method="post" action="{{ url_for('admin.store_reservation_action', reservation_id=reservation.id, action='release') }}"><button class="btn btn-sm btn-outline-dark rounded-pill">Propadlo</button></form>
+              {% else %}
+              <span class="small text-secondary">Uzavřeno</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-center text-secondary py-4">Zatím žádné rezervace.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

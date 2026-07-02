@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   {% set site_name = settings.get('site_name', 'BotyZaHubicku.cz') %}
-  {% set default_description = settings.get('meta_description', 'BotyZaHubicku.cz – stylový e-shop s dostupnou obuví. Dámské, pánské, běžecké tenisky za skvělé ceny. Doprava zdarma a jednoduchá objednávka online.') %}
+  {% set default_description = settings.get('meta_description', 'BotyZaHubicku.cz – stylový e-shop s dostupnou obuví. Dámské, pánské, běžecké tenisky za skvělé ceny. Doprava zdarma od 1199 Kč a jednoduchá objednávka online.') %}
   {% set logo_value = settings.get('logo_url', 'logo-bzh.svg') %}
   {% set seo_image = image_url(logo_value) %}
   <title>{% block title %}{{ site_name }} | boty za hubičku{% endblock %}</title>
@@ -69,7 +69,7 @@
     gtag('config', 'G-SVQB72JKNK');
   </script>
   
-  {# Meta Pixel: aktuální Pixel ID. #}
+  {# Meta Pixel: ID můžeš později změnit v admin nastavení klíčem meta_pixel_id. #}
   {% set meta_pixel_id = '1336678564638484' %}
   {% set meta_pixel_enabled = not request.path.startswith('/admin') %}
   {% if meta_pixel_enabled %}
@@ -99,7 +99,7 @@
        alt="" />
 </noscript>
 {% endif %}
-<div class="topbar">{{ settings.get('promo_bar', 'Doprava zdarma') }}</div>
+<div class="topbar">{{ settings.get('promo_bar', 'Doprava zdarma od 1199 Kč') }}</div>
 <nav class="navbar navbar-expand-xl bg-white border-bottom sticky-top shadow-sm">
   <div class="container d-flex align-items-center justify-content-between">
     <a class="d-flex align-items-center" href="{{ url_for('shop.index') }}">
@@ -175,8 +175,8 @@
       <div class="col-lg-3 col-md-6">
         <h6>Zákaznický servis</h6>
         <ul class="list-unstyled footer-links">
-          <li>Doprava zdarma</li>
-          <li>Kurýr až domů</li>
+          <li>Doprava zdarma od 1199 Kč</li>
+          <li>Balíkovna balík do ruky</li>
           <li>{{ settings.get('delivery_text', '') }}</li>
           <li>E-mail: {{ settings.get('contact_email', '') }}</li>
         </ul>
@@ -186,6 +186,7 @@
         <h6>Rychlé odkazy</h6>
         <ul class="list-unstyled footer-links">
           <li><a href="{{ url_for('shop.products') }}">Produkty</a></li>
+          <li><a href="{{ url_for('shop.store_stock') }}">Sklad prodejny</a></li>
           <li><a href="{{ url_for('shop.blog') }}">Blog / Články</a></li>
 
           {% if settings.get('footer_affiliate_label', '').strip() %}

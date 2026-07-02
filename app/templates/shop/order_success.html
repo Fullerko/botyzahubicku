@@ -10,7 +10,8 @@
         <div class="summary-row"><span>Celkem k úhradě</span><strong>{{ '{:,.0f}'.format(order.total_price).replace(',', ' ') }} Kč</strong></div>
         <div class="summary-row"><span>Bankovní účet</span><strong>{{ bank_account }}</strong></div>
         <div class="summary-row"><span>IBAN</span><strong>{{ bank_iban }}</strong></div>
-        <div class="summary-row"><span>Doručení</span><strong>8–12 dní, kurýr až domů</strong></div>
+        <div class="summary-row"><span>Doručení</span><strong>{{ order.shipping_method }}</strong></div>
+        <div class="summary-row"><span>Doprava</span><strong>{% if order.shipping_price and order.shipping_price > 0 %}{{ '{:,.0f}'.format(order.shipping_price).replace(',', ' ') }} Kč{% else %}Zdarma{% endif %}</strong></div>
       </div>
       <div class="col-lg-6">
         {% if order.qr_image %}
@@ -41,29 +42,6 @@
   </div>
 </section>
 <script>
-(function () {
-  const orderNumber = {{ order.order_number|tojson }};
-  const storageKey = `meta_purchase_tracked_${orderNumber}`;
-
-  window.trackMetaPurchaseOnce = function (payload) {
-    if (!payload || typeof fbq !== "function") return;
-
-    try {
-      if (window.localStorage && localStorage.getItem(storageKey) === "1") return;
-    } catch (error) {
-      // Když localStorage není dostupné, Purchase se stále pošle, ale jen pro zaplacenou objednávku.
-    }
-
-    fbq('track', 'Purchase', payload);
-
-    try {
-      if (window.localStorage) localStorage.setItem(storageKey, "1");
-    } catch (error) {
-      // Ignorujeme chybu ukládání do localStorage.
-    }
-  };
-})();
-
 document.addEventListener("DOMContentLoaded", function () {
   const btn = document.getElementById("checkPaymentBtn");
   const messageBox = document.getElementById("paymentStatusMessage");
@@ -84,10 +62,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.paid === true) {
         messageBox.className = "mt-3 fw-semibold text-success";
         messageBox.innerText = "Děkujeme za Vaši objednávku, podrobnosti jsme Vám zaslali emailem.";
-
-        if (data.meta_purchase && window.trackMetaPurchaseOnce) {
-          window.trackMetaPurchaseOnce(data.meta_purchase);
-        }
       } else {
         messageBox.className = "mt-3 fw-semibold text-warning";
         messageBox.innerText = "Platba neexistuje, nebo stále nedorazila, vyčkejte prosím 30 vteřin a zkuste zkontrolovat stav znovu.";
@@ -106,10 +80,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 {% block tracking %}
-{% if track_purchase and meta_purchase %}
+{% if meta_purchase %}
 <script>
-  if (window.trackMetaPurchaseOnce) {
-    window.trackMetaPurchaseOnce({{ meta_purchase|tojson }});
+  if (typeof fbq === 'function') {
+    fbq('track', 'Purchase', {{ meta_purchase|tojson }});
   }
 </script>
 {% endif %}

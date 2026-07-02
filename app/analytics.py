@@ -705,7 +705,7 @@ def _recommendations(start):
         recs.append({
             'level': 'warning',
             'title': 'Konverze jde zvednout',
-            'text': 'Konverze je použitelná, ale prostor je hlavně ve zrychlení výběru velikosti, jasnějším benefitu dopravy zdarma a lepších doporučených produktech.',
+            'text': 'Konverze je použitelná, ale prostor je hlavně ve zrychlení výběru velikosti, jasnějším benefitu dopravy zdarma od 1199 Kč a lepších doporučených produktech.',
         })
     else:
         recs.append({
