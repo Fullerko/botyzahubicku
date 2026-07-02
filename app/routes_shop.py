@@ -1342,3 +1342,20 @@ def category_landing(slug):
         related_categories=related_categories,
         product_sort=product_sort,
     )
+
+
+# ===== OBJEDNANO / SKLAD PAGES =====
+@shop_bp.route('/sklad')
+def sklad():
+    products = Product.query.all()
+    items = StoreStockItem.query.with_entities(StoreStockItem.product_id).all()
+    ids = {i.product_id for i in items}
+    return render_template('shop/sklad.html', products=products, ids=ids)
+
+@shop_bp.route('/objednano')
+def objednano():
+    products = Product.query.all()
+    items = StoreReservation.query.with_entities(StoreReservation.product_id).all()
+    ids = {i.product_id for i in items}
+    return render_template('shop/objednano.html', products=products, ids=ids)
+

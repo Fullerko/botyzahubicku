@@ -1603,3 +1603,31 @@ def settings():
         return redirect(url_for('admin.settings'))
 
     return render_template('admin/settings.html', settings=settings, sections=sections)
+
+
+# ===== ADMIN OBJEDNANO MANAGEMENT =====
+from .models import StoreStockItem, StoreReservation
+
+@admin_bp.route('/objednano', methods=['GET', 'POST'])
+@admin_required
+def admin_objednano():
+    products = Product.query.all()
+
+    if request.method == 'POST':
+        StoreStockItem.query.delete()
+        StoreReservation.query.delete()
+
+        for p in products:
+            if request.form.get(f'stock_{p.id}'):
+                db.session.add(StoreStockItem(product_id=p.id))
+            if request.form.get(f'ordered_{p.id}'):
+                db.session.add(StoreReservation(product_id=p.id))
+
+        db.session.commit()
+        flash('Objednano/Sklad aktualizováno', 'success')
+        return redirect(url_for('admin.admin_objednano'))
+
+    stock_ids = {x.product_id for x in StoreStockItem.query.all()}
+    ordered_ids = {x.product_id for x in StoreReservation.query.all()}
+
+    return render_template('admin/objednano.html', products=products, stock_ids=stock_ids, ordered_ids=ordered_ids)

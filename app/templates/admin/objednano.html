@@ -1,0 +1,14 @@
+
+<h1>Objednáno / Sklad</h1>
+<form method="POST">
+<table>
+{% for p in products %}
+<tr>
+<td>{{ p.name }}</td>
+<td><input type="checkbox" name="stock_{{p.id}}" {% if p.id in stock_ids %}checked{% endif %}></td>
+<td><input type="checkbox" name="ordered_{{p.id}}" {% if p.id in ordered_ids %}checked{% endif %}></td>
+</tr>
+{% endfor %}
+</table>
+<button type="submit">Uložit</button>
+</form>

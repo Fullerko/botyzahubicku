@@ -1,0 +1,7 @@
+
+<h1>Objednáno</h1>
+{% for p in products %}
+{% if p.id in ids %}
+<div>{{ p.name }}</div>
+{% endif %}
+{% endfor %}
