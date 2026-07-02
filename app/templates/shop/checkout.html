@@ -13,8 +13,8 @@
           <div class="col-md-6"><label class="form-label">PSČ</label><input class="form-control" name="postal_code" value="{{ current_user.postal_code if current_user.is_authenticated else '' }}" required></div>
           <div class="col-12"><label class="form-label">Ulice a číslo</label><input class="form-control" name="street" value="{{ current_user.address if current_user.is_authenticated else '' }}" required></div>
           <div class="col-md-6"><label class="form-label">Město</label><input class="form-control" name="city" value="{{ current_user.city if current_user.is_authenticated else '' }}" required></div>
-          <div class="col-md-6"><label class="form-label">Doprava</label><input class="form-control" value="{{ shipping_method_label }} — 99 Kč, od {{ '{:,.0f}'.format(shipping_threshold).replace(',', ' ') }} Kč zdarma" readonly></div>
-          <div class="col-md-6"><label class="form-label">Platba</label><input class="form-control" value="Zabezpečená platba" readonly></div>
+          <div class="col-md-6"><label class="form-label">Doprava</label><input class="form-control" value="Balíkovna - na adresu" readonly></div>
+          <div class="col-md-6"><label class="form-label">Platba</label><input class="form-control" value="QR kódem / převodem" readonly></div>
           <div class="col-12"><label class="form-label">Poznámka</label><textarea class="form-control" name="note" rows="4" placeholder="Poznámka k objednávce"></textarea></div>
         </div>
         <button class="btn btn-dark btn-lg rounded-pill mt-4">Vytvořit objednávku</button>
@@ -24,10 +24,10 @@
       <div class="summary-card mb-3">
         <h4>Doprava a platba</h4>
         <div class="summary-row"><span>Doručení</span><strong>8–12 dní</strong></div>
-        <div class="summary-row"><span>Dopravce</span><strong>{{ shipping_method_label }}</strong></div>
+        <div class="summary-row"><span>Dopravce</span><strong>Balíkovna - na adresu</strong></div>
         <div class="summary-row"><span>Doprava</span><strong>{{ shipping_label }}</strong></div>
         <div class="small text-secondary mt-2">Jednorázový poplatek za dopravu je 99 Kč. Při nákupu za {{ '{:,.0f}'.format(shipping_threshold).replace(',', ' ') }} Kč a více je doprava zdarma.</div>
-        <div class="summary-row"><span>Platba</span><strong>Zabezpečená platba</strong></div>
+        <div class="summary-row"><span>Platba</span><strong>QR kódem / převodem</strong></div>
         <div class="small text-secondary mt-3">Bankovní účet: {{ bank_account }}<br>IBAN: {{ bank_iban }}</div>
       </div>
       <div class="summary-card">
