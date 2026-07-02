@@ -1,7 +1,7 @@
 from sqlalchemy import inspect, text
 from werkzeug.security import generate_password_hash
 from . import db
-from .models import AffiliatePartner, Category, Coupon, Product, ProductSize, ProductVariant, SiteSetting, User
+from .models import AffiliatePartner, Category, Coupon, Product, ProductSize, ProductVariant, PublicProductListing, SiteSetting, User
 from .utils import unique_slug
 
 
@@ -50,6 +50,8 @@ def ensure_schema_columns():
             'woocommerce_sync_status': "ALTER TABLE product ADD COLUMN woocommerce_sync_status VARCHAR(30) DEFAULT ''",
             'woocommerce_sync_message': "ALTER TABLE product ADD COLUMN woocommerce_sync_message TEXT DEFAULT ''",
             'woocommerce_synced_at': "ALTER TABLE product ADD COLUMN woocommerce_synced_at DATETIME",
+            'show_ordered': "ALTER TABLE product ADD COLUMN show_ordered BOOLEAN DEFAULT 0",
+            'show_stock': "ALTER TABLE product ADD COLUMN show_stock BOOLEAN DEFAULT 0",
         },
         'product_variant': {
             'supplier_sku': "ALTER TABLE product_variant ADD COLUMN supplier_sku VARCHAR(120) DEFAULT ''",

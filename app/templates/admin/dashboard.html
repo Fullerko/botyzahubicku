@@ -11,10 +11,13 @@
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Kódy</span><strong>{{ stats.coupon_codes }}</strong></div></div>
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Email kontakty</span><strong>{{ stats.email_contacts }}</strong></div></div>
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Sklad prodejny</span><strong>{{ stats.store_stock }}</strong></div></div>
+    <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Veřejné objednáno</span><strong>{{ stats.public_ordered }}</strong></div></div>
+    <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Veřejný sklad</span><strong>{{ stats.public_stock }}</strong></div></div>
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Rezervace</span><strong>{{ stats.store_reservations }}</strong></div></div>
   </div>
   <div class="admin-links mt-4 d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.products') }}">Produkty</a>
+    <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.ordered_stock_admin') }}">Objednáno / Sklad</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.store_stock_admin') }}">Sklad prodejny</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.orders') }}">Objednávky</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.emailing_index') }}">Emailing</a>

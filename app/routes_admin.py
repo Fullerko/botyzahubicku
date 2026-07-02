@@ -7,7 +7,7 @@ import uuid
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, url_for
 from . import db
-from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, StoreReservation, StoreStockItem, SiteSetting, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, EmailAttachment, EmailCampaign, EmailCampaignRecipient, EmailContact, Order, Product, ProductSize, ProductVariant, StoreReservation, StoreStockItem, PublicProductListing, SiteSetting, User
 from .utils import admin_required, save_image, set_setting, setting, unique_slug, send_email
 from .supplier_import import import_supplier_sku_file
 from .supplier_report_utils import generate_supplier_orders_pdf, get_pending_supplier_orders, send_supplier_orders_report
@@ -58,6 +58,8 @@ def dashboard():
         'email_contacts': EmailContact.query.filter(EmailContact.deleted_at.is_(None)).count(),
         'seo_drafts': BlogPost.query.filter_by(status='draft').count() + Category.query.filter_by(seo_generated=True, seo_published=False).count(),
         'store_stock': StoreStockItem.query.filter_by(active=True).count(),
+        'public_ordered': Product.query.filter_by(active=True, show_ordered=True).count() + PublicProductListing.query.filter_by(active=True, listing_type='ordered').count(),
+        'public_stock': Product.query.filter_by(active=True, show_stock=True).count() + PublicProductListing.query.filter_by(active=True, listing_type='stock').count(),
         'store_reservations': StoreReservation.query.filter_by(status='aktivní').count(),
     }
 
@@ -362,6 +364,117 @@ def store_reservation_action(reservation_id, action):
     db.session.commit()
     return redirect(url_for('admin.store_stock_admin'))
 
+def _listing_type_label(value):
+    return 'Sklad' if value == 'stock' else 'Objednáno'
+
+
+def _public_listing_redirect():
+    return redirect(url_for('admin.ordered_stock_admin', q=(request.args.get('q') or '').strip()))
+
+
+@admin_bp.route('/objednano', methods=['GET', 'POST'])
+@admin_required
+def ordered_stock_admin():
+    search_query = (request.values.get('q') or '').strip()
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'save_flags')
+
+        if action == 'save_flags':
+            product_ids = [int(pid) for pid in request.form.getlist('product_ids') if str(pid).isdigit()]
+            ordered_ids = {int(pid) for pid in request.form.getlist('show_ordered') if str(pid).isdigit()}
+            stock_ids = {int(pid) for pid in request.form.getlist('show_stock') if str(pid).isdigit()}
+
+            for product in Product.query.filter(Product.id.in_(product_ids)).all():
+                product.show_ordered = product.id in ordered_ids
+                product.show_stock = product.id in stock_ids
+
+            db.session.commit()
+            flash('Zaškrtnutí pro veřejné stránky /objednano a /sklad bylo uloženo.', 'success')
+            return redirect(url_for('admin.ordered_stock_admin', q=search_query))
+
+        if action == 'manual_create':
+            listing_type = request.form.get('listing_type') if request.form.get('listing_type') in {'ordered', 'stock'} else 'ordered'
+            name = (request.form.get('name') or '').strip()
+            if not name:
+                flash('U ruční položky vyplň název.', 'warning')
+                return redirect(url_for('admin.ordered_stock_admin'))
+
+            uploaded_image = save_image(request.files.get('image'))
+            image_url = (request.form.get('image_url') or '').strip()
+            item = PublicProductListing(
+                listing_type=listing_type,
+                name=name,
+                brand=(request.form.get('brand') or '').strip(),
+                size=(request.form.get('size') or '').strip(),
+                price=_float_form('price', 0),
+                image=uploaded_image or image_url or 'default-product.svg',
+                note=(request.form.get('note') or '').strip(),
+                active=True,
+            )
+            db.session.add(item)
+            db.session.commit()
+            flash(f'Ruční položka byla přidána na stránku /{"sklad" if listing_type == "stock" else "objednano"}.', 'success')
+            return redirect(url_for('admin.ordered_stock_admin'))
+
+    products_query = Product.query.filter_by(active=True)
+    if search_query:
+        products_query = products_query.filter(
+            db.or_(
+                Product.name.ilike(f'%{search_query}%'),
+                Product.brand.ilike(f'%{search_query}%'),
+            )
+        )
+
+    products = products_query.order_by(Product.created_at.desc()).all()
+    manual_items = PublicProductListing.query.order_by(PublicProductListing.active.desc(), PublicProductListing.created_at.desc()).all()
+
+    return render_template(
+        'admin/ordered_stock.html',
+        products=products,
+        manual_items=manual_items,
+        search_query=search_query,
+        format_product_sizes=format_product_sizes,
+        ordered_url=url_for('shop.ordered_products', _external=True),
+        stock_url=url_for('shop.store_stock', _external=True),
+        listing_type_label=_listing_type_label,
+    )
+
+
+@admin_bp.route('/objednano/manual/<int:item_id>/update', methods=['POST'])
+@admin_required
+def public_listing_update(item_id):
+    item = PublicProductListing.query.get_or_404(item_id)
+    item.listing_type = request.form.get('listing_type') if request.form.get('listing_type') in {'ordered', 'stock'} else item.listing_type
+    item.name = (request.form.get('name') or item.name).strip()
+    item.brand = (request.form.get('brand') or '').strip()
+    item.size = (request.form.get('size') or '').strip()
+    item.price = _float_form('price', item.price or 0)
+    item.note = (request.form.get('note') or '').strip()
+    item.active = bool(request.form.get('active'))
+
+    uploaded_image = save_image(request.files.get('image'))
+    image_url = (request.form.get('image_url') or '').strip()
+    if uploaded_image:
+        item.image = uploaded_image
+    elif image_url:
+        item.image = image_url
+
+    db.session.commit()
+    flash('Ruční veřejná položka byla upravena.', 'success')
+    return redirect(url_for('admin.ordered_stock_admin'))
+
+
+@admin_bp.route('/objednano/manual/<int:item_id>/delete', methods=['POST'])
+@admin_required
+def public_listing_delete(item_id):
+    item = PublicProductListing.query.get_or_404(item_id)
+    db.session.delete(item)
+    db.session.commit()
+    flash('Ruční veřejná položka byla smazána.', 'info')
+    return redirect(url_for('admin.ordered_stock_admin'))
+
+
 @admin_bp.route('/products')
 @admin_required
 def products():
@@ -409,6 +522,8 @@ def product_new():
             stock=_int_form('stock', 0),
             featured=bool(request.form.get('featured')),
             active=bool(request.form.get('active')),
+            show_ordered=bool(request.form.get('show_ordered')),
+            show_stock=bool(request.form.get('show_stock')),
             category_id=category.id,
             image=request.form.get('image_url', '').strip() or 'default-product.svg',
             gallery=request.form.get('gallery', '').strip(),
@@ -486,6 +601,8 @@ def product_edit(product_id):
         product.stock = _int_form('stock', 0)
         product.featured = bool(request.form.get('featured'))
         product.active = bool(request.form.get('active'))
+        product.show_ordered = bool(request.form.get('show_ordered'))
+        product.show_stock = bool(request.form.get('show_stock'))
         product.category_id = category.id
         selected_categories = request.form.getlist('categories')
         product.gender = payload.get('gender') or 'unisex'
@@ -1603,31 +1720,3 @@ def settings():
         return redirect(url_for('admin.settings'))
 
     return render_template('admin/settings.html', settings=settings, sections=sections)
-
-
-# ===== ADMIN OBJEDNANO MANAGEMENT =====
-from .models import StoreStockItem, StoreReservation
-
-@admin_bp.route('/objednano', methods=['GET', 'POST'])
-@admin_required
-def admin_objednano():
-    products = Product.query.all()
-
-    if request.method == 'POST':
-        StoreStockItem.query.delete()
-        StoreReservation.query.delete()
-
-        for p in products:
-            if request.form.get(f'stock_{p.id}'):
-                db.session.add(StoreStockItem(product_id=p.id))
-            if request.form.get(f'ordered_{p.id}'):
-                db.session.add(StoreReservation(product_id=p.id))
-
-        db.session.commit()
-        flash('Objednano/Sklad aktualizováno', 'success')
-        return redirect(url_for('admin.admin_objednano'))
-
-    stock_ids = {x.product_id for x in StoreStockItem.query.all()}
-    ordered_ids = {x.product_id for x in StoreReservation.query.all()}
-
-    return render_template('admin/objednano.html', products=products, stock_ids=stock_ids, ordered_ids=ordered_ids)

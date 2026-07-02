@@ -94,6 +94,8 @@ class Product(db.Model):
     stock = db.Column(db.Integer, default=0)
     featured = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)
+    show_ordered = db.Column(db.Boolean, default=False, index=True)
+    show_stock = db.Column(db.Boolean, default=False, index=True)
 
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
@@ -327,6 +329,46 @@ class StoreStockItem(db.Model):
     @property
     def available_quantity(self):
         return max(0, int(self.stock or 0) - self.active_reserved_quantity)
+
+
+class PublicProductListing(db.Model):
+    """Ruční položky pro veřejné stránky /objednano a /sklad.
+
+    Běžné produkty se na stránky párují přes příznaky Product.show_ordered
+    a Product.show_stock. Tato tabulka je jen pro položky, které chce admin
+    zobrazit ručně bez založení plnohodnotného produktu v e-shopu.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    listing_type = db.Column(db.String(20), nullable=False, index=True)  # ordered / stock
+    name = db.Column(db.String(180), nullable=False)
+    brand = db.Column(db.String(80), default='')
+    size = db.Column(db.String(80), default='')
+    price = db.Column(db.Float, default=0)
+    image = db.Column(db.String(500), default='default-product.svg')
+    note = db.Column(db.Text, default='')
+    active = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    @property
+    def display_name(self):
+        return self.name or ''
+
+    @property
+    def display_brand(self):
+        return self.brand or 'BotyZaHubicku.cz'
+
+    @property
+    def display_price(self):
+        return self.price or 0
+
+    @property
+    def display_image(self):
+        return self.image or 'default-product.svg'
+
+    @property
+    def size_label(self):
+        return self.size or 'Dle dostupnosti'
 
 
 class StoreReservation(db.Model):

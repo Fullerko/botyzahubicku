@@ -10,7 +10,7 @@ from flask import Blueprint, current_app, abort, flash, redirect, render_templat
 from flask_login import current_user, login_required, login_user
 
 from . import db
-from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, StoreReservation, StoreStockItem, AffiliatePayoutRequest, User
+from .models import AffiliatePartner, BlogPost, Category, Coupon, Order, OrderItem, Product, ProductSize, StoreReservation, StoreStockItem, PublicProductListing, AffiliatePayoutRequest, User
 from .utils import get_cart, setting
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
@@ -581,35 +581,138 @@ def cookies():
     return render_template('legal/cookies.html')
 
 
-@shop_bp.route('/sklad')
-def store_stock():
-    q = StoreStockItem.query.filter_by(active=True)
-    search = (request.args.get('q') or '').strip()
+def _public_product_collection(listing_type):
+    is_stock = listing_type == 'stock'
+    search = (request.args.get('q') or request.args.get('search') or '').strip()
     size = (request.args.get('size') or '').strip()
+    brand = _clean_brand(request.args.get('brand', ''))
+    sort = request.args.get('sort', 'newest')
+
+    product_query = Product.query.filter(Product.active.is_(True))
+    if is_stock:
+        product_query = product_query.filter(Product.show_stock.is_(True))
+    else:
+        product_query = product_query.filter(Product.show_ordered.is_(True))
 
     if search:
-        q = q.filter(
+        product_query = product_query.filter(
             db.or_(
-                StoreStockItem.name.ilike(f'%{search}%'),
-                StoreStockItem.brand.ilike(f'%{search}%'),
+                Product.name.ilike(f'%{search}%'),
+                Product.brand.ilike(f'%{search}%'),
+                Product.short_description.ilike(f'%{search}%'),
+                Product.description.ilike(f'%{search}%'),
+                Product.seo_keywords.ilike(f'%{search}%'),
             )
         )
-    if size:
-        q = q.filter(StoreStockItem.size == size)
 
-    items = q.order_by(StoreStockItem.created_at.desc(), StoreStockItem.name.asc()).all()
-    items = [item for item in items if item.available_quantity > 0]
-    sizes = sorted({item.size for item in StoreStockItem.query.filter_by(active=True).all() if item.size}, key=lambda value: (len(str(value)), str(value)))
-    public_url = url_for('shop.store_stock', _external=True)
+    if brand and not _blocked_brand(brand):
+        product_query = product_query.filter(db.func.lower(db.func.trim(Product.brand)) == brand.casefold())
+
+    if size:
+        product_query = product_query.join(ProductSize).filter(ProductSize.size == size)
+
+    if sort == 'price_asc':
+        product_query = product_query.order_by(Product.price.asc())
+    elif sort == 'price_desc':
+        product_query = product_query.order_by(Product.price.desc())
+    else:
+        product_query = product_query.order_by(Product.created_at.desc())
+
+    products = product_query.all()
+
+    manual_query = PublicProductListing.query.filter_by(active=True, listing_type=listing_type)
+    if search:
+        manual_query = manual_query.filter(
+            db.or_(
+                PublicProductListing.name.ilike(f'%{search}%'),
+                PublicProductListing.brand.ilike(f'%{search}%'),
+                PublicProductListing.note.ilike(f'%{search}%'),
+            )
+        )
+    if brand and not _blocked_brand(brand):
+        manual_query = manual_query.filter(db.func.lower(db.func.trim(PublicProductListing.brand)) == brand.casefold())
+    if size:
+        manual_query = manual_query.filter(PublicProductListing.size.ilike(f'%{size}%'))
+    manual_items = manual_query.order_by(PublicProductListing.created_at.desc(), PublicProductListing.name.asc()).all()
+
+    store_items = []
+    if is_stock:
+        store_query = StoreStockItem.query.filter_by(active=True)
+        if search:
+            store_query = store_query.filter(
+                db.or_(
+                    StoreStockItem.name.ilike(f'%{search}%'),
+                    StoreStockItem.brand.ilike(f'%{search}%'),
+                    StoreStockItem.note.ilike(f'%{search}%'),
+                )
+            )
+        if brand and not _blocked_brand(brand):
+            store_query = store_query.filter(db.func.lower(db.func.trim(StoreStockItem.brand)) == brand.casefold())
+        if size:
+            store_query = store_query.filter(StoreStockItem.size == size)
+        store_items = [item for item in store_query.order_by(StoreStockItem.created_at.desc(), StoreStockItem.name.asc()).all() if item.available_quantity > 0]
+
+    brand_values = set()
+    size_values = set()
+    base_products = Product.query.filter(Product.active.is_(True))
+    base_products = base_products.filter(Product.show_stock.is_(True) if is_stock else Product.show_ordered.is_(True)).all()
+    for product in base_products:
+        clean_brand = _clean_brand(product.brand)
+        if clean_brand and not _blocked_brand(clean_brand):
+            brand_values.add(clean_brand)
+        for row in getattr(product, 'sizes', []) or []:
+            if row.size:
+                size_values.add(str(row.size))
+
+    for item in PublicProductListing.query.filter_by(active=True, listing_type=listing_type).all():
+        clean_brand = _clean_brand(item.brand)
+        if clean_brand and not _blocked_brand(clean_brand):
+            brand_values.add(clean_brand)
+        for value in str(item.size or '').replace(';', ',').split(','):
+            value = value.strip()
+            if value:
+                size_values.add(value)
+
+    if is_stock:
+        for item in StoreStockItem.query.filter_by(active=True).all():
+            clean_brand = _clean_brand(item.display_brand)
+            if clean_brand and not _blocked_brand(clean_brand):
+                brand_values.add(clean_brand)
+            if item.size:
+                size_values.add(str(item.size))
+
+    title = 'Skladem' if is_stock else 'Objednáno'
+    subtitle = 'Produkty, které už máme skladem a klienti je mohou vidět na jednom místě.' if is_stock else 'Produkty, které jsou objednané a brzy dorazí do nabídky.'
+    endpoint = 'shop.store_stock' if is_stock else 'shop.ordered_products'
+    public_url = url_for(endpoint, _external=True)
+
     return render_template(
-        'shop/store_stock.html',
-        items=items,
-        sizes=sizes,
+        'shop/public_product_collection.html',
+        listing_type=listing_type,
+        page_title=title,
+        page_subtitle=subtitle,
+        products=products,
+        manual_items=manual_items,
+        store_items=store_items,
+        brands=sorted(brand_values, key=lambda value: value.casefold()),
+        sizes=sorted(size_values, key=lambda value: (len(str(value)), str(value))),
         search=search,
+        selected_brand=brand,
         selected_size=size,
+        selected_sort=sort,
+        endpoint=endpoint,
         public_url=public_url,
-        qr_image=qr_data_uri(public_url),
     )
+
+
+@shop_bp.route('/objednano')
+def ordered_products():
+    return _public_product_collection('ordered')
+
+
+@shop_bp.route('/sklad')
+def store_stock():
+    return _public_product_collection('stock')
 
 
 @shop_bp.route('/sklad/rezervace/<int:item_id>', methods=['POST'])
@@ -1342,20 +1445,3 @@ def category_landing(slug):
         related_categories=related_categories,
         product_sort=product_sort,
     )
-
-
-# ===== OBJEDNANO / SKLAD PAGES =====
-@shop_bp.route('/sklad')
-def sklad():
-    products = Product.query.all()
-    items = StoreStockItem.query.with_entities(StoreStockItem.product_id).all()
-    ids = {i.product_id for i in items}
-    return render_template('shop/sklad.html', products=products, ids=ids)
-
-@shop_bp.route('/objednano')
-def objednano():
-    products = Product.query.all()
-    items = StoreReservation.query.with_entities(StoreReservation.product_id).all()
-    ids = {i.product_id for i in items}
-    return render_template('shop/objednano.html', products=products, ids=ids)
-

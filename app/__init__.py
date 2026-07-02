@@ -102,6 +102,7 @@ Sitemap: {sitemap}
         urls = [
             xml_url(url_for('shop.index', _external=True), '1.0', 'daily'),
             xml_url(url_for('shop.products', _external=True), '0.9', 'daily'),
+            xml_url(url_for('shop.ordered_products', _external=True), '0.8', 'daily'),
             xml_url(url_for('shop.store_stock', _external=True), '0.8', 'daily'),
         ]
 

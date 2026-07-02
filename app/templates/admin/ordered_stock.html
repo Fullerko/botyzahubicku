@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Objednáno / Sklad | Admin{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="section-header mb-4">
+    <div>
+      <h1 class="h2 mb-1">Objednáno / Sklad</h1>
+      <p class="text-secondary mb-0">Zaškrtni, které běžné produkty se mají zobrazit na veřejných stránkách <code>/objednano</code> a <code>/sklad</code>. Ruční položky můžeš přidat níže bez zakládání produktu.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ ordered_url }}" target="_blank" class="btn btn-outline-dark rounded-pill">Otevřít /objednano</a>
+      <a href="{{ stock_url }}" target="_blank" class="btn btn-outline-dark rounded-pill">Otevřít /sklad</a>
+      <a href="{{ url_for('admin.products') }}" class="btn btn-outline-dark rounded-pill">Produkty</a>
+    </div>
+  </div>
+
+  <form method="GET" action="{{ url_for('admin.ordered_stock_admin') }}" class="info-card mb-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-8 col-lg-9">
+        <label class="form-label fw-semibold">Vyhledat produkt</label>
+        <input type="search" name="q" value="{{ search_query }}" class="form-control form-control-lg" placeholder="Název nebo značka produktu">
+      </div>
+      <div class="col-md-4 col-lg-3 d-flex gap-2">
+        <button class="btn btn-dark rounded-pill flex-fill">Hledat</button>
+        {% if search_query %}<a href="{{ url_for('admin.ordered_stock_admin') }}" class="btn btn-outline-secondary rounded-pill">Zrušit</a>{% endif %}
+      </div>
+    </div>
+  </form>
+
+  <form method="POST" class="info-card mb-5">
+    <input type="hidden" name="action" value="save_flags">
+    <input type="hidden" name="q" value="{{ search_query }}">
+    <div class="section-header mb-3">
+      <div>
+        <h2 class="h4 mb-1">Běžné produkty</h2>
+        <p class="text-secondary mb-0">Zobrazeno produktů: {{ products|length }}. Po zaškrtnutí se produkt automaticky propíše včetně obrázku, ceny, značky, velikostí, atributů a detailu produktu.</p>
+      </div>
+      <button class="btn btn-dark rounded-pill px-4">Uložit zaškrtnutí</button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th style="min-width: 330px;">Produkt</th>
+            <th style="width: 120px;">Obrázek</th>
+            <th style="width: 130px;">Cena</th>
+            <th style="min-width: 160px;">Velikosti</th>
+            <th style="width: 130px;">Objednáno</th>
+            <th style="width: 110px;">Sklad</th>
+            <th style="width: 120px;">Upravit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+          <tr>
+            <td>
+              <input type="hidden" name="product_ids" value="{{ product.id }}">
+              <div class="fw-semibold text-wrap" style="white-space: normal; line-height: 1.35;">{{ product.name }}</div>
+              <div class="small text-secondary mt-1">{{ product.brand or '—' }}{% if product.slug %} · /{{ product.slug }}{% endif %}</div>
+            </td>
+            <td><img src="{{ image_url(product.image or 'default-product.svg') }}" alt="{{ product.image_alt or product.name }}" style="width:76px;height:76px;object-fit:cover;border-radius:14px;border:1px solid rgba(0,0,0,.08);" loading="lazy"></td>
+            <td>
+              <strong>{{ '{:,.0f}'.format(product.price or 0).replace(',', ' ') }} Kč</strong>
+              {% if product.original_price and product.original_price > product.price %}<div class="small text-secondary text-decoration-line-through">{{ '{:,.0f}'.format(product.original_price).replace(',', ' ') }} Kč</div>{% endif %}
+            </td>
+            <td><span class="badge rounded-pill text-bg-light border px-3 py-2">{{ format_product_sizes(product) }}</span></td>
+            <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="show_ordered" value="{{ product.id }}" {% if product.show_ordered %}checked{% endif %}></div></td>
+            <td><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="show_stock" value="{{ product.id }}" {% if product.show_stock %}checked{% endif %}></div></td>
+            <td><a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">Detail</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-center text-secondary py-4">Žádné produkty k zobrazení.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+
+  <div class="row g-4 mb-5">
+    <div class="col-lg-5">
+      <div class="info-card h-100">
+        <h2 class="h4 mb-3">Přidat ruční položku</h2>
+        <form method="post" enctype="multipart/form-data" class="row g-3">
+          <input type="hidden" name="action" value="manual_create">
+          <div class="col-md-6">
+            <label class="form-label">Stránka</label>
+            <select name="listing_type" class="form-select">
+              <option value="ordered">Objednáno</option>
+              <option value="stock">Sklad</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Cena</label>
+            <input class="form-control" type="number" step="0.01" min="0" name="price" placeholder="0">
+          </div>
+          <div class="col-12"><label class="form-label">Název</label><input class="form-control" name="name" required></div>
+          <div class="col-md-6"><label class="form-label">Značka</label><input class="form-control" name="brand"></div>
+          <div class="col-md-6"><label class="form-label">Velikosti / atribut</label><input class="form-control" name="size" placeholder="např. 36-41 / různé"></div>
+          <div class="col-12"><label class="form-label">URL obrázku</label><input class="form-control" name="image_url" placeholder="Nech prázdné, pokud nahraješ soubor"></div>
+          <div class="col-12"><label class="form-label">Nahrát obrázek</label><input class="form-control" type="file" name="image" accept="image/*"></div>
+          <div class="col-12"><label class="form-label">Poznámka</label><textarea class="form-control" name="note" rows="3" placeholder="Např. dorazí do 10 dnů, dostupné kusy, barvy..."></textarea></div>
+          <div class="col-12"><button class="btn btn-dark rounded-pill px-4">Přidat položku</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="info-card h-100">
+        <div class="section-header mb-3">
+          <div>
+            <h2 class="h4 mb-1">Ruční položky</h2>
+            <p class="text-secondary mb-0">Toto jsou položky přidané jen pro /objednano nebo /sklad.</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th>Produkt</th><th>Stránka</th><th>Vel./cena</th><th>Aktivní</th><th>Akce</th></tr></thead>
+            <tbody>
+              {% for item in manual_items %}
+              <tr>
+                <td style="min-width:260px;">
+                  <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.public_listing_update', item_id=item.id) }}" class="row g-2 align-items-center">
+                    <div class="col-auto"><img src="{{ image_url(item.display_image) }}" alt="" style="width:58px;height:58px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.08);"></div>
+                    <div class="col">
+                      <input class="form-control form-control-sm mb-1" name="name" value="{{ item.name }}">
+                      <input class="form-control form-control-sm mb-1" name="brand" value="{{ item.brand }}" placeholder="Značka">
+                      <input class="form-control form-control-sm" name="image_url" value="{{ item.image }}" placeholder="Obrázek">
+                      <input class="form-control form-control-sm mt-1" type="file" name="image" accept="image/*">
+                      <textarea class="form-control form-control-sm mt-1" name="note" rows="2" placeholder="Poznámka">{{ item.note }}</textarea>
+                    </div>
+                </td>
+                <td style="width:135px;">
+                  <select class="form-select form-select-sm" name="listing_type">
+                    <option value="ordered" {% if item.listing_type == 'ordered' %}selected{% endif %}>Objednáno</option>
+                    <option value="stock" {% if item.listing_type == 'stock' %}selected{% endif %}>Sklad</option>
+                  </select>
+                </td>
+                <td style="width:150px;">
+                  <input class="form-control form-control-sm mb-1" name="size" value="{{ item.size }}" placeholder="Velikost">
+                  <input class="form-control form-control-sm" type="number" step="0.01" min="0" name="price" value="{{ item.price or 0 }}">
+                </td>
+                <td style="width:80px;"><div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="1" {% if item.active %}checked{% endif %}></div></td>
+                <td style="width:170px;">
+                    <button class="btn btn-sm btn-outline-dark rounded-pill mb-2">Uložit</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin.public_listing_delete', item_id=item.id) }}" onsubmit="return confirm('Smazat ruční položku?')">
+                    <button class="btn btn-sm btn-outline-danger rounded-pill">Smazat</button>
+                  </form>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-secondary py-4">Zatím žádné ruční položky.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

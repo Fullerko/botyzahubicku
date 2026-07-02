@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}{{ page_title }} | {{ settings.get('site_name', 'BotyZaHubicku.cz') }}{% endblock %}
+{% block meta_description %}{{ page_subtitle }}{% endblock %}
+{% block canonical_url %}{{ public_url }}{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="section-header mb-4">
+    <div>
+      <span class="badge rounded-pill text-bg-warning mb-3">{{ page_title }}</span>
+      <h1 class="display-6 fw-bold mb-2">{{ page_title }}</h1>
+      <p class="lead text-secondary mb-0">{{ page_subtitle }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if listing_type == 'ordered' %}
+        <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.store_stock') }}">Zobrazit sklad</a>
+      {% else %}
+        <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.ordered_products') }}">Zobrazit objednáno</a>
+      {% endif %}
+      <a class="btn btn-dark rounded-pill" href="{{ url_for('shop.products') }}">Všechny produkty</a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-3">
+      <div class="filter-card sticky-filters">
+        <h4>Filtry</h4>
+        <form method="get" action="{{ url_for(endpoint) }}" class="vstack gap-3 mt-3">
+          <input class="form-control" type="text" name="q" placeholder="Hledat" value="{{ search }}">
+          <select class="form-select" name="brand">
+            <option value="">Všechny značky</option>
+            {% for brand in brands %}<option value="{{ brand }}" {% if selected_brand == brand %}selected{% endif %}>{{ brand }}</option>{% endfor %}
+          </select>
+          <select class="form-select" name="size">
+            <option value="">Všechny velikosti</option>
+            {% for size in sizes %}<option value="{{ size }}" {% if selected_size == size %}selected{% endif %}>{{ size }}</option>{% endfor %}
+          </select>
+          <select class="form-select" name="sort">
+            <option value="newest" {% if selected_sort == 'newest' %}selected{% endif %}>Nejnovější</option>
+            <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>Cena od nejnižší</option>
+            <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>Cena od nejvyšší</option>
+          </select>
+          <button class="btn btn-dark rounded-pill">Použít filtry</button>
+          {% if search or selected_brand or selected_size %}<a class="btn btn-outline-secondary rounded-pill" href="{{ url_for(endpoint) }}">Reset</a>{% endif %}
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-9">
+      <div class="row g-4">
+        {% for product in products %}
+          {% include 'components/product_card.html' %}
+        {% endfor %}
+
+        {% for item in manual_items %}
+        <div class="col-md-6 col-xl-3">
+          <div class="product-card h-100 d-flex flex-column">
+            <div class="product-image-wrap">
+              <img class="product-image" src="{{ image_url(item.display_image) }}" alt="{{ item.display_name }}" loading="lazy">
+            </div>
+            <div class="p-3 d-flex flex-column flex-grow-1">
+              <div class="text-secondary small mb-1">{{ item.display_brand }}</div>
+              <h2 class="h5 product-title">{{ item.display_name }}</h2>
+              {% if item.size %}<div class="mb-2"><span class="badge rounded-pill text-bg-light border px-3 py-2">{{ item.size_label }}</span></div>{% endif %}
+              {% if item.note %}<p class="text-secondary small mb-2">{{ item.note }}</p>{% endif %}
+              <div class="mt-auto">
+                {% if item.display_price %}<strong class="fs-5">{{ '{:,.0f}'.format(item.display_price).replace(',', ' ') }} Kč</strong>{% endif %}
+                <div class="small text-secondary mt-2">{{ 'Skladem' if listing_type == 'stock' else 'Objednáno' }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for item in store_items %}
+        <div class="col-md-6 col-xl-3">
+          <div class="product-card h-100 d-flex flex-column">
+            <div class="product-image-wrap">
+              <img class="product-image" src="{{ image_url(item.display_image) }}" alt="{{ item.display_name }} velikost {{ item.size }}" loading="lazy">
+            </div>
+            <div class="p-3 d-flex flex-column flex-grow-1">
+              <div class="text-secondary small mb-1">{{ item.display_brand or 'BotyZaHubicku.cz' }}</div>
+              <h2 class="h5 product-title">{{ item.display_name }}</h2>
+              <div class="d-flex gap-2 flex-wrap mb-2">
+                <span class="badge rounded-pill text-bg-dark px-3 py-2">Vel. {{ item.size }}</span>
+                <span class="badge rounded-pill text-bg-light border px-3 py-2">Skladem {{ item.available_quantity }} ks</span>
+              </div>
+              {% if item.note %}<p class="text-secondary small mb-2">{{ item.note }}</p>{% endif %}
+              <div class="mt-auto">
+                <strong class="fs-5">{{ '{:,.0f}'.format(item.display_price or 0).replace(',', ' ') }} Kč</strong>
+                {% if item.product and item.product.slug %}<a class="btn btn-dark rounded-pill w-100 mt-3" href="{{ url_for('shop.product_detail', slug=item.product.slug) }}">Detail</a>{% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if not products and not manual_items and not store_items %}
+          <div class="col-12"><div class="info-card text-center py-5">Žádné produkty teď nejsou k zobrazení.</div></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
