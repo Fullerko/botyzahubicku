@@ -56,8 +56,10 @@ def protect_mobile_writes():
     if len(request.get_data(cache=True)) > 16384:
         abort(413)
     origin = request.headers.get('Origin')
-    if origin and urlsplit(origin).netloc != request.host:
-        abort(403)
+    # no-referrer suppresses Origin on normal HTML form submissions.
+    # An opaque Origin is allowed only with the session-bound CSRF token below.
+    if origin and origin != 'null' and urlsplit(origin).netloc != request.host:
+        abort(403, description='Požadavek pochází z jiné webové stránky.')
     expected = session.get('mobile_csrf', '')
     received = request.headers.get('X-CSRF-Token') or request.form.get('csrf_token', '')
     if not expected or not isinstance(received, str) or not hmac.compare_digest(expected, received):
