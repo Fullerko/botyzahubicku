@@ -570,7 +570,7 @@ Sitemap: {sitemap}
             db.session.commit()
 
     # BZH MOBILE PWA
-    from .mobile import mobile_bp
-    app.register_blueprint(mobile_bp)
+    from .mobile import init_mobile
+    init_mobile(app)
 
     return app

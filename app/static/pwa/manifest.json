@@ -39,8 +39,8 @@
       "url": "/cart"
     },
     {
-      "name": "Skladem",
-      "url": "/sklad"
+      "name": "Kalendář akcí",
+      "url": "/kalendar"
     }
   ]
 }

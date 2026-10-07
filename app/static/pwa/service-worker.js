@@ -1,7 +1,7 @@
 /* Change VERSION for every mobile asset release. Never cache customer data. */
-const VERSION = 'bzh-mobile-v1';
+const VERSION = 'bzh-mobile-v2';
 const OFFLINE = '/aplikace/offline';
-const ASSETS = [OFFLINE, '/static/pwa/mobile.css', '/static/pwa/mobile.js',
+const ASSETS = [OFFLINE, '/static/pwa/mobile.css', '/static/pwa/mobile.js', '/static/pwa/push.js',
   '/static/pwa/icon-192.png', '/static/pwa/icon-512.png', '/static/pwa/icon-maskable.png', '/static/pwa/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(ASSETS)));
@@ -44,4 +44,35 @@ self.addEventListener('fetch', event => {
       }
     })());
   }
+});
+
+self.addEventListener('message', event => {
+  if (event.data?.type === 'MOBILE_VERSION' && event.ports[0]) event.ports[0].postMessage(VERSION);
+});
+self.addEventListener('push', event => {
+  let data={};
+  try { data=event.data ? event.data.json() : {}; } catch { data={}; }
+  const title=typeof data.title === 'string' ? data.title : 'Boty za hubičku';
+  const body=typeof data.body === 'string' ? data.body : 'Máme pro vás novinku. Otevřete aplikaci.';
+  let url='/kalendar';
+  try {
+    const target=new URL(data.url || url,self.location.origin);
+    if(target.origin === self.location.origin && !target.username && !target.password) url=target.pathname+target.search+target.hash;
+  } catch {}
+  event.waitUntil(self.registration.showNotification(title, {body,icon:'/static/pwa/icon-192.png',badge:'/static/pwa/icon-192.png',tag:typeof data.tag==='string' ? data.tag : undefined,data:{url}}));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  let target=new URL('/kalendar',self.location.origin);
+  try {const candidate=new URL(event.notification.data?.url || '/kalendar',self.location.origin); if(candidate.origin===self.location.origin)target=candidate;}catch{}
+  event.waitUntil((async()=>{
+    const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    for (const client of windows) {
+      if(new URL(client.url).origin===self.location.origin && 'focus' in client) {
+        if ('navigate' in client) await client.navigate(target.href);
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow(target.href);
+  })());
 });

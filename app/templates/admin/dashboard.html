@@ -16,6 +16,9 @@
     <div class="col-md-4 col-xl-2"><div class="admin-stat"><span>Rezervace</span><strong>{{ stats.store_reservations }}</strong></div></div>
   </div>
   <div class="admin-links mt-4 d-flex gap-2 flex-wrap">
+    <!-- BZH MOBILE ADMIN LINKS -->
+    <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('mobile.admin_events') }}">Kalendář akcí</a>
+    <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('mobile.admin_push') }}">Push oznámení</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.products') }}">Produkty</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.ordered_stock_admin') }}">Objednáno / Sklad</a>
     <a class="btn btn-outline-dark rounded-pill" href="{{ url_for('admin.store_stock_admin') }}">Sklad prodejny</a>
