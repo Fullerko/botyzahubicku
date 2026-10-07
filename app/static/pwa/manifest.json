@@ -11,19 +11,19 @@
   "theme_color": "#111827",
   "icons": [
     {
-      "src": "/static/pwa/icon-192.png",
+      "src": "/static/pwa/icon-v3-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/pwa/icon-512.png",
+      "src": "/static/pwa/icon-v3-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/pwa/icon-maskable.png",
+      "src": "/static/pwa/icon-maskable-v3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -41,6 +41,10 @@
     {
       "name": "Kalendář akcí",
       "url": "/kalendar"
+    },
+    {
+      "name": "Moje odměny",
+      "url": "/odmeny"
     }
   ]
 }

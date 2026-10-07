@@ -43,6 +43,8 @@ def init_mobile(app):
                 connection.exec_driver_sql('BEGIN IMMEDIATE')
             for model in (MobileEvent, MobilePushSubscription, MobilePushCampaign, MobilePushDelivery):
                 model.__table__.create(bind=connection, checkfirst=True)
+    from .rewards import init_rewards
+    init_rewards(app)
 
 
 @mobile_bp.before_request
