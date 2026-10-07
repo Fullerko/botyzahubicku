@@ -15,3 +15,46 @@
 @media(max-width:600px){.bzh-calendar-hero{padding:26px}.bzh-upcoming-list{grid-template-columns:1fr}.bzh-month-card{padding:14px}.bzh-month-title h2{font-size:20px}.bzh-day{min-height:48px;padding:5px}.bzh-day-event{height:9px;padding:0}.bzh-day-event span{display:none}.bzh-event-card{gap:14px;padding:20px}.bzh-event-date-large{width:58px;padding:10px 4px}.bzh-event-date-large strong{font-size:28px}.bzh-event-content h3{font-size:20px}.bzh-push-panel{flex-direction:column;padding:24px;gap:16px}.bzh-delivery-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .bzh-wallet-page{max-width:1080px;padding-top:24px;padding-bottom:32px}.bzh-wallet-hero{background:#111827;border-radius:28px;padding:36px;color:#fff}.bzh-wallet-hero h1{font-size:clamp(32px,6vw,52px);font-weight:850;letter-spacing:-.04em;margin:14px 0}.bzh-wallet-hero p{color:#d1d5db;max-width:580px;line-height:1.7;margin:0}.bzh-wallet-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:24px 0}.bzh-wallet-stats>div{background:#fff;border:1px solid #e5e7eb;border-radius:22px;padding:22px}.bzh-wallet-stats small{color:#6b7280;display:block}.bzh-wallet-stats strong{display:block;font-size:clamp(20px,4vw,30px);margin-top:8px;overflow-wrap:anywhere}.bzh-wallet-stats>div:first-child{background:#fef3c7;border-color:#fde68a}.bzh-wallet-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.bzh-qr-card{padding:28px;border:1px solid #e5e7eb;background:#fff;border-radius:28px;text-align:center}.bzh-qr-card img{width:100%;max-width:280px;height:auto;image-rendering:pixelated}.bzh-qr-card p{color:#6b7280}.bzh-qr-card .bzh-member-code{color:#111827;letter-spacing:.12em;font-weight:800;font-family:monospace;font-size:20px}.bzh-qr-card small{display:block;color:#6b7280;margin-top:16px;line-height:1.6}.bzh-withdrawal-row,.bzh-purchase-row{border-bottom:1px solid #e5e7eb;padding:18px 0}.bzh-withdrawal-row strong,.bzh-withdrawal-row span,.bzh-withdrawal-row small{display:block}.bzh-withdrawal-row span{margin:5px 0}.bzh-withdrawal-row small{color:#6b7280}.bzh-purchase-row p{color:#6b7280}.bzh-scanner-video{display:block;width:100%;max-height:400px;object-fit:cover;border-radius:20px;margin-bottom:20px;background:#111827}.bzh-bank-account{font-size:24px;font-weight:800;overflow-wrap:anywhere}.bzh-wallet-grid .info-card p{line-height:1.7}
 @media(max-width:650px){.bzh-wallet-hero{padding:26px}.bzh-wallet-stats{gap:8px}.bzh-wallet-stats>div{padding:14px 10px;border-radius:16px}.bzh-wallet-stats small{font-size:11px}.bzh-wallet-stats strong{font-size:18px}.bzh-wallet-grid{grid-template-columns:1fr}.bzh-bank-account{font-size:20px}}
+
+
+/* BZH MOBILE V5: installed PWA should feel like an app, not a desktop website. */
+html{background:#f4f6fa}
+body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+button,a,.btn{-webkit-touch-callout:none}
+.bzh-mobile-nav{transform:translateZ(0)}
+
+@media(max-width:767.98px){
+  input,select,textarea{font-size:16px!important}
+  .btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+}
+
+@media(display-mode:standalone){
+  html,body{min-height:100%;background:#f4f6fa}
+  body{padding-top:env(safe-area-inset-top);padding-bottom:calc(78px + env(safe-area-inset-bottom));overflow-x:hidden}
+  body>.topbar{display:none!important}
+  body>nav.navbar{top:0!important;min-height:58px;border:0!important;box-shadow:0 1px 0 rgba(17,24,39,.07),0 8px 24px rgba(17,24,39,.05)!important;background:rgba(255,255,255,.96)!important;backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px)}
+  body>nav.navbar .container{min-height:58px;padding-left:16px;padding-right:16px}
+  body>nav.navbar img{height:42px!important;max-width:150px;object-fit:contain}
+  body>nav.navbar .btn{min-height:40px}
+  main{min-height:calc(100dvh - 136px)}
+  main>.container.py-3{padding-top:10px!important;padding-bottom:2px!important}
+  footer.footer{display:none!important}
+  .container{max-width:100%}
+  .card,.info-card,.product-card,.bzh-month-card,.bzh-event-card,.bzh-wallet-stats>div,.bzh-qr-card{border-color:rgba(17,24,39,.08)!important;box-shadow:0 8px 24px rgba(17,24,39,.045)}
+  .bzh-mobile-nav{left:10px;right:10px;bottom:calc(8px + env(safe-area-inset-bottom));border:1px solid rgba(17,24,39,.08);border-radius:22px;padding:7px 5px;background:rgba(255,255,255,.96);box-shadow:0 14px 38px rgba(17,24,39,.16);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
+  .bzh-mobile-nav a{border-radius:16px;min-height:54px;justify-content:center;transition:transform .12s ease,background .12s ease}
+  .bzh-mobile-nav a:active{transform:scale(.94)}
+  .bzh-mobile-nav a[aria-current]{background:#f8fafc;color:#111827}
+  .bzh-mobile-nav a[aria-current] .bzh-nav-icon{background:#111827;color:#fff}
+  .bzh-nav-icon{height:29px;width:44px}
+  .bzh-calendar-page,.bzh-wallet-page,.bzh-install-page{padding-top:14px!important;padding-left:12px;padding-right:12px}
+  .bzh-calendar-hero,.bzh-wallet-hero,.bzh-install-hero{border-radius:24px}
+  .alert{margin-left:4px;margin-right:4px}
+}
+
+@supports(padding:max(0px)){
+  @media(display-mode:standalone){
+    body>nav.navbar .container{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+    .bzh-mobile-nav{left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right))}
+  }
+}

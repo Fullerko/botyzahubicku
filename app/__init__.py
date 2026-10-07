@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 from flask import Flask, url_for, Response
 from flask_login import LoginManager
@@ -39,6 +40,15 @@ def create_app():
                 shutil.copy2(src, dst)
 
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-in-production')
+    # BZH PERSISTENT SESSION CONFIG
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=400)
+    app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=400)
+    app.config['REMEMBER_COOKIE_REFRESH_EACH_REQUEST'] = True
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
     app.config['PAYMENT_SYNC_SECRET'] = os.environ.get('PAYMENT_SYNC_SECRET') or os.environ.get('SYNC_SECRET', '')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////data/eshop.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -572,5 +582,11 @@ Sitemap: {sitemap}
     # BZH MOBILE PWA
     from .mobile import init_mobile
     init_mobile(app)
+
+    # BZH PERSISTENT SESSION HOOK
+    @app.before_request
+    def _bzh_keep_session():
+        from flask import session
+        session.permanent = True
 
     return app

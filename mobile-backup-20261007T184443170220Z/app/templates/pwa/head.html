@@ -1,0 +1,12 @@
+<link rel="manifest" href="{{ url_for('mobile.manifest') }}">
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Boty za hubičku">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='pwa/apple-touch-v3.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='pwa/mobile.css') }}">
+<script defer src="{{ url_for('static', filename='pwa/mobile.js') }}"></script>
+<script defer src="{{ url_for('static', filename='pwa/push.js') }}"></script>
+{% if request.endpoint == 'rewards.scan' %}<script defer src="{{ url_for('static', filename='pwa/vendor/jsQR.js') }}"></script>{% endif %}
+<script defer src="{{ url_for('static', filename='pwa/rewards.js') }}"></script>

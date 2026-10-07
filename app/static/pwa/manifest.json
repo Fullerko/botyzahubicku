@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "BotyZaHubicku.cz",
+  "name": "Boty za hubičku",
   "short_name": "Boty za hubičku",
   "description": "Váš obchod s obuví. Stejné produkty, účty a objednávky jako na webu.",
   "lang": "cs",
@@ -46,5 +46,14 @@
       "name": "Moje odměny",
       "url": "/odmeny"
     }
-  ]
+  ],
+  "display_override": [
+    "standalone"
+  ],
+  "orientation": "portrait-primary",
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
+  "prefer_related_applications": false
 }

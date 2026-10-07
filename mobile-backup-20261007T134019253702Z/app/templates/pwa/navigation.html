@@ -1,0 +1,15 @@
+{% if not request.path.startswith('/admin') %}
+<div class="bzh-connection" id="bzh-connection" role="status" hidden>Jste offline. Nakupování vyžaduje internet.</div>
+<div class="bzh-update" id="bzh-update" role="status" hidden>
+  Nová verze aplikace je připravena. <button type="button" id="bzh-update-button">Aktualizovat</button>
+  <button type="button" id="bzh-update-dismiss" aria-label="Zavřít">×</button>
+</div>
+<nav class="bzh-mobile-nav" aria-label="Mobilní navigace">
+  {% for endpoint, icon, label in [('shop.index', 'house', 'Domů'), ('shop.products', 'grid', 'Produkty'), ('shop.store_stock', 'box-seam', 'Skladem'), ('shop.cart', 'bag', 'Košík'), ('auth.login', 'person', 'Účet')] %}
+  <a href="{{ url_for(endpoint) }}" {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>
+    <span class="bzh-nav-icon"><i class="bi bi-{{ icon }}" aria-hidden="true"></i>{% if endpoint == 'shop.cart' and cart_count %}<span class="bzh-cart-count">{{ cart_count }}</span>{% endif %}</span>
+    <span>{{ label }}</span>
+  </a>
+  {% endfor %}
+</nav>
+{% endif %}

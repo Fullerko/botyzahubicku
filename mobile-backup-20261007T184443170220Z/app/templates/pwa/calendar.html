@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Kde nás najdete | BotyZaHubicku.cz{% endblock %}
+{% block content %}
+<section class="container bzh-calendar-page">
+  <header class="bzh-calendar-hero"><span class="bzh-eyebrow">POTKEJME SE OSOBNĚ</span><h1>Kde nás najdete.</h1><p>Přijďte si boty prohlédnout a vyzkoušet. Tady jsou naše aktuální a plánované zastávky.</p></header>
+  {% if upcoming %}<section class="bzh-upcoming"><h2 class="h4">Teď a v nejbližší době</h2><div class="bzh-upcoming-list">{% for event in upcoming %}
+    <a href="{{ url_for('mobile.events', mesic=event.starts_at.strftime('%Y-%m')) }}#akce-{{ event.id }}"><span class="bzh-event-date">{{ event.starts_at.strftime('%d.%m.') }}</span><span><strong>{{ event.location }}</strong><small>{{ event.title }}</small>{% if event.starts_at <= now <= event.ends_at %}<em>Právě jsme tady</em>{% endif %}</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+  {% endfor %}</div></section>{% endif %}
+  <section class="bzh-month-card" aria-label="Kalendář akcí"><div class="bzh-month-title"><a class="btn btn-outline-dark rounded-circle" href="{{ url_for('mobile.events', mesic=previous.strftime('%Y-%m')) }}" aria-label="Předchozí měsíc">‹</a><h2>{{ month_label }}</h2><a class="btn btn-outline-dark rounded-circle" href="{{ url_for('mobile.events', mesic=next_month.strftime('%Y-%m')) }}" aria-label="Další měsíc">›</a></div>
+    <div class="bzh-month-grid">{% for label in ['Po','Út','St','Čt','Pá','So','Ne'] %}<div class="bzh-weekday">{{ label }}</div>{% endfor %}
+    {% for week in weeks %}{% for day in week %}<div class="bzh-day {% if day.month != month.month %}bzh-other-month{% endif %} {% if day == today %}bzh-today{% endif %}"><span>{{ day.day }}</span>{% for event in day_events[day] %}<a class="bzh-day-event {% if event.cancelled %}bzh-cancelled{% endif %}" href="#akce-{{ event.id }}" aria-label="{{ day.strftime('%d.%m.') }}: {{ event.title }}{% if event.cancelled %}, zrušeno{% endif %}"><span>{{ event.location }}</span></a>{% endfor %}</div>{% endfor %}{% endfor %}</div>
+    <a class="bzh-current-month" href="{{ url_for('mobile.events') }}">Zobrazit aktuální měsíc</a>
+  </section>
+  <h2 class="h4 mt-4">Akce v tomto měsíci</h2>
+  <div class="bzh-event-list">{% for event in events %}<article class="bzh-event-card {% if event.cancelled or event.ends_at < now %}bzh-event-past{% endif %}" id="akce-{{ event.id }}">
+    <div class="bzh-event-date-large"><strong>{{ event.starts_at.strftime('%d') }}</strong><span>{{ event.starts_at.strftime('%m.%Y') }}</span></div>
+    <div class="bzh-event-content"><div class="bzh-event-badges">{% if event.cancelled %}<span class="bzh-badge-cancelled">Zrušeno</span>{% elif event.starts_at <= now <= event.ends_at %}<span>Právě jsme tady</span>{% elif event.ends_at < now %}<span class="bzh-badge-past">Proběhlo</span>{% endif %}</div>
+    <h3>{{ event.title }}</h3><p class="bzh-event-location"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ event.location }}</p><p>{{ event.address }}</p>
+    <p><i class="bi bi-clock" aria-hidden="true"></i> {{ event.starts_at.strftime('%d.%m.%Y %H:%M') }} – {% if event.starts_at.date() == event.ends_at.date() %}{{ event.ends_at.strftime('%H:%M') }}{% else %}{{ event.ends_at.strftime('%d.%m.%Y %H:%M') }}{% endif %}</p>
+    {% if event.description %}<p class="bzh-event-description">{{ event.description }}</p>{% endif %}
+    {% if not event.cancelled %}<a href="{{ maps_url(event) }}" target="_blank" rel="noopener noreferrer" class="btn btn-dark rounded-pill">Otevřít mapu <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>{% endif %}</div>
+  </article>{% else %}<div class="bzh-empty-calendar"><i class="bi bi-calendar-heart" aria-hidden="true"></i><h3>Zatím žádná zastávka.</h3><p>Pro tento měsíc ještě nemáme zveřejněnou akci. Zapněte si oznámení a dozvíte se o novinkách.</p></div>{% endfor %}</div>
+  {% include 'pwa/push_panel.html' %}
+</section>{% endblock %}

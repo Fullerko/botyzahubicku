@@ -1,0 +1,12 @@
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Werkzeug==3.0.3
+Pillow==10.4.0
+qrcode==7.4.2
+gunicorn
+reportlab
+openpyxl==3.1.5
+apscheduler==3.9.1
+setuptools<81
+python-dotenv

@@ -30,7 +30,7 @@
           channel.port1.onmessage=event=>{clearTimeout(timer);resolve(event.data);};
           reg.active?.postMessage({type:'MOBILE_VERSION'},[channel.port2]);
         });
-        if(version !== 'bzh-mobile-v4') {setStatus('Nejdřív aktualizujte aplikaci tlačítkem „Aktualizovat“ v oznámení nové verze a znovu otevřete tuto stránku.'); return;}
+        if(version !== 'bzh-mobile-v5') {setStatus('Nejdřív aktualizujte aplikaci tlačítkem „Aktualizovat“ v oznámení nové verze a znovu otevřete tuto stránku.'); return;}
 
         const existing=await registration.pushManager.getSubscription();
         if (existing && Notification.permission === 'granted' && !config.optedOut) {

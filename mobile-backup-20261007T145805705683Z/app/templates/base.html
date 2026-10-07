@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  {% set site_name = settings.get('site_name', 'BotyZaHubicku.cz') %}
+  {% set default_description = settings.get('meta_description', 'BotyZaHubicku.cz – stylový e-shop s dostupnou obuví. Dámské, pánské, běžecké tenisky za skvělé ceny. Doprava zdarma od 1199 Kč a jednoduchá objednávka online.') %}
+  {% set logo_value = settings.get('logo_url', 'logo-bzh.svg') %}
+  {% set seo_image = image_url(logo_value) %}
+  <title>{% block title %}{{ site_name }} | boty za hubičku{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ default_description }}{% endblock %}">
+  {% block meta_keywords %}{% endblock %}
+  <meta name="robots" content="{% block robots %}index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1{% endblock %}">
+  <link rel="canonical" href="{% block canonical_url %}{{ request.base_url }}{% endblock %}">
+
+  <meta property="og:locale" content="cs_CZ">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:site_name" content="{{ site_name }}">
+  <meta property="og:title" content="{% block og_title %}{{ self.title()|striptags|trim }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ default_description }}{% endblock %}">
+  <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{{ seo_image }}{% endblock %}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block twitter_title %}{{ self.title()|striptags|trim }}{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}{{ default_description }}{% endblock %}">
+  <meta name="twitter:image" content="{% block twitter_image %}{{ seo_image }}{% endblock %}">
+  <link rel="icon" href="{{ seo_image }}">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": {{ site_name|tojson }},
+    "url": {{ url_for('shop.index', _external=True)|tojson }},
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {{ (url_for('shop.products', _external=True) + '?search={search_term_string}')|tojson }},
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": {{ site_name|tojson }},
+    "url": {{ url_for('shop.index', _external=True)|tojson }},
+    "logo": {{ seo_image|tojson }},
+    "contactPoint": [{
+      "@type": "ContactPoint",
+      "email": {{ settings.get('contact_email', '')|tojson }},
+      "contactType": "customer support",
+      "areaServed": "CZ",
+      "availableLanguage": "cs"
+    }]
+  }
+  </script>
+  {% block structured_data %}{% endblock %}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- BZH REWARDS PRIVATE TRACKING -->
+  {% if not request.path.startswith('/odmeny') and not request.path.startswith('/admin') %}
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-SVQB72JKNK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-SVQB72JKNK');
+  </script>
+  {% endif %}
+  
+  {# Meta Pixel: ID můžeš později změnit v admin nastavení klíčem meta_pixel_id. #}
+  {% set meta_pixel_id = '1336678564638484' %}
+  {% set meta_pixel_enabled = not request.path.startswith('/admin') and not request.path.startswith('/odmeny') %}
+  {% if meta_pixel_enabled %}
+  <!-- Meta Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+
+    fbq('init', {{ meta_pixel_id|tojson }});
+    fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
+  {% endif %}
+
+{% include 'pwa/head.html' %}
+</head>
+<body>
+{% if meta_pixel_enabled %}
+<noscript>
+  <img height="1" width="1" style="display:none"
+       src="https://www.facebook.com/tr?id={{ meta_pixel_id }}&ev=PageView&noscript=1"
+       alt="" />
+</noscript>
+{% endif %}
+<div class="topbar">{{ settings.get('promo_bar', 'Doprava zdarma od 1199 Kč') }}</div>
+<nav class="navbar navbar-expand-xl bg-white border-bottom sticky-top shadow-sm">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a class="d-flex align-items-center" href="{{ url_for('shop.index') }}">
+      <img src="{{ image_url(logo_value) }}" alt="{{ settings.get('site_name', 'BotyZaHubicku.cz') }}" style="height:60px;">
+    </a>
+
+    <div class="d-none d-xl-flex align-items-center gap-4 mx-4">
+	  {% set current_category = request.args.get('category', '') %}
+	  {% set menu_items = settings.get('menu_items', 'Všechny:all,Pánské:panske,Dámské:damske,Běžecké:bezecke-boty,Tenisky:tenisky').split(',') %}
+
+	  {% for item in menu_items %}
+		{% set parts = item.strip().split(':') %}
+		{% set label = parts[0].strip() %}
+		{% set slug = parts[1].strip() if parts|length > 1 else 'all' %}
+
+		{% if slug == 'all' %}
+		  <a class="text-dark text-decoration-none {% if not current_category %}fw-bold{% endif %}" href="{{ url_for('shop.products') }}">
+			{{ label }}
+		  </a>
+		{% else %}
+		  <a class="text-dark text-decoration-none {% if current_category == slug %}fw-bold{% endif %}" href="{{ url_for('shop.products', category=slug) }}">
+			{{ label }}
+		  </a>
+		{% endif %}
+	  {% endfor %}
+	</div>
+
+    <form class="d-none d-xl-flex align-items-center position-relative mx-4" action="{{ url_for('shop.products') }}" style="width: 320px;">
+      <i class="bi bi-search position-absolute ms-3 text-muted"></i>
+      <input class="form-control rounded-pill ps-5" name="search" placeholder="{{ settings.get('search_placeholder', 'Hledat') }}" style="height:42px;">
+    </form>
+
+    <div class="d-flex align-items-center gap-3">
+      {% if current_user.is_authenticated %}
+        <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('auth.login') }}"><i class="bi bi-person"></i></a>
+        {% if current_user.is_admin %}<a class="text-dark text-decoration-none" href="{{ url_for('admin.dashboard') }}">Admin</a>{% endif %}
+        <a class="text-dark text-decoration-none" href="{{ url_for('auth.logout') }}">Odhlásit</a>
+      {% else %}
+        <a class="text-dark text-decoration-none fw-semibold" href="{{ url_for('auth.login') }}">Přihlásit</a>
+      {% endif %}
+      <a class="btn btn-dark rounded-pill px-3 d-flex align-items-center" href="{{ url_for('shop.cart') }}">
+        <i class="bi bi-bag me-1"></i><span>{{ cart_count }}</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <div class="container py-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show rounded-4 shadow-sm border-0">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer mt-5 py-5 bg-dark text-white">
+  <div class="container">
+    <div class="row g-4">
+
+      <div class="col-lg-3 col-md-6">
+        <img src="{{ image_url(logo_value) }}" class="footer-logo" alt="logo">
+        <p class="mt-3 mb-0">{{ settings.get('hero_subtitle', '') }}</p>
+      </div>
+
+      <div class="col-lg-3 col-md-6">
+        <h6>Zákaznický servis</h6>
+        <ul class="list-unstyled footer-links">
+          <li>Doprava zdarma od 1199 Kč</li>
+          <li>Balíkovna balík do ruky</li>
+          <li>{{ settings.get('delivery_text', '') }}</li>
+          <li>E-mail: {{ settings.get('contact_email', '') }}</li>
+        </ul>
+      </div>
+
+      <div class="col-lg-3 col-md-6">
+        <h6>Rychlé odkazy</h6>
+        <ul class="list-unstyled footer-links">
+          <li><a href="{{ url_for('shop.products') }}">Produkty</a></li>
+          
+          <li><a href="{{ url_for('shop.blog') }}">Blog / Články</a></li>
+
+          {% if settings.get('footer_affiliate_label', '').strip() %}
+            <li><a href="{{ settings.get('footer_affiliate_url', '#') }}">
+              {{ settings.get('footer_affiliate_label') }}
+            </a></li>
+          {% endif %}
+
+          <li><a href="/login">Můj účet</a></li>
+          <!-- BZH MOBILE INSTALL LINK -->
+          <li><a href="/aplikace">Mobilní aplikace</a></li>
+          <!-- BZH REWARDS WEB LINK -->
+          <li><a href="/odmeny">Moje odměny</a></li>
+          <!-- BZH MOBILE CALENDAR LINK -->
+          <li><a href="/kalendar">Kde nás najdete</a></li>
+          <li><a href="{{ url_for('auth.forgot_password') }}">Reset hesla</a></li>
+
+          <li class="mt-3"><strong>Informace</strong></li>
+          <li><a href="/obchodni-podminky">Obchodní podmínky</a></li>
+          <li><a href="/ochrana-udaju">Ochrana osobních údajů</a></li>
+          <li><a href="/reklamace">Reklamační řád</a></li>
+          <li><a href="/cookies">Cookies</a></li>
+        </ul>
+      </div>
+
+      <div class="col-lg-3 col-md-6">
+        <h6>Kontakt a sociální sítě</h6>
+
+        <ul class="list-unstyled footer-links mb-0">
+
+          <li class="mb-2">
+            <a href="https://wa.me/420728710852" target="_blank" rel="noopener" class="text-white text-decoration-none d-flex align-items-center gap-2">
+              <i class="bi bi-whatsapp text-warning fs-5"></i>
+              <span>+420728710852</span>
+            </a>
+          </li>
+
+          <li class="mb-2">
+            <a href="https://www.instagram.com/botyzahubicku.cz/" target="_blank" rel="noopener" class="text-white text-decoration-none d-flex align-items-center gap-2">
+              <i class="bi bi-instagram text-warning fs-5"></i>
+              <span>botyzahubicku.cz</span>
+            </a>
+          </li>
+
+          <li class="mb-2">
+            <a href="https://www.facebook.com/profile.php?id=61581662440648" target="_blank" rel="noopener" class="text-white text-decoration-none d-flex align-items-center gap-2">
+              <i class="bi bi-facebook text-warning fs-5"></i>
+              <span>botyzahubicku.cz</span>
+            </a>
+          </li>
+
+          <li class="mb-2">
+            <a href="https://www.tiktok.com/@botyzahubicku.cz" target="_blank" rel="noopener" class="text-white text-decoration-none d-flex align-items-center gap-2">
+              <i class="bi bi-tiktok text-warning fs-5"></i>
+              <span>botyzahubicku.cz</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% if not request.path.startswith('/admin') and not request.path.startswith('/odmeny') %}
+<script defer src="{{ url_for('static', filename='js/bzh-analytics.js') }}"></script>
+{% endif %}
+{% block tracking %}{% endblock %}
+{% include 'pwa/navigation.html' %}
+</body>
+</html>

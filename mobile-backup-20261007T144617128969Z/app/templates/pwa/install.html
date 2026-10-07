@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Mobilní aplikace | BotyZaHubicku.cz{% endblock %}
+{% block content %}
+<section class="container bzh-install-page">
+  <div class="bzh-install-hero">
+    <img src="{{ url_for('static', filename='pwa/icon-192.png') }}" width="96" height="96" alt="Boty za hubičku">
+    <span class="bzh-eyebrow">VÁŠ OBCHOD. VE VAŠEM MOBILU.</span>
+    <h1>Boty za hubičku<br>vždy po ruce.</h1>
+    <p>Stejné boty, stejné ceny, váš účet a objednávky. Přidejte si aplikaci na plochu telefonu bez App Storu a Google Play.</p>
+    <button class="btn btn-warning rounded-pill px-4 py-3 fw-bold" id="bzh-install-button" type="button" hidden>Nainstalovat aplikaci</button>
+    <p id="bzh-installed" hidden>Aplikaci už máte otevřenou. Můžete začít nakupovat.</p>
+    <p id="bzh-install-status" role="status"></p>
+    <a href="{{ url_for('shop.products') }}" class="btn btn-dark rounded-pill px-4 py-3">Prohlédnout boty</a>
+  </div>
+  <div class="bzh-install-grid">
+    <article><span class="bzh-step">01 / ANDROID</span><h2>Přidat přes Chrome</h2><ol><li>Otevřete tuto stránku v Chrome.</li><li>Klepněte na „Nainstalovat aplikaci“. Pokud tlačítko není vidět, otevřete nabídku ⋮ a zvolte „Přidat na plochu“ nebo „Nainstalovat aplikaci“.</li><li>Potvrďte instalaci a otevřete novou ikonu na ploše.</li></ol></article>
+    <article><span class="bzh-step">02 / IPHONE</span><h2>Přidat přes Safari</h2><ol><li>Otevřete tuto stránku v Safari.</li><li>Otevřete „Sdílet“ a vyberte „Přidat na plochu“.</li><li>Pokud je dostupné „Otevřít jako webovou aplikaci“, nechte tuto možnost zapnutou. Klepněte na „Přidat“.</li></ol></article>
+  </div>
+  {% include 'pwa/push_panel.html' %}
+  <p class="bzh-install-note">Aplikace je PWA a vyžaduje internet pro nákupy. Používá přímo tento obchod. Na iPhonu se může být potřeba znovu přihlásit; košík je vázaný na relaci daného prohlížeče nebo aplikace. Přidání ikony proběhne jen na vašem zařízení. Tato stránka není uzamčena pro ostatní návštěvníky.</p>
+</section>
+{% endblock %}

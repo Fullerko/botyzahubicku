@@ -20,7 +20,7 @@ def login():
         password = request.form.get('password', '')
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password_hash, password):
-            login_user(user)
+            login_user(user, remember=True, duration=timedelta(days=400), fresh=True)  # BZH PERSISTENT LOGIN
             flash('Přihlášení proběhlo úspěšně.', 'success')
             return redirect(request.args.get('next') or url_for('shop.index'))
         flash('Neplatný e-mail nebo heslo.', 'danger')
@@ -47,7 +47,7 @@ def register():
         )
         db.session.add(user)
         db.session.commit()
-        login_user(user)
+        login_user(user, remember=True, duration=timedelta(days=400), fresh=True)  # BZH PERSISTENT LOGIN
         flash('Účet byl vytvořen.', 'success')
         return redirect(url_for('shop.index'))
     return render_template('auth/register.html')
