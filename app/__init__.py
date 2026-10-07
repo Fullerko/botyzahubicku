@@ -569,4 +569,8 @@ Sitemap: {sitemap}
         if changed:
             db.session.commit()
 
+    # BZH MOBILE PWA
+    from .mobile import mobile_bp
+    app.register_blueprint(mobile_bp)
+
     return app
