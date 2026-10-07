@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Můj účet | Boty za hubičku{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block content %}
+<section class="container bzh-account-page">
+  <header class="bzh-account-hero">
+    <div class="bzh-account-avatar" aria-hidden="true"><i class="bi bi-person-fill"></i></div>
+    <div>
+      <span class="bzh-eyebrow">MŮJ ÚČET</span>
+      <h1>{{ current_user.full_name }}</h1>
+      <p>{{ current_user.email }}</p>
+    </div>
+  </header>
+
+  <div class="bzh-account-stats">
+    <a href="{{ url_for('rewards.wallet') }}"><span class="bzh-account-stat-icon"><i class="bi bi-gift"></i></span><small>Odměny k výběru</small><strong>{{ reward_money([balance.available,0]|max) if member else 'Neaktivní' }}</strong><em>Otevřít odměny <i class="bi bi-chevron-right"></i></em></a>
+    <a href="#objednavky"><span class="bzh-account-stat-icon"><i class="bi bi-bag-check"></i></span><small>Objednávky</small><strong>{{ order_count }}</strong><em>Zobrazit historii <i class="bi bi-chevron-right"></i></em></a>
+    <a href="{{ url_for('mobile.events') }}"><span class="bzh-account-stat-icon"><i class="bi bi-calendar3"></i></span><small>Kde nás najdete</small><strong>Kalendář</strong><em>Akce a termíny <i class="bi bi-chevron-right"></i></em></a>
+  </div>
+
+  <div class="bzh-account-grid">
+    <section class="info-card bzh-account-card">
+      <div class="bzh-account-card-title"><div><span class="bzh-eyebrow">PROFIL</span><h2>Vaše údaje</h2></div><i class="bi bi-person-gear"></i></div>
+      <form method="post" action="{{ url_for('rewards.account') }}" class="bzh-account-form" autocomplete="on">
+        <input type="hidden" name="csrf_token" value="{{ mobile_csrf() }}">
+        <div><label class="form-label" for="account-name">Jméno</label><input id="account-name" class="form-control" name="full_name" maxlength="120" autocomplete="name" value="{{ current_user.full_name }}" required></div>
+        <div><label class="form-label" for="account-email">E-mail</label><input id="account-email" class="form-control" value="{{ current_user.email }}" autocomplete="email" readonly></div>
+        <div class="bzh-account-form-wide"><label class="form-label" for="account-address">Adresa</label><input id="account-address" class="form-control" name="address" maxlength="255" autocomplete="street-address" value="{{ current_user.address or '' }}"></div>
+        <div><label class="form-label" for="account-city">Město</label><input id="account-city" class="form-control" name="city" maxlength="80" autocomplete="address-level2" value="{{ current_user.city or '' }}"></div>
+        <div><label class="form-label" for="account-postal">PSČ</label><input id="account-postal" class="form-control" name="postal_code" maxlength="20" autocomplete="postal-code" value="{{ current_user.postal_code or '' }}"></div>
+        <div class="bzh-account-form-actions"><button class="btn btn-dark rounded-pill" type="submit">Uložit údaje</button><a href="{{ url_for('auth.forgot_password') }}">Změnit heslo</a></div>
+      </form>
+    </section>
+
+    <section class="info-card bzh-account-card bzh-account-rewards">
+      <div class="bzh-account-card-title"><div><span class="bzh-eyebrow">ODMĚNY</span><h2>Všechno na jednom účtu</h2></div><i class="bi bi-stars"></i></div>
+      {% if member %}
+        <div class="bzh-account-money"><small>K výběru</small><strong>{{ reward_money([balance.available,0]|max) }}</strong></div>
+        <div class="bzh-account-mini"><span>Čekající</span><strong>{{ reward_money(balance.pending) }}</strong></div>
+        <div class="bzh-account-mini"><span>Rezervováno</span><strong>{{ reward_money(balance.reserved) }}</strong></div>
+        <p>Stejný zůstatek uvidíte ve webu i v nainstalované aplikaci. Vše je svázané s tímto přihlášeným účtem.</p>
+        <a class="btn btn-dark rounded-pill w-100" href="{{ url_for('rewards.wallet') }}">Otevřít Moje odměny</a>
+      {% else %}
+        <p>Program odměn zatím není aktivovaný. Aktivujete ho jednou a potom se bude zobrazovat na webu i v aplikaci pod stejným účtem.</p>
+        <a class="btn btn-dark rounded-pill w-100" href="{{ url_for('rewards.wallet') }}">Aktivovat odměny</a>
+      {% endif %}
+    </section>
+  </div>
+
+  {% include 'pwa/push_panel.html' %}
+
+  <section class="info-card bzh-account-orders" id="objednavky">
+    <div class="bzh-account-card-title"><div><span class="bzh-eyebrow">OBJEDNÁVKY</span><h2>Poslední nákupy</h2></div><i class="bi bi-receipt"></i></div>
+    <div class="bzh-account-order-list">
+      {% for order in orders %}
+      <article>
+        <div><strong>{{ order.order_number }}</strong><small>{{ order.created_at.strftime('%d.%m.%Y') }}</small></div>
+        <div class="bzh-order-status">{{ order.status }}</div>
+        <div class="bzh-order-price">{{ '{:,.0f}'.format(order.total_price).replace(',', ' ') }} Kč</div>
+      </article>
+      {% else %}
+      <div class="bzh-account-empty"><i class="bi bi-bag"></i><p>Zatím tu nemáte žádnou objednávku.</p><a class="btn btn-outline-dark rounded-pill" href="{{ url_for('shop.products') }}">Prohlédnout produkty</a></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="bzh-account-bottom-actions"><a href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Odhlásit se z účtu</a></div>
+</section>
+{% endblock %}

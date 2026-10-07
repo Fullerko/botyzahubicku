@@ -1,5 +1,5 @@
 /* Change VERSION for every mobile asset release. Never cache customer data. */
-const VERSION = 'bzh-mobile-v6';
+const VERSION = 'bzh-mobile-v5';
 const OFFLINE = '/aplikace/offline';
 const ASSETS = [OFFLINE, '/static/pwa/mobile.css', '/static/pwa/mobile.js', '/static/pwa/push.js', '/static/pwa/rewards.js',
   '/static/pwa/icon-v3-192.png', '/static/pwa/icon-v3-512.png', '/static/pwa/icon-maskable-v3.png', '/static/pwa/apple-touch-v3.png', '/static/pwa/badge-v3.png'];

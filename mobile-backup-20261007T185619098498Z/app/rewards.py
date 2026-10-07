@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.exc import IntegrityError
 from . import db
-from .models import User, Order
+from .models import User
 from .utils import admin_required
 from .mobile import csrf_token, protect_mobile_writes
 from .reward_models import RewardMember, RewardPurchase, RewardWithdrawal, RewardLedger
@@ -60,30 +60,6 @@ def member_for_user():
 
 def signer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'],salt='bzh-reward-qr-v1')
-
-
-@rewards_bp.route('/muj-ucet', methods=['GET','POST'])
-@login_required
-def account():
-    if request.method == 'POST':
-        name=request.form.get('full_name','').strip()
-        address=request.form.get('address','').strip()
-        city=request.form.get('city','').strip()
-        postal=request.form.get('postal_code','').strip()
-        if not name or len(name)>120 or len(address)>255 or len(city)>80 or len(postal)>20:
-            flash('Zkontrolujte prosím zadané údaje.','danger')
-        else:
-            current_user.full_name=name
-            current_user.address=address
-            current_user.city=city
-            current_user.postal_code=postal
-            db.session.commit()
-            flash('Údaje účtu byly uloženy.','success')
-        return redirect(url_for('rewards.account'))
-    member=member_for_user()
-    orders=Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).limit(30).all()
-    return render_template('rewards/account.html',member=member,balance=balances(current_user.id),orders=orders,
-        order_count=Order.query.filter_by(user_id=current_user.id).count())
 
 
 @rewards_bp.get('/odmeny')

@@ -24,23 +24,6 @@
     finally { button.disabled = false; renderInstall(); }
   });
   addEventListener('appinstalled', () => { promptEvent = null; renderInstall(); });
-
-  // Mobile browsers can restore/focus the first form control after bottom-nav navigation.
-  // On cart/rewards/account screens we explicitly start unfocused, so opening a tab never opens the keyboard by itself.
-  if (standalone() && /^\/(cart|odmeny|muj-ucet)(?:\/|$)/.test(location.pathname)) {
-    let userFocused = false;
-    document.addEventListener('pointerdown', event => { if (event.target.closest('input,textarea,select,[contenteditable="true"]')) userFocused = true; }, true);
-    const clearGhostFocus = () => {
-      if (userFocused) return;
-      const active = document.activeElement;
-      if (active && active.matches?.('input,textarea,select,[contenteditable="true"]')) active.blur();
-    };
-    clearGhostFocus();
-    requestAnimationFrame(clearGhostFocus);
-    setTimeout(clearGhostFocus, 120);
-    addEventListener('pageshow', () => setTimeout(clearGhostFocus, 40));
-  }
-
   const connection = document.getElementById('bzh-connection');
   const connectionState = () => { if (connection) connection.hidden = navigator.onLine; };
   addEventListener('online', connectionState); addEventListener('offline', connectionState); connectionState();
