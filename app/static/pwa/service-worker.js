@@ -1,5 +1,5 @@
 /* Change VERSION for every mobile asset release. Never cache customer data. */
-const VERSION = 'bzh-mobile-v3';
+const VERSION = 'bzh-mobile-v4';
 const OFFLINE = '/aplikace/offline';
 const ASSETS = [OFFLINE, '/static/pwa/mobile.css', '/static/pwa/mobile.js', '/static/pwa/push.js', '/static/pwa/rewards.js',
   '/static/pwa/icon-v3-192.png', '/static/pwa/icon-v3-512.png', '/static/pwa/icon-maskable-v3.png', '/static/pwa/apple-touch-v3.png', '/static/pwa/badge-v3.png'];
@@ -22,7 +22,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
   // These routes may carry private data or perform changes: pass straight through.
-  if (/^\/(admin|api|logout|cart|checkout|objednavka|platba|reset-password|affiliate|rezervace|odmeny)(\/|$)/.test(url.pathname)) return;
+  if (/^\/(admin|api|logout|cart|checkout|objednavka|platba|reset-password|affiliate|rezervace|odmeny|pozvat|a)(\/|$)/.test(url.pathname)) return;
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).catch(async () =>
       (await caches.match(OFFLINE)) || new Response('Jste offline. Připojte se k internetu.', {status: 503, headers: {'Content-Type': 'text/plain; charset=utf-8'}})));

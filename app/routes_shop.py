@@ -438,6 +438,9 @@ def mark_paid_api():
     if not vs:
         return jsonify({"ok": False, "reason": "missing variableSymbol"}), 400
 
+    # BZH AFFILIATE PAYMENT LOCK
+    from .reward_service import begin_money_write
+    begin_money_write()
     order = (
         Order.query.filter_by(variable_symbol=vs).first()
         or Order.query.filter_by(variable_symbol=f"BZH{vs}").first()
@@ -463,10 +466,9 @@ def mark_paid_api():
     order.status = "Zaplaceno"
     order.paid_at = datetime.now()
 
-    if order.affiliate_partner_name and order.affiliate_commission_amount:
-        partner = AffiliatePartner.query.filter_by(name=order.affiliate_partner_name).first()
-        if partner:
-            partner.commission_balance = (partner.commission_balance or 0) + (order.affiliate_commission_amount or 0)
+    # BZH AFFILIATE SINGLE LEDGER
+    from .reward_affiliate_service import credit_legacy_until_connected
+    credit_legacy_until_connected(order)
 
     db.session.commit()
 
@@ -1320,6 +1322,9 @@ def checkout():
                 coupon.uses_count += 1
         db.session.add(order)
         db.session.flush()
+        # BZH AFFILIATE ORDER ID
+        from .reward_affiliate_service import capture_online_order
+        capture_online_order(order,affiliate_coupon)
         create_qr_for_order(order)
         cart = get_cart()
         for key, item in cart.items():

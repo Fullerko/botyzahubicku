@@ -70,6 +70,9 @@
             <option {% if order.status=='Zaplaceno' %}selected{% endif %}>Zaplaceno</option>
             <option {% if order.status=='Odeslána' %}selected{% endif %}>Odeslána</option>
             <option {% if order.status=='Dokončena' %}selected{% endif %}>Dokončena</option>
+            <!-- BZH AFFILIATE ONLINE STORNO -->
+            <option {% if order.status=='Stornováno' %}selected{% endif %}>Stornováno</option>
+            <option {% if order.status=='Vráceno' %}selected{% endif %}>Vráceno</option>
           </select>
           <button class="btn btn-dark rounded-pill">Uložit stav</button>
         </form>

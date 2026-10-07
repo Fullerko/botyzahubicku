@@ -77,11 +77,16 @@ def record_purchase(member, amount, reference, note, request_key, admin_id):
     reference = reference.strip()
     if not reference or len(reference)>100 or len(note)>300:
         raise ValueError('Zadejte číslo účtenky/nákupu (max. 100 znaků) a krátkou poznámku.')
-    if RewardPurchase.query.filter_by(reference=reference).first():
+    from .models import Order
+    if Order.query.filter(db.or_(func.lower(Order.order_number)==reference.lower(),Order.variable_symbol==reference,Order.fio_transaction_id==reference)).first():
+        raise ValueError('Toto číslo patří webové objednávce. Její provize se synchronizuje automaticky; nepřipisujte stejný nákup přes QR.')
+    if any(item.reference.strip().casefold()==reference.casefold() for item in RewardPurchase.query.all()):
         raise ValueError('Toto číslo účtenky už bylo připsáno. Zkontrolujte historii.')
     purchase = RewardPurchase(user_id=member.user_id,amount_cents=amount,cashback_cents=cashback(amount),available_at=datetime.utcnow()+timedelta(days=HOLD_DAYS),reference=reference,note=note,request_key=request_key,created_by=admin_id)
     db.session.add(purchase);db.session.flush()
     db.session.add(RewardLedger(user_id=member.user_id,delta_cents=purchase.cashback_cents,available_at=purchase.available_at,kind='purchase',description=f'5 % z nákupu {reference}',entry_key=f'purchase-{purchase.id}',purchase_id=purchase.id,created_by=admin_id))
+    from .reward_affiliate_service import credit_referral
+    credit_referral(purchase,admin_id)
     return purchase
 
 
@@ -101,6 +106,8 @@ def refund_purchase(purchase, amount, request_key, admin_id):
     purchase.refunded_cents+=amount
     entry=RewardLedger(user_id=purchase.user_id,delta_cents=-(before-after),available_at=purchase.available_at,kind='refund',description=f'Storno odměny: vráceno {money(amount)} z nákupu {purchase.reference}',entry_key=entry_key,purchase_id=purchase.id,created_by=admin_id)
     db.session.add(entry)
+    from .reward_affiliate_service import refund_referral
+    refund_referral(purchase,before-after,request_key,admin_id)
     return entry
 
 
@@ -133,6 +140,8 @@ def request_withdrawal(user_id, account, name, request_key):
         return existing
     if RewardWithdrawal.query.filter(RewardWithdrawal.user_id==user_id,RewardWithdrawal.status.in_(['requested','processing'])).first():
         raise ValueError('Už máte otevřenou žádost o výplatu. Vyčkejte na její zpracování.')
+    from .reward_affiliate_service import guard_withdrawal
+    guard_withdrawal(user_id)
     name=name.strip()
     if not name or len(name)>120:
         raise ValueError('Vyplňte jméno majitele účtu (max. 120 znaků).')

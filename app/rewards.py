@@ -25,8 +25,11 @@ def init_rewards(app):
     with app.app_context():
         with db.engine.begin() as connection:
             if db.engine.dialect.name=='sqlite':connection.exec_driver_sql('BEGIN IMMEDIATE')
-            for model in (RewardMember,RewardPurchase,RewardWithdrawal,RewardLedger):
+            from .reward_affiliate_models import RewardAffiliateAccount,RewardReferral,RewardCommission,RewardAffiliateOrder,RewardMaintenance,RewardOnlineAttribution
+            for model in (RewardMember,RewardPurchase,RewardWithdrawal,RewardLedger,RewardAffiliateAccount,RewardReferral,RewardCommission,RewardAffiliateOrder,RewardMaintenance,RewardOnlineAttribution):
                 model.__table__.create(bind=connection,checkfirst=True)
+    from .reward_affiliate import init_affiliate
+    init_affiliate(app)
 
 
 @rewards_bp.before_request
@@ -62,6 +65,8 @@ def signer():
 @rewards_bp.get('/odmeny')
 @login_required
 def wallet():
+    from .reward_affiliate import refresh_account
+    refresh_account(current_user.id)
     member=member_for_user()
     return render_template('rewards/wallet.html',member=member,balance=balances(current_user.id),
         ledger=RewardLedger.query.filter_by(user_id=current_user.id).order_by(RewardLedger.id.desc()).limit(100).all(),
@@ -76,10 +81,21 @@ def activate():
         return redirect(url_for('rewards.wallet'))
     try:
         begin_money_write()
+        from .reward_affiliate_service import ensure_account,bind_referral
+        from flask import session
+        code=request.form.get('invite_code','').strip() if 'invite_code' in request.form else (session.get('reward_invite','') or request.cookies.get('bzh_reward_invite','') or request.cookies.get('bzh_affiliate_code',''))
+        if code:bind_referral(current_user.id,code)
         join_program(current_user.id)
+        try:
+            with db.session.begin_nested():ensure_account(current_user.id)
+        except ValueError as affiliate_problem:
+            flash('Odměny aktivované, ale affiliate účet potřebuje kontrolu: '+str(affiliate_problem),'warning')
         db.session.commit()
-    except IntegrityError:
+        session.pop('reward_invite',None)
+    except (IntegrityError,ValueError) as problem:
         db.session.rollback()
+        flash(str(problem) if isinstance(problem,ValueError) else 'Aktivace již byla zpracována. Obnovte stránku.','danger')
+        return redirect(url_for('rewards.wallet'))
     flash('Moje odměny jsou aktivní. Při nákupu ukažte svůj QR kód.','success')
     return redirect(url_for('rewards.wallet'))
 
@@ -151,7 +167,10 @@ def admin_index():
 def admin_member(member_id):
     member=db.get_or_404(RewardMember,member_id)
     user=db.get_or_404(User,member.user_id)
-    return render_template('rewards/admin_member.html',member=member,user=user,balance=balances(user.id),purchases=RewardPurchase.query.filter_by(user_id=user.id).order_by(RewardPurchase.id.desc()).limit(100).all(),ledger=RewardLedger.query.filter_by(user_id=user.id).order_by(RewardLedger.id.desc()).limit(100).all())
+    from .reward_affiliate_service import RewardReferral,RewardAffiliateAccount
+    referral=RewardReferral.query.filter_by(user_id=user.id).first()
+    inviter=db.session.get(User,db.session.get(RewardAffiliateAccount,referral.affiliate_account_id).user_id) if referral else None
+    return render_template('rewards/admin_member.html',inviter=inviter,member=member,user=user,balance=balances(user.id),purchases=RewardPurchase.query.filter_by(user_id=user.id).order_by(RewardPurchase.id.desc()).limit(100).all(),ledger=RewardLedger.query.filter_by(user_id=user.id).order_by(RewardLedger.id.desc()).limit(100).all())
 
 
 @rewards_bp.post('/admin/odmeny/clen/<int:member_id>/nakup')
@@ -185,7 +204,7 @@ def refund(purchase_id):
         member_id=RewardMember.query.filter_by(user_id=item.user_id).first().id
         refund_purchase(item,amount,key,current_user.id)
         db.session.commit()
-        flash('Vrácená část nákupu byla uložena a odpovídající odměna stornována.','success')
+        flash('Vrácená část nákupu byla uložena. Odměna zákazníka i případná provize pozývajícího byly stornovány.','success')
     except (ValueError,IntegrityError) as problem:
         db.session.rollback()
         flash(str(problem) if isinstance(problem,ValueError) else 'Storno už bylo zpracováno.','danger')
