@@ -4,9 +4,9 @@
   <button type="button" id="bzh-update-dismiss" aria-label="Zavřít">×</button>
 </div>
 {% if not request.path.startswith('/admin') %}
-<nav class="bzh-mobile-nav" aria-label="Mobilní navigace" data-bzh-nav>
+<nav class="bzh-mobile-nav" aria-label="Mobilní navigace">
   {% for endpoint, icon, label in [('shop.index', 'house', 'Domů'), ('shop.products', 'grid', 'Produkty'), ('mobile.events', 'calendar3', 'Kalendář'), ('shop.cart', 'bag', 'Košík'), ('rewards.wallet', 'gift', 'Odměny')] %}
-  <a href="{{ url_for(endpoint) }}" data-bzh-nav-link data-bzh-reset-scroll {% if request.endpoint == endpoint or (endpoint == 'rewards.wallet' and request.path.startswith('/odmeny')) %}aria-current="page"{% endif %}>
+  <a href="{{ url_for(endpoint) }}" {% if request.endpoint == endpoint or (endpoint == 'rewards.wallet' and request.path.startswith('/odmeny')) %}aria-current="page"{% endif %}>
     <span class="bzh-nav-icon"><i class="bi bi-{{ icon }}" aria-hidden="true"></i>{% if endpoint == 'shop.cart' and cart_count %}<span class="bzh-cart-count">{{ cart_count }}</span>{% endif %}</span>
     <span>{{ label }}</span>
   </a>

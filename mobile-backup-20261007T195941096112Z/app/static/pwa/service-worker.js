@@ -1,5 +1,5 @@
 /* Change VERSION for every mobile asset release. Never cache customer data. */
-const VERSION = 'bzh-mobile-v7';
+const VERSION = 'bzh-mobile-v6';
 const OFFLINE = '/aplikace/offline';
 const ASSETS = [OFFLINE, '/static/pwa/mobile.css', '/static/pwa/mobile.js', '/static/pwa/push.js', '/static/pwa/rewards.js',
   '/static/pwa/icon-v3-192.png', '/static/pwa/icon-v3-512.png', '/static/pwa/icon-maskable-v3.png', '/static/pwa/apple-touch-v3.png', '/static/pwa/badge-v3.png'];
@@ -29,17 +29,19 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (ASSETS.includes(url.pathname)) {
-    // Versioned app-shell assets are immutable for this release: cache-first avoids
-    // a network round trip on every tab change. A new VERSION invalidates them.
     event.respondWith((async () => {
-      const cached = await caches.match(url.pathname);
-      if (cached) return cached;
-      const response = await fetch(request);
-      if (response.ok) {
-        const cache = await caches.open(VERSION);
-        await cache.put(url.pathname, response.clone());
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          const cache = await caches.open(VERSION);
+          await cache.put(url.pathname, response.clone());
+        }
+        return response;
+      } catch (error) {
+        const cached = await caches.match(url.pathname);
+        if (cached) return cached;
+        throw error;
       }
-      return response;
     })());
   }
 });

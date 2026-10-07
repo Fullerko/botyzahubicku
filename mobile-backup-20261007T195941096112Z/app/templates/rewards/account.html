@@ -38,10 +38,10 @@
         <div class="bzh-account-money"><small>K výběru</small><strong>{{ reward_money([balance.available,0]|max) }}</strong></div>
         <div class="bzh-account-mini"><span>Čekající</span><strong>{{ reward_money(balance.pending) }}</strong></div>
         <div class="bzh-account-mini"><span>Rezervováno</span><strong>{{ reward_money(balance.reserved) }}</strong></div>
-        <p>Odměny, provize a výplaty máte přehledně na jednom místě.</p>
+        <p>Stejný zůstatek uvidíte ve webu i v nainstalované aplikaci. Vše je svázané s tímto přihlášeným účtem.</p>
         <a class="btn btn-dark rounded-pill w-100" href="{{ url_for('rewards.wallet') }}">Otevřít Moje odměny</a>
       {% else %}
-        <p>Program odměn zatím není aktivovaný.</p>
+        <p>Program odměn zatím není aktivovaný. Aktivujete ho jednou a potom se bude zobrazovat na webu i v aplikaci pod stejným účtem.</p>
         <a class="btn btn-dark rounded-pill w-100" href="{{ url_for('rewards.wallet') }}">Aktivovat odměny</a>
       {% endif %}
     </section>

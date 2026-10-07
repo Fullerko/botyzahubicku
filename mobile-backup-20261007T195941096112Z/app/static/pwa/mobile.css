@@ -76,23 +76,3 @@ button,a,.btn{-webkit-touch-callout:none}
   .bzh-account-page{padding-top:12px!important}
   .bzh-account-stats>a:active,.bzh-account-card .btn:active{transform:scale(.985)}
 }
-
-
-/* BZH MOBILE V7: instant navigation, explicit account/admin controls. */
-.bzh-account-link{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.bzh-account-link .bzh-account-label{font-size:13px}.bzh-admin-link{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-weight:700}
-@media(max-width:767.98px){
-  .bzh-mobile-nav a{touch-action:manipulation;transition:none!important;will-change:auto}
-  .bzh-mobile-nav a.bzh-nav-pressed,.bzh-mobile-nav a:active{transform:scale(.96);background:#f3f4f6}
-  [data-bzh-focus-lock]{caret-color:transparent}
-}
-@media(display-mode:standalone){
-  body>nav.navbar .d-flex.align-items-center.gap-3>a.bzh-admin-link,
-  body>nav.navbar .d-flex.align-items-center.gap-3>a.bzh-account-link,
-  body>nav.navbar .d-flex.align-items-center.gap-3>a.btn{display:inline-flex!important}
-  body>nav.navbar .d-flex.align-items-center.gap-3>a:not(.btn):not(.bzh-account-link):not(.bzh-admin-link){display:none!important}
-  .bzh-account-link{min-height:40px;padding:0 4px}.bzh-account-link .bzh-account-label{display:inline}
-  .bzh-admin-link{min-height:40px;font-size:13px}
-}
-@media(max-width:420px) and (display-mode:standalone){
-  body>nav.navbar .container{gap:6px!important}.bzh-admin-link{font-size:12px}.bzh-account-link .bzh-account-label{font-size:12px}
-}

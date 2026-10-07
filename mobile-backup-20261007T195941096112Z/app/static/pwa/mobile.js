@@ -25,57 +25,21 @@
   });
   addEventListener('appinstalled', () => { promptEvent = null; renderInstall(); });
 
-  // BZH V7: never let restored browser focus flash the software keyboard.
-  // Text controls start readonly and are unlocked synchronously only by a real user tap.
+  // Mobile browsers can restore/focus the first form control after bottom-nav navigation.
+  // On cart/rewards/account screens we explicitly start unfocused, so opening a tab never opens the keyboard by itself.
   if (standalone() && /^\/(cart|odmeny|muj-ucet)(?:\/|$)/.test(location.pathname)) {
-    const lockable = 'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]):not([type=file]):not([type=range]):not([type=color]), textarea';
-    const locked = new Map();
-    document.querySelectorAll(lockable).forEach(el => {
-      if (el.readOnly || el.disabled) return;
-      locked.set(el, {readOnly: el.readOnly, inputMode: el.getAttribute('inputmode')});
-      el.readOnly = true;
-      el.setAttribute('data-bzh-focus-lock', '1');
-      el.setAttribute('inputmode', 'none');
-    });
-    const unlock = el => {
-      const state = locked.get(el);
-      if (!state) return;
-      el.readOnly = state.readOnly;
-      if (state.inputMode === null) el.removeAttribute('inputmode'); else el.setAttribute('inputmode', state.inputMode);
-      el.removeAttribute('data-bzh-focus-lock');
-      locked.delete(el);
+    let userFocused = false;
+    document.addEventListener('pointerdown', event => { if (event.target.closest('input,textarea,select,[contenteditable="true"]')) userFocused = true; }, true);
+    const clearGhostFocus = () => {
+      if (userFocused) return;
+      const active = document.activeElement;
+      if (active && active.matches?.('input,textarea,select,[contenteditable="true"]')) active.blur();
     };
-    document.addEventListener('pointerdown', event => {
-      const el = event.target.closest?.('[data-bzh-focus-lock]');
-      if (el) unlock(el);
-    }, true);
-    document.addEventListener('keydown', event => {
-      const el = event.target.closest?.('[data-bzh-focus-lock]');
-      if (el && (event.key === 'Enter' || event.key === ' ')) unlock(el);
-    }, true);
+    clearGhostFocus();
+    requestAnimationFrame(clearGhostFocus);
+    setTimeout(clearGhostFocus, 120);
+    addEventListener('pageshow', () => setTimeout(clearGhostFocus, 40));
   }
-
-  // BZH V7: bottom navigation feels immediate and always opens sections at the top.
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  const resetKey = 'bzh-nav-reset-scroll';
-  const resetScroll = () => {
-    if (sessionStorage.getItem(resetKey) !== location.pathname) return;
-    sessionStorage.removeItem(resetKey);
-    scrollTo({top: 0, left: 0, behavior: 'instant'});
-  };
-  resetScroll();
-  requestAnimationFrame(resetScroll);
-  addEventListener('pageshow', resetScroll);
-  document.querySelectorAll('[data-bzh-nav-link]').forEach(link => {
-    link.style.touchAction = 'manipulation';
-    link.addEventListener('pointerdown', () => {
-      document.querySelectorAll('[data-bzh-nav-link].bzh-nav-pressed').forEach(item => item.classList.remove('bzh-nav-pressed'));
-      link.classList.add('bzh-nav-pressed');
-    }, {passive: true});
-    link.addEventListener('click', () => {
-      try { sessionStorage.setItem(resetKey, new URL(link.href, location.href).pathname); } catch {}
-    });
-  });
 
   const connection = document.getElementById('bzh-connection');
   const connectionState = () => { if (connection) connection.hidden = navigator.onLine; };
