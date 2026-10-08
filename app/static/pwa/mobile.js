@@ -25,7 +25,12 @@
   });
   addEventListener('appinstalled', () => { promptEvent = null; renderInstall(); });
 
-  document.documentElement.classList.remove('bzh-boot');
+  // Keep the launch screen visible through the first paint, even on fast loads.
+  if (document.documentElement.classList.contains('bzh-boot')) {
+    const hideBoot = () => setTimeout(() => document.documentElement.classList.remove('bzh-boot'), 700);
+    if (document.readyState === 'complete') hideBoot();
+    else addEventListener('load', hideBoot, {once: true});
+  }
   let focusLifecycle;
   const initializePage = () => {
     focusLifecycle?.abort();

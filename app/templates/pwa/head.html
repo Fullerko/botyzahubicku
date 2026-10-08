@@ -14,12 +14,12 @@
 <script defer src="{{ url_for('static', filename='pwa/rewards.js', v='8') }}"></script>
 
 <style>
-#bzh-splash{display:none}.bzh-boot #bzh-splash{position:fixed;inset:0;z-index:9999;display:grid;place-content:center;justify-items:center;gap:22px;background:#111827;color:white;animation:bzh-splash-failsafe 6s forwards;pointer-events:none}
+#bzh-splash{display:none}.bzh-boot #bzh-splash{position:fixed;inset:0;z-index:9999;display:grid;place-content:center;justify-items:center;gap:22px;background:#111827;color:white;animation:bzh-splash-failsafe 8s forwards;pointer-events:none}
 .bzh-splash-icon{width:96px;height:96px;border-radius:28px;box-shadow:0 20px 70px #fbbf2440;animation:bzh-splash-float 1.2s ease-in-out infinite alternate}
 .bzh-splash-name{font-size:24px;font-weight:800;letter-spacing:-.04em}.bzh-splash-dots{display:flex;gap:8px}.bzh-splash-dots i{width:7px;height:7px;border-radius:50%;background:#fbbf24;animation:bzh-splash-dot .8s infinite alternate}.bzh-splash-dots i:nth-child(2){animation-delay:.2s}.bzh-splash-dots i:nth-child(3){animation-delay:.4s}
 @keyframes bzh-splash-float{to{transform:translateY(-8px) rotate(-4deg)}}@keyframes bzh-splash-dot{to{opacity:.25;transform:translateY(-5px)}}@keyframes bzh-splash-failsafe{99%{visibility:visible}100%{visibility:hidden}}
 @media(prefers-reduced-motion:reduce){.bzh-splash-icon,.bzh-splash-dots i{animation:none}}
 </style>
 <script>
-try{if((matchMedia('(display-mode: standalone)').matches||navigator.standalone===true)&&!sessionStorage.getItem('bzh-booted')){document.documentElement.classList.add('bzh-boot');sessionStorage.setItem('bzh-booted','1');}}catch{}
+try{if(matchMedia('(display-mode: standalone)').matches||navigator.standalone===true){document.documentElement.classList.add('bzh-boot');}}catch{}
 </script>

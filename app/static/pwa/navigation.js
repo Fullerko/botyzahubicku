@@ -52,8 +52,6 @@
         document.body.appendChild(script);
         script.remove();
       }
-      document.querySelector('main h1')?.setAttribute('tabindex', '-1');
-      document.querySelector('main h1')?.focus({preventScroll:true});
     } catch (error) {
       if (ticket === turn) location.assign(url.href);
     } finally {
