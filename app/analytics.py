@@ -224,7 +224,7 @@ def _should_track():
     path = request.path or ''
     if path.startswith(('/static/', '/uploads/', '/favicon', '/robots.txt', '/sitemap.xml')):
         return False
-    if path.startswith(('/admin', '/api/')):
+    if path.startswith(('/admin', '/api/', '/odmeny', '/muj-ucet', '/app.webmanifest', '/service-worker.js', '/aplikace/offline', '/pozvat')):
         return False
     return True
 
@@ -838,7 +838,7 @@ def api_track_event():
     if not path:
         path = request.path
 
-    if path.startswith('/admin'):
+    if path.startswith(('/admin','/odmeny','/muj-ucet','/pozvat')):
         return _json_response({'ok': True, 'ignored': 'admin'})
 
     source, medium, campaign, _, _ = _marketing_data()
@@ -883,7 +883,7 @@ def api_track_heatmap():
 
     data = request.get_json(silent=True) or {}
     path = str(data.get('path') or '')[:500]
-    if not path or path.startswith('/admin'):
+    if not path or path.startswith(('/admin','/odmeny','/muj-ucet','/pozvat')):
         return _json_response({'ok': True, 'ignored': 'admin'})
 
     visitor_cookie = request.cookies.get(VISITOR_COOKIE) or uuid4().hex

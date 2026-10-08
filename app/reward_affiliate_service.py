@@ -136,11 +136,15 @@ def sync_orders(account):
     orders,ambiguous=partner_orders(partner)
     if ambiguous and account.reviewed_by is None:
         account.legacy_state='review';account.legacy_note='Objednávky podle jména nejsou jednoznačné. Nutná kontrola správce.'
+    order_ids=[order.id for order in orders]
+    existing={row.order_id:row for row in RewardAffiliateOrder.query.filter(RewardAffiliateOrder.order_id.in_(order_ids)).all()} if order_ids else {}
+    identities_all={str(value).lower() for order in orders for value in (order.order_number,order.variable_symbol,order.fio_transaction_id) if value}
+    duplicated={str(row.reference).lower() for row in RewardPurchase.query.filter(db.func.lower(RewardPurchase.reference).in_(identities_all)).all()} if identities_all else set()
     for order in orders:
         identities=[order.order_number,order.variable_symbol,order.fio_transaction_id]
-        if RewardPurchase.query.filter(db.func.lower(RewardPurchase.reference).in_([x.lower() for x in identities if x])).first():
+        if duplicated.intersection(x.lower() for x in identities if x):
             account.legacy_state='review';account.legacy_note='Stejné číslo nákupu existuje na webu i v QR programu. Nová webová provize nebyla připsána.';continue
-        row=RewardAffiliateOrder.query.filter_by(order_id=order.id).first()
+        row=existing.get(order.id)
         if row and row.affiliate_account_id!=account.id:
             account.legacy_state='review';account.legacy_note='Objednávka už je přiřazená jinému affiliate účtu.';continue
         if not row:

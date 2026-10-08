@@ -1,4 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
+// BZH V8 PAGE LIFECYCLE
+function bzhOnPage(callback){document.addEventListener('DOMContentLoaded',callback);document.addEventListener('bzh:page',callback);}
+bzhOnPage( () => {
   document.querySelectorAll('[data-autodismiss]').forEach((el) => setTimeout(() => el.remove(), 3000));
 });
 function changeProductImage(button, imageUrl) {
@@ -126,7 +128,7 @@ async function saveCartLead(email, name = '', phone = '', messageBox = null) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+bzhOnPage( () => {
   const cartLeadForm = document.getElementById('cartLeadForm');
   if (cartLeadForm) {
     cartLeadForm.addEventListener('submit', async (event) => {
@@ -162,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+bzhOnPage( () => {
   document.querySelectorAll('[data-reviews-carousel]').forEach((carousel) => {
     const track = carousel.querySelector('[data-reviews-track]');
     const cards = Array.from(track?.querySelectorAll('.review-card') || []);
@@ -234,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
+    document.addEventListener('bzh:before-navigate',stopAutoplay,{once:true});
     const startAutoplay = () => {
       stopAutoplay();
       if (cards.length <= cardsPerView()) return;
@@ -250,7 +253,10 @@ document.addEventListener('DOMContentLoaded', () => {
     carousel.addEventListener('focusin', stopAutoplay);
     carousel.addEventListener('focusout', startAutoplay);
 
-    window.addEventListener('resize', () => moveTo(0));
+    // BZH V8 CAROUSEL CLEANUP
+    const resizeCarousel=()=>moveTo(0);
+    window.addEventListener('resize',resizeCarousel);
+    document.addEventListener('bzh:before-navigate',()=>window.removeEventListener('resize',resizeCarousel),{once:true});
 
     moveTo(0);
     startAutoplay();

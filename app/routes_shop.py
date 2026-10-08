@@ -1110,7 +1110,10 @@ def products():
     else:
         q = q.order_by(Product.created_at.desc())
 
-    products = q.all()
+    # BZH V8 PRODUCT PAGINATION
+    page=max(1,request.args.get('page',1,type=int) or 1)
+    pagination=q.order_by(Product.id.desc()).paginate(page=page,per_page=24,error_out=False)
+    products=pagination.items
     brands = _product_filter_brands()
     sizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47']
     categories = _visible_shop_categories()
@@ -1118,6 +1121,7 @@ def products():
     return render_template(
         'shop/products.html',
         products=products,
+        pagination=pagination,
         brands=brands,
         sizes=sizes,
         categories=categories,

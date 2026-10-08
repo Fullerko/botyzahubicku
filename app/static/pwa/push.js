@@ -1,4 +1,4 @@
-(() => {
+window.bzhInitPush = () => {
   'use strict';
   const panels = [...document.querySelectorAll('[data-push-panel]')];
   const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -30,7 +30,7 @@
           channel.port1.onmessage=event=>{clearTimeout(timer);resolve(event.data);};
           reg.active?.postMessage({type:'MOBILE_VERSION'},[channel.port2]);
         });
-        if(version !== 'bzh-mobile-v6') {setStatus('Nejdřív aktualizujte aplikaci tlačítkem „Aktualizovat“ v oznámení nové verze a znovu otevřete tuto stránku.'); return;}
+        if(version !== 'bzh-mobile-v8') {setStatus('Nejdřív aktualizujte aplikaci tlačítkem „Aktualizovat“ v oznámení nové verze a znovu otevřete tuto stránku.'); return;}
 
         const existing=await registration.pushManager.getSubscription();
         if (existing && Notification.permission === 'granted' && !config.optedOut) {
@@ -90,4 +90,6 @@
       finally {running=false;start.disabled=finished;stop.hidden=true;}
     });
   }
-})();
+};
+window.bzhInitPush();
+document.addEventListener("bzh:page", window.bzhInitPush);

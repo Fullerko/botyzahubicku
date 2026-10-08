@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Objednávka {{ order.order_number }} | BotyZaHubičku{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block content %}
+<section class="container bzh-account-page">
+  <a class="btn btn-outline-dark rounded-pill mb-3" href="{{ url_for('rewards.account',_anchor='objednavky') }}">← Zpět na moje nákupy</a>
+  <header class="bzh-account-hero"><div><span class="bzh-eyebrow">DETAIL OBJEDNÁVKY</span><h1>{{ order.order_number }}</h1><p>Zakoupeno {{ reward_local_date(order.created_at) }}</p></div></header>
+  <a class="btn btn-outline-dark rounded-pill mt-3" href="{{ url_for('rewards.order_invoice',order_id=order.id) }}">Stáhnout doklad PDF</a>
+  <div class="bzh-account-grid mt-3">
+    <section class="info-card bzh-account-card"><h2 class="h4">Zakoupené produkty</h2>
+      {% for item in order.items %}{% set product = products.get(item.product_id) %}
+      <article class="bzh-order-item">
+        {% if product and product.active %}<a href="{{ url_for('shop.product_detail',slug=product.slug) }}">{% endif %}<img src="{{ image_url(product.image if product else 'default-product.svg') }}" alt="{{ item.product_name }}" width="96" height="96" loading="lazy">{% if product and product.active %}</a>{% endif %}
+        <div><h3 class="h6">{% if product and product.active %}<a href="{{ url_for('shop.product_detail',slug=product.slug) }}">{{ item.product_name }}</a>{% else %}{{ item.product_name }}{% endif %}</h3><p>Velikost {{ item.size }}{% if item.color %} · {{ item.color }}{% endif %}<br>{{ item.quantity }} ks × {{ '{:,.2f}'.format(item.unit_price).replace(',', ' ') }} Kč</p><strong>{{ '{:,.2f}'.format(item.quantity * item.unit_price).replace(',', ' ') }} Kč</strong></div>
+      </article>{% endfor %}
+      <hr><div class="bzh-account-mini"><span>Produkty</span><strong>{{ '{:,.2f}'.format(order.subtotal).replace(',', ' ') }} Kč</strong></div>
+      <div class="bzh-account-mini"><span>Doprava</span><strong>{{ '{:,.2f}'.format(order.shipping_price).replace(',', ' ') }} Kč</strong></div>
+      <div class="bzh-account-mini"><span>Sleva{% if order.coupon_code %} ({{ order.coupon_code }}){% endif %}</span><strong>−{{ '{:,.2f}'.format(order.discount_amount or 0).replace(',', ' ') }} Kč</strong></div>
+      <div class="bzh-account-money mt-3"><small>Celkem</small><strong>{{ '{:,.2f}'.format(order.total_price).replace(',', ' ') }} Kč</strong></div>
+    </section>
+    <section class="info-card bzh-account-card"><h2 class="h4">Stav a doručení</h2><dl class="bzh-order-info">
+      <dt>Stav objednávky</dt><dd>{{ order.status }}</dd>
+      <dt>Platba</dt><dd>{{ {'paid':'Zaplaceno','pending':'Čeká na platbu','refunded':'Vráceno','failed':'Neúspěšná'}.get(order.payment_status,order.payment_status) }}{% if order.paid_at %}<br>{{ reward_local_date(order.paid_at) }}{% endif %}</dd>
+      <dt>Způsob platby</dt><dd>{{ order.payment_method }}</dd><dt>Variabilní symbol</dt><dd>{{ order.variable_symbol or '—' }}</dd>
+      <dt>Doprava</dt><dd>{{ order.shipping_method }}</dd><dt>Doručovací adresa</dt><dd>{{ order.customer_name }}<br>{{ order.street }}<br>{{ order.postal_code }} {{ order.city }}</dd>
+      <dt>Kontakt</dt><dd>{{ order.email }}<br>{{ order.phone }}</dd>
+      {% if order.note %}<dt>Poznámka k objednávce</dt><dd class="bzh-order-note">{{ order.note }}</dd>{% endif %}
+    </dl>{% if order.payment_status == 'pending' and order.qr_image %}<h3 class="h5">QR pro platbu objednávky</h3><img src="{{ url_for('uploaded_file',filename=order.qr_image) }}" alt="QR platba objednávky" width="220" height="220" style="max-width:100%;height:auto">{% endif %}</section>
+  </div>
+</section>
+{% endblock %}

@@ -1,4 +1,8 @@
-(() => {
+window.bzhInitRewards = () => {
+ window.bzhRewardsCleanup?.();
+ const lifecycle = new AbortController();
+ let qrTimer;
+ window.bzhRewardsCleanup = () => {clearInterval(qrTimer); lifecycle.abort();};
  'use strict';
  const standalone=matchMedia('(display-mode: standalone)').matches || navigator.standalone===true || !!window.BZH_NATIVE_APP;
  const activation=document.querySelector('[data-reward-activation]');
@@ -6,7 +10,7 @@
  const qr=document.querySelector('[data-reward-qr]');
  const refreshQR=()=>{if(qr && !document.hidden){const url=new URL(qr.src,location.href);url.searchParams.set('v',Date.now());qr.src=url.href;}};
  document.querySelector('[data-refresh-qr]')?.addEventListener('click',refreshQR);
- if(qr){setInterval(refreshQR,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQR();});}
+ if(qr){qrTimer=setInterval(refreshQR,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshQR();},{signal:lifecycle.signal});}
  const amount=document.querySelector('[data-reward-amount]');
  if(amount)amount.addEventListener('input',()=>{
   const raw=amount.value.trim().replace(/ /g,'').replace(',','.');let text='Odměna: 5 %';
@@ -50,4 +54,7 @@
  });
  stop.addEventListener('click',()=>{stopCamera();status.textContent='Kamera byla zastavena.';});
  addEventListener('pagehide',stopCamera);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopCamera();});
-})();
+};
+window.bzhInitRewards();
+document.addEventListener('bzh:before-navigate',()=>window.bzhRewardsCleanup?.());
+document.addEventListener('bzh:page',window.bzhInitRewards);

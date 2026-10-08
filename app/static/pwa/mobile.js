@@ -25,6 +25,11 @@
   });
   addEventListener('appinstalled', () => { promptEvent = null; renderInstall(); });
 
+  document.documentElement.classList.remove('bzh-boot');
+  let focusLifecycle;
+  const initializePage = () => {
+    focusLifecycle?.abort();
+    focusLifecycle = new AbortController();
   // BZH V7: never let restored browser focus flash the software keyboard.
   // Text controls start readonly and are unlocked synchronously only by a real user tap.
   if (standalone() && /^\/(cart|odmeny|muj-ucet)(?:\/|$)/.test(location.pathname)) {
@@ -48,33 +53,36 @@
     document.addEventListener('pointerdown', event => {
       const el = event.target.closest?.('[data-bzh-focus-lock]');
       if (el) unlock(el);
-    }, true);
+    }, {capture:true,signal:focusLifecycle.signal});
     document.addEventListener('keydown', event => {
       const el = event.target.closest?.('[data-bzh-focus-lock]');
       if (el && (event.key === 'Enter' || event.key === ' ')) unlock(el);
-    }, true);
+    }, {capture:true,signal:focusLifecycle.signal});
   }
 
+  };
+  initializePage();
+  document.addEventListener('bzh:page', initializePage);
   // BZH V7: bottom navigation feels immediate and always opens sections at the top.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   const resetKey = 'bzh-nav-reset-scroll';
   const resetScroll = () => {
-    if (sessionStorage.getItem(resetKey) !== location.pathname) return;
-    sessionStorage.removeItem(resetKey);
+    try {if (sessionStorage.getItem(resetKey) !== location.pathname) return; sessionStorage.removeItem(resetKey);}catch{return;}
     scrollTo({top: 0, left: 0, behavior: 'instant'});
   };
   resetScroll();
   requestAnimationFrame(resetScroll);
   addEventListener('pageshow', resetScroll);
-  document.querySelectorAll('[data-bzh-nav-link]').forEach(link => {
-    link.style.touchAction = 'manipulation';
-    link.addEventListener('pointerdown', () => {
-      document.querySelectorAll('[data-bzh-nav-link].bzh-nav-pressed').forEach(item => item.classList.remove('bzh-nav-pressed'));
-      link.classList.add('bzh-nav-pressed');
-    }, {passive: true});
-    link.addEventListener('click', () => {
-      try { sessionStorage.setItem(resetKey, new URL(link.href, location.href).pathname); } catch {}
-    });
+  document.addEventListener('pointerdown', event => {
+    const link=event.target.closest?.('[data-bzh-nav-link]');
+    if(!link)return;
+    document.querySelectorAll('[data-bzh-nav-link].bzh-nav-pressed').forEach(item=>item.classList.remove('bzh-nav-pressed'));
+    link.classList.add('bzh-nav-pressed');
+  }, {passive:true});
+  document.addEventListener('click', event => {
+    const link=event.target.closest?.('[data-bzh-nav-link]');
+    if(!link)return;
+    try{sessionStorage.setItem(resetKey,new URL(link.href,location.href).pathname);}catch{}
   });
 
   const connection = document.getElementById('bzh-connection');

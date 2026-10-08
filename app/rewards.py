@@ -5,12 +5,13 @@ from datetime import datetime
 from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 import qrcode
-from flask import Blueprint, Response, abort, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, Response, abort, current_app, flash, redirect, render_template, request, url_for, send_file
 from flask_login import current_user, login_required
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 from . import db
-from .models import User, Order
+from .models import User, Order, Product
 from .utils import admin_required
 from .mobile import csrf_token, protect_mobile_writes
 from .reward_models import RewardMember, RewardPurchase, RewardWithdrawal, RewardLedger
@@ -81,9 +82,13 @@ def account():
             flash('Údaje účtu byly uloženy.','success')
         return redirect(url_for('rewards.account'))
     member=member_for_user()
-    orders=Order.query.filter_by(user_id=current_user.id).order_by(Order.created_at.desc()).limit(30).all()
+    page=max(1,request.args.get('page',1,type=int) or 1)
+    pagination=Order.query.filter_by(user_id=current_user.id).options(selectinload(Order.items)).order_by(Order.created_at.desc(),Order.id.desc()).paginate(page=page,per_page=20,error_out=False)
+    orders=pagination.items
+    product_ids={item.product_id for order in orders for item in order.items}
+    products={p.id:p for p in Product.query.filter(Product.id.in_(product_ids)).all()} if product_ids else {}
     return render_template('rewards/account.html',member=member,balance=balances(current_user.id),orders=orders,
-        order_count=Order.query.filter_by(user_id=current_user.id).count())
+        order_count=pagination.total,pagination=pagination,products=products)
 
 
 @rewards_bp.get('/odmeny')
@@ -91,8 +96,11 @@ def account():
 def wallet():
     from .reward_affiliate import refresh_account
     refresh_account(current_user.id)
+    from .reward_affiliate_models import RewardAffiliateAccount,RewardReferral
+    affiliate=RewardAffiliateAccount.query.filter_by(user_id=current_user.id).first()
+    invited_count=RewardReferral.query.filter_by(affiliate_account_id=affiliate.id).count() if affiliate else 0
     member=member_for_user()
-    return render_template('rewards/wallet.html',member=member,balance=balances(current_user.id),
+    return render_template('rewards/wallet.html',affiliate=affiliate,invited_count=invited_count,member=member,balance=balances(current_user.id),
         ledger=RewardLedger.query.filter_by(user_id=current_user.id).order_by(RewardLedger.id.desc()).limit(100).all(),
         withdrawals=RewardWithdrawal.query.filter_by(user_id=current_user.id).order_by(RewardWithdrawal.id.desc()).limit(30).all(),now=datetime.utcnow())
 
@@ -272,3 +280,21 @@ def payout(withdrawal_id):
     item=db.get_or_404(RewardWithdrawal,withdrawal_id)
     user=db.get_or_404(User,item.user_id)
     return render_template('rewards/payout.html',item=item,user=user,error=error,balance=balances(user.id))
+
+
+@rewards_bp.get('/muj-ucet/objednavky/<int:order_id>')
+@login_required
+def order_detail(order_id):
+    # Scope the query to the owner, including for admins viewing the customer area.
+    order=Order.query.filter_by(id=order_id,user_id=current_user.id).options(selectinload(Order.items)).first_or_404()
+    product_ids={item.product_id for item in order.items}
+    products={p.id:p for p in Product.query.filter(Product.id.in_(product_ids)).all()} if product_ids else {}
+    return render_template('rewards/order_detail.html',order=order,products=products)
+
+
+@rewards_bp.get('/muj-ucet/objednavky/<int:order_id>/doklad.pdf')
+@login_required
+def order_invoice(order_id):
+    order=Order.query.filter_by(id=order_id,user_id=current_user.id).options(selectinload(Order.items)).first_or_404()
+    from .invoice_utils import generate_invoice_pdf
+    return send_file(generate_invoice_pdf(order),mimetype='application/pdf',as_attachment=True,download_name=f'objednavka-{order.order_number}.pdf')

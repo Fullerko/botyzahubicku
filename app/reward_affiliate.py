@@ -34,8 +34,8 @@ def refresh_account(user_id):
 def init_affiliate(app):
     app.register_blueprint(affiliate_bp)
     # A single customer portal and payout path replace the two legacy POST blocks.
-    app.view_functions['shop.affiliate_portal']=login_required(lambda:redirect(url_for('reward_affiliate.invites')))
-    app.view_functions['shop.affiliate']=lambda:redirect(url_for('reward_affiliate.invites'))
+    app.view_functions['shop.affiliate_portal']=login_required(lambda:redirect(url_for('rewards.wallet',_anchor='pozvanky')))
+    app.view_functions['shop.affiliate']=lambda:redirect(url_for('rewards.wallet',_anchor='pozvanky'))
     app.view_functions['admin.affiliate_dashboard']=admin_required(lambda:redirect(url_for('reward_affiliate.admin_affiliate')))
     from . import routes_shop
     original_resolver=routes_shop._resolve_affiliate_for_order
@@ -125,6 +125,8 @@ def private(response):
 
 @affiliate_bp.app_context_processor
 def invitation_context():
+    if request.blueprint not in {'rewards','reward_affiliate'}:
+        return {}
     account=None;referral=None;inviter=None
     if current_user.is_authenticated:
         account=RewardAffiliateAccount.query.filter_by(user_id=current_user.id).first()

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Boty za hubičku",
-  "short_name": "Boty za hubičku",
+  "name": "BotyZaHubičku",
+  "short_name": "BotyZaHubičku",
   "description": "Váš obchod s obuví. Stejné produkty, účty a objednávky jako na webu.",
   "lang": "cs",
   "start_url": "/?source=mobile",

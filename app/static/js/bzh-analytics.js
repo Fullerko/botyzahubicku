@@ -11,16 +11,18 @@
   function shouldTrack() {
     const path = window.location.pathname || '';
     if (isBotLike()) return false;
-    if (path.startsWith('/admin')) return false;
+    // BZH V8 PRIVATE NAVIGATION
+    if (/^\/(admin|odmeny|muj-ucet|pozvat)(\/|$)/.test(path)) return false;
     if (path.startsWith('/api/')) return false;
     if (path.startsWith('/static/')) return false;
     if (path.startsWith('/uploads/')) return false;
     return true;
   }
 
-  if (!shouldTrack()) return;
+  // Check each event because the app can navigate without reloading this script.
 
   function post(url, payload) {
+    if(!shouldTrack())return;
     try {
       const body = JSON.stringify(payload);
       if (navigator.sendBeacon) {
@@ -76,6 +78,7 @@
   });
 
   let maxDepthSent = 0;
+  document.addEventListener('bzh:page',()=>{maxDepthSent=0;track('page_ready',{title:document.title});});
   function trackScrollDepth() {
     const doc = document.documentElement;
     const body = document.body;
