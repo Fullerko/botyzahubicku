@@ -25,12 +25,17 @@
   });
   addEventListener('appinstalled', () => { promptEvent = null; renderInstall(); });
 
-  // Keep the launch screen visible through the first paint, even on fast loads.
-  if (document.documentElement.classList.contains('bzh-boot')) {
-    const hideBoot = () => setTimeout(() => document.documentElement.classList.remove('bzh-boot'), 700);
-    if (document.readyState === 'complete') hideBoot();
-    else addEventListener('load', hideBoot, {once: true});
-  }
+  // Show the animated splash only on the first launch in this app session.
+  // Ordinary account/admin page loads and in-app navigation never add this class.
+  const bootSplashStarted = performance.now();
+  const finishBootSplash = () => {
+    if (!document.documentElement.classList.contains('bzh-boot')) return;
+    const minimumVisible = Math.max(0, 700 - (performance.now() - bootSplashStarted));
+    setTimeout(() => document.documentElement.classList.remove('bzh-boot'), minimumVisible);
+  };
+  if (document.readyState === 'complete') finishBootSplash();
+  else addEventListener('load', finishBootSplash, {once:true});
+  setTimeout(finishBootSplash, 4500);
   let focusLifecycle;
   const initializePage = () => {
     focusLifecycle?.abort();
